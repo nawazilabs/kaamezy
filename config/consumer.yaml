@@ -65,6 +65,8 @@ personal_loan:
     grievance_contact: "grievance@demo-lender.example (mock)"
     apr_bands: [[30000, 24], [60000, 19], [null, 15]]   # [max monthly income, APR %]; null = no upper limit
   tenures_months: [6, 12, 18, 24, 36]
+  purposes: [Medical, Education, Home, Business, Other]   # what the loan form offers; the chat prefill may only pick from these
+  form_age: [18, 99]                          # age range the loan form accepts (the lender then applies its own min/max age)
   guardrail:
     auto_limit_inr: 100000                      # a loan above this needs a one-time code
     max_active_loans: 2

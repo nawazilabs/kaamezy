@@ -91,3 +91,9 @@
 /* polish: no focus ring on the screen container, safe-area padding on real phones */
 section[tabindex="-1"]:focus,main[tabindex="-1"]:focus{outline:none}
 @media(max-width:599px){#screen{padding-bottom:env(safe-area-inset-bottom)}}
+
+/* assistant: figures read from a chat message, shown for review before the form opens */
+.pf{margin-top:.6rem;border:1px solid var(--p-line,#dfe6f1);border-radius:12px;padding:.55rem .75rem;background:#fff}
+.pf-row{display:flex;justify-content:space-between;gap:1rem;padding:.2rem 0;font-size:.88rem}
+.pf-row span{color:#5a6a85}
+.pf-need{margin-top:.35rem;font-size:.82rem;font-weight:700;color:#b45309}

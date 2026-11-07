@@ -108,6 +108,14 @@ topics:
     en: "I cannot know your own premium, EMI or approval. The quote and offer screens show them after the check, and the insurer or the lender decides."
     hi: "मैं आपका अपना प्रीमियम, EMI या मंज़ूरी नहीं जान सकता। क्वोट और ऑफ़र वाली स्क्रीन जाँच के बाद ये दिखाती हैं, और फ़ैसला बीमा कंपनी या लेंडर करता है।"
     hl: "Main aapka apna premium, EMI ya manzoori nahi jaan sakta. Quote aur offer wali screen jaanch ke baad yeh dikhati hain, aur faisla insurer ya lender karta hai."
+  # Not a topic the model can choose and not in `order`: code switches to it when the person's message contained loan
+  # figures that passed validation. It carries no number; the figures are shown by the screen, not by the reply.
+  loan_prefill:
+    action: prefill_loan
+    keywords: []
+    en: "I have filled in the loan form with what you told me. Please check every detail, add anything missing, and tap Check my offer. The lender decides the amount, not me."
+    hi: "आपने जो बताया, उससे मैंने लोन फ़ॉर्म भर दिया है। हर जानकारी जाँचिए, जो छूटा है वह जोड़िए, और Check my offer दबाइए। रकम लेंडर तय करता है, मैं नहीं।"
+    hl: "Aapne jo bataya, usse maine loan form bhar diya hai. Har jaankari jaanchiye, jo chhoota hai woh jodiye, aur Check my offer dabaiye. Rakam lender tay karta hai, main nahi."
   medical_bridge:
     action: open_bridge_loan
     keywords: ['\bbridge', 'ब्रिज']

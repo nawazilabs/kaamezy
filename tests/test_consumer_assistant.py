@@ -260,7 +260,7 @@ def test_every_knowledge_text_passes_its_own_checks():
     assert set(kb["order"]) <= set(kb["topics"]) and "unknown" in kb["topics"] and "injection_refusal" in kb["topics"]
     for name, t in kb["topics"].items():
         assert {"en", "hi", "hl"} <= set(t), name
-        assert t.get("action") in (None, "start_insurance_quote", "open_loan_check", "open_bridge_loan", "open_policies", "handoff_human"), name
+        assert t.get("action") in (None, "start_insurance_quote", "open_loan_check", "open_bridge_loan", "open_policies", "handoff_human", "prefill_loan"), name
         for lang in ("en-IN", "hi-IN", "hi-Latn"):
             assert assistant.reply_problem(assistant.kb_text(name, lang), lang) is None, (name, lang, assistant.reply_problem(assistant.kb_text(name, lang), lang))
 
@@ -271,5 +271,5 @@ def test_the_prompt_lists_exactly_the_supported_languages_and_topics():
     listed = re.search(r'"lang": "str - one of ([^"]+)"', schema).group(1).split(" | ")
     assert listed == list(load_config("languages")["detect"])
     for topic in assistant.topics():
-        if topic not in ("unknown", "injection_refusal"):
+        if topic not in assistant.CODE_ONLY_TOPICS:
             assert topic in prompt.split("<INSTRUCTION>")[1].split("</INSTRUCTION>")[0], topic

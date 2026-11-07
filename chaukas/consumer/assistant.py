@@ -22,13 +22,14 @@ from pydantic import BaseModel, Field, field_validator
 from chaukas.agents.intent import _keyword_lang, injection_signals
 from chaukas.agents.reply import _right_language
 from chaukas.agents.schemas import normalize_lang
-from chaukas.consumer import store
+from chaukas.consumer import prefill, store
 from chaukas.core import m2_shim
 from chaukas.integrations._common import load_config
 from chaukas.llm.client import LLMUnavailable
 from chaukas.llm.prompt import LLMOutputError, esc, run_validated, to_xml
 
 HISTORY_WINDOW = 6
+CODE_ONLY_TOPICS = ("unknown", "injection_refusal", "loan_prefill")  # the model may never choose these
 MIN_CONFIDENCE = 0.5
 _LANG_KEY = {"hi-IN": "hi", "hi-Latn": "hl"}  # every other language is answered in English
 
@@ -157,11 +158,11 @@ def answer(conn, user_id: str, session_id: str, text: str, screen: str = "home")
         try:
             out, llm = run_validated(
                 "consumer_assistant", "consumer_assistant.v1.txt",
-                {"context": _context(screen, facts, history), "knowledge": to_xml("knowledge", {t: v["en"] for t, v in topics().items() if t not in ("unknown", "injection_refusal")}),
+                {"context": _context(screen, facts, history), "knowledge": to_xml("knowledge", {t: v["en"] for t, v in topics().items() if t not in CODE_ONLY_TOPICS}),
                  "user_question": esc(masked)}, AssistantOutput, replay_key=f"consumer_assistant|{masked}|{screen}")
             res = out.assistant_result
             lang, conf = _script_lang(text, res.lang), res.confidence
-            topic = res.intent if res.intent in topics() and res.intent != "injection_refusal" else "unknown"
+            topic = res.intent if res.intent in topics() and res.intent not in CODE_ONLY_TOPICS else "unknown"
             if topic == "unknown" or conf < MIN_CONFIDENCE:
                 topic, source, reply = "unknown", "kb", kb_text("unknown", lang)
             else:
@@ -174,14 +175,31 @@ def answer(conn, user_id: str, session_id: str, text: str, screen: str = "home")
             topic = keyword_topic(text)
             source, reply, conf = "keyword", kb_text(topic, lang), 0.75 if topic != "unknown" else 0.3
 
+    suggestion = None
+    if topic == "loan_apply" and source != "guard":  # figures in the message -> a SUGGESTION for the form, never an action
+        suggestion = prefill.extract(text, masked)
+        if suggestion and suggestion["fields"]:
+            topic, reply, note = "loan_prefill", kb_text("loan_prefill", lang), "prefill_from=" + source
+            source = "kb" if source == "llm" else source
+        else:
+            suggestion = None
+
     action = topics()[topic].get("action")
     store.add_turn(conn, session_id, user_id, "user", masked, topic, None)
     store.add_turn(conn, session_id, user_id, "assistant", m2_shim.scrub(reply), topic, source)
     if source != "guard":
         store.audit(conn, user_id, "agent", "answer_question", "ALLOW", "READ_ONLY", note=f"topic={topic}; source={source}" + (f"; {note}" if note else ""))
+    if suggestion:  # field NAMES only: the figures are income and EMI, kept out of the audit trail
+        s_llm = suggestion["llm"]
+        store.audit(conn, user_id, "agent", "prefill_loan_form", "ALLOW", "FORM_PREFILL_ONLY",
+                    note=f"fields={','.join(suggestion['fields'])}; missing={','.join(suggestion['missing']) or '-'}; "
+                         f"dropped={','.join(suggestion['dropped']) or '-'}; via={suggestion['via']}; no quote, no credit check")
+        if s_llm:
+            llm = s_llm if not llm else llm.model_copy(update={"cost_inr": llm.cost_inr + s_llm.cost_inr, "latency_ms": llm.latency_ms + s_llm.latency_ms})
     if action == "handoff_human":
         store.audit(conn, user_id, "agent", "request_human", "ALLOW", "HUMAN_REQUESTED", note="person asked for a human advisor")
     conn.commit()
     return {"session_id": session_id, "reply": reply, "topic": topic, "lang": lang, "source": source, "action": action,
             "confidence": conf, "latency_ms": llm.latency_ms if llm else 0, "cost_inr": llm.cost_inr if llm else 0.0,
-            "model": llm.model if llm else None}
+            "model": llm.model if llm else None,
+            **({"prefill": {"fields": suggestion["fields"], "missing": suggestion["missing"], "dropped": suggestion["dropped"]}} if suggestion else {})}

@@ -442,6 +442,9 @@
   function validLoan1() {
     const bad = m => { toast(m); return false; };
     if (!(L.amount >= 10000 && L.amount <= 500000)) return bad("Choose an amount between ₹10,000 and ₹5,00,000.");
+    if (!TENURES.includes(L.tenure)) return bad("Choose how long you want to repay over.");
+    if (!L.purpose) return bad("Choose what the loan is for.");
+    if (!L.employment) return bad("Choose how you earn.");
     if (!(L.income > 0)) return bad("Enter your monthly income.");
     if (L.emi == null || L.emi < 0) return bad("Enter your existing monthly EMIs (0 if none).");
     if (!(L.age >= 18 && L.age <= 99)) return bad("Enter a valid age.");
@@ -577,6 +580,25 @@
     if (policyId) { L.purpose = BRIDGE; L.policy = policyId; }
     showScreen("lnw"); lstep1();
   }
+  /* The assistant read figures out of a chat message. The SERVER validated them (stated, in range); this only fills the form.
+     Whatever the person did not state is left EMPTY (never defaulted), and nothing runs until they tap "Check my offer". */
+  const PREFILL_FIELD = { amount_inr: "amount", tenure_months: "tenure", monthly_income_inr: "income", existing_emi_inr: "emi", age: "age", employment: "employment", purpose: "purpose" };
+  const PREFILL_LABEL = { amount_inr: "Amount", tenure_months: "Repay over", monthly_income_inr: "Monthly income", existing_emi_inr: "Existing EMIs", age: "Age", employment: "Employment", purpose: "Purpose" };
+  const PREFILL_WHY = { outside_range: "is outside what the lender offers", not_offered: "is not an offered repayment period", not_in_message: "could not be read clearly" };
+  const prefillValue = (k, v) => k === "tenure_months" ? v + " months" : k === "age" ? String(v) : k === "employment" ? (v === "self_employed" ? "Self-employed" : "Salaried") : k === "purpose" ? v : inr(v);
+  function prefillLoan(pf) {
+    const l = blankLoan();
+    Object.entries(PREFILL_FIELD).forEach(([k, f]) => { l[f] = k in pf.fields ? (k === "employment" ? (pf.fields[k] === "self_employed" ? "self" : "salaried") : pf.fields[k]) : null; });
+    startLoan(l);
+    const dropped = Object.keys(pf.dropped || {});
+    if (dropped.length) toast("Please check: " + dropped.map(k => PREFILL_LABEL[k] + " " + PREFILL_WHY[pf.dropped[k]]).join("; "));
+  }
+  function prefillCard(pf) {
+    const rows = Object.keys(PREFILL_FIELD).filter(k => k in pf.fields).map(k => el("div", { class: "pf-row" }, el("span", { text: PREFILL_LABEL[k] }), el("b", { text: prefillValue(k, pf.fields[k]) })));
+    const need = pf.missing.map(k => PREFILL_LABEL[k]);
+    return el("div", { class: "pf" }, ...rows, need.length ? el("div", { class: "pf-need", text: "Still needed from you: " + need.join(", ") }) : null,
+      el("div", { class: "acts" }, el("button", { class: "mini-cta", type: "button", text: "Review the loan form", onclick: () => prefillLoan(pf) })));
+  }
   async function bridgeLoan() { const pols = await listPolicies(); startLoan(blankLoan(), pols.length ? pols[pols.length - 1].id : null); }
 
   /* ---------------- lists ---------------- */
@@ -650,7 +672,9 @@
     ty.remove();
     if (!r.ok) { bubble("agent", "I couldn't reach the assistant just now. Please try again in a moment."); return; }
     const d = r.data, act = ACTIONS[d.action];
-    bubble("agent", d.reply, act ? el("div", { class: "acts" }, el("button", { class: "mini-cta", type: "button", text: act[0], onclick: act[1] })) : null);
+    const extra = d.action === "prefill_loan" && d.prefill ? prefillCard(d.prefill)
+      : act ? el("div", { class: "acts" }, el("button", { class: "mini-cta", type: "button", text: act[0], onclick: act[1] })) : null;
+    bubble("agent", d.reply, extra);
     $("ic-sub").textContent = d.source === "keyword" ? "Backup helper (the AI model is unavailable)" : "Live AI model · insurance and loan help";
   }
   async function openChat(prefill, from) {
