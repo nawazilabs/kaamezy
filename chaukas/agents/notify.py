@@ -4,7 +4,7 @@ and the reply when the merchant declines that payout.
 Deterministic template (prompts/proactive_notify.v1.txt), never an LLM: the amount and the settlement id
 come from the LEDGER (CLAUDE.md rule 2), and the text works with the network off (replay-safe).
 
-Owner: Member 1 · PROACTIVE_FEATURE_CHANGES.md §4.4
+Owner: Member 1 · docs/archive/PROACTIVE_FEATURE_CHANGES.md §4.4
 """
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
 """Proactive feature, Member 2 side: golden/red-team data shape, runner support, /api/redteam/check.
 
-Owner: Member 2 · Contract: PROACTIVE_FEATURE_CHANGES.md section 5
+Owner: Member 2 · Contract: docs/archive/PROACTIVE_FEATURE_CHANGES.md section 5
 """
 import json
 
@@ -19,7 +19,7 @@ def _golden():
 def test_every_proactive_golden_case_starts_with_a_scan_and_has_no_merchant_message_first():
     cases = [c for c in _golden() if c.get("trigger") == "proactive"]
     assert {c["case_id"] for c in cases} == {f"P{i:02d}" for i in range(1, 13)}
-    for c in cases:   # P01-P08: settlement failures; P09-P12: device-upgrade nudges (DEVICE_UPGRADE_PLAN.md)
+    for c in cases:   # P01-P08: settlement failures; P09-P12: device-upgrade nudges (docs/archive/DEVICE_UPGRADE_PLAN.md)
         assert c["turns"][0] in ({"scan": True}, {"scan": "device_upgrade"}), c["case_id"]
 
 

@@ -162,7 +162,7 @@ def test_changing_who_the_merchant_is_never_changes_the_credit_line(fdb, field, 
             assert decide_credit(mid) == baseline, f"{mid}: {field}={value!r}"
 
 
-# ------------------------------------------------------------------ the device advisor (DEVICE_UPGRADE_PLAN.md)
+# ------------------------------------------------------------------ the device advisor (docs/archive/DEVICE_UPGRADE_PLAN.md)
 # Its inputs are the cashflow features, gmv_30d and the CURRENT device (the thing being upgraded). Never who the
 # merchant is: name, language, location. KYC is a guardrail gating rule, not an advisor input.
 

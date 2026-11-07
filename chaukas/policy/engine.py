@@ -306,7 +306,7 @@ def _sales_cooling_off(ctx: Ctx) -> Outcome | None:
 
 
 def check_device_gating(ctx: Ctx) -> Outcome | None:                                  # 7b
-    """request_device_upgrade (DEVICE_UPGRADE_PLAN.md §4): the advisor's answer, support first, cooling-off."""
+    """request_device_upgrade (docs/archive/DEVICE_UPGRADE_PLAN.md §4): the advisor's answer, support first, cooling-off."""
     if ctx.action != "request_device_upgrade":
         return None
     if consent.is_withdrawn(ctx.conn, ctx.merchant_id, "device_offer"):     # DPDP s.6

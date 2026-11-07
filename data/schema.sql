@@ -178,7 +178,7 @@ CREATE TABLE offers (
 );
 CREATE INDEX idx_offers_merchant ON offers(merchant_id, status);
 
--- Device upgrade requests = the second "sales" outcome (ADDITIVE, DEVICE_UPGRADE_PLAN.md).
+-- Device upgrade requests = the second "sales" outcome (ADDITIVE, docs/archive/DEVICE_UPGRADE_PLAN.md).
 -- No price is shown in the prototype: the field team quotes it. A yes is only valid after the offer was shown.
 CREATE TABLE device_offers (
     id             TEXT PRIMARY KEY,                    -- "DEV-10001"

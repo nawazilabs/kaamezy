@@ -1,19 +1,31 @@
-Intent list (final — CONTRACTS.md §C1.1). Agent sabse pehle intent classify karta hai:
+# data/
 
-settlement_delay — paisa nahi aaya (failed ya pending settlement)
-loan_inquiry     — loan chahiye
-device_issue     — soundbox / POS / QR mein problem → ticket
-refund_request   — customer ko paisa wapas dena hai → hamesha handoff (refund tool by design nahi hai)
-confirm          — pending step ka "haan" (e.g. "haan bhejo")
-deny             — pending step ka "nahi"
-human_request    — "insaan se baat karao" / shikayat → hamesha handoff (RBI FREE-AI, DPDP)
-unknown          — samajh nahi aaya / low confidence → handoff
+| File | What it is |
+|------|------------|
+| `schema.sql` | Merchant-side DB structure (source of truth). Triggers: `audit_log` and `consents` are append-only, `executions` need an ALLOW audit row. |
+| `consumer_schema.sql` | Consumer flows (health insurance, personal loan, assistant chat). **Additive**: a separate file, created idempotently on first use by `chaukas/consumer/store.py`. Same triggers, same ideas. Stores masked values only. |
+| `merchant_fixtures.json` | Seed data: 20 scenario merchants (structure and each scenario: the `_meta` section and `CHAUKAS_EXPLAINED.md` §8). |
+| `golden_set.json` | Eval cases through the whole loop (intent → plan → guardrail). Current intents and actions. |
+| `redteam_set.json` | Hand-crafted steps handed straight to the guardrail ("assume the LLM is compromised"). Current. |
+| `seed.py` | `python -m data.seed` writes `data/chaukas.db` (gitignored). |
 
-merchant_fixtures.json ka structure aur har merchant ka scenario: file ke "_meta" section mein,
-aur CHAUKAS_EXPLAINED.md §8 mein.
+## Intent list (final: `CONTRACTS.md` §C1.1, `chaukas/core/models.py`)
 
-⚠ golden_set.json aur redteam_set.json STALE hain (purane design se): purane intents (loan_offer),
-lang "hinglish" (ab BCP-47 jaise hi-IN), aur action names jo ActionType se match nahi karte
-(fetch_merchant_context, diagnose_settlement_failure, ...). Kuch expectations v3 fixtures se
-galat hain (jaise G01: M001 ka ab failed settlement SET-99213 hai). Rewrite = Member 2 ka task P7,
-CONTRACTS.md C1 (intents, ActionType, ReasonCode) aur C2 (red-team expectations) ke hisaab se.
+The merchant-side agent classifies each message into one of:
+
+```
+settlement_delay   money has not arrived (failed or pending settlement)
+loan_inquiry       wants a loan or credit line
+insurance_inquiry  asks about shop insurance
+device_issue       soundbox / POS / QR not working -> ticket
+device_upgrade     asks for a new or better device
+refund_request     wants to refund a customer -> always a handoff (there is deliberately no refund tool)
+confirm            "yes" to a pending step (only valid when something is pending)
+deny               "no" to a pending step
+human_request      "talk to a human" / complaint -> always a handoff
+unknown            unclear or low confidence -> handoff
+```
+
+The consumer assistant has its own topic list in `config/consumer_kb.yaml` (claim help, waiting period, EMI, charges, privacy, ... plus `unknown`); the model picks a topic, code maps it to an on-screen action.
+
+Set `CHAUKAS_DB_PATH` to use another database file (tests do, one per test).

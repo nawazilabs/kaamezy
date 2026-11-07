@@ -6,13 +6,13 @@ session for each one (orchestrator.handle_event). Deterministic, no LLM, read-on
 - Only status='failed' is a trigger (v1). 'pending' (bank down, waiting) is not.
 - Dedupe: one proactive session per settlement, keyed by sessions.trigger_ref = 'settlement_failed:<id>'.
 - Runs on demand only (POST /api/events/scan). Production: a ledger event / Kafka consumer (roadmap).
-- Second kind, `device_upgrade` (DEVICE_UPGRADE_PLAN.md): the merchant's own transaction pattern crossed a
+- Second kind, `device_upgrade` (docs/archive/DEVICE_UPGRADE_PLAN.md): the merchant's own transaction pattern crossed a
   device-advisor threshold. Only `kind="device_upgrade"` runs it, so a settlement scan never sends a sales nudge.
   Pre-filtered with the same gating as the guardrail (support first, cooling-off, consent) so a nudge is never
   sent for something the guardrail would BLOCK; the guardrail still decides. At most one nudge per merchant in
   policy.yaml `device_nudge_every_days`.
 
-Owner: Member 1 · PROACTIVE_FEATURE_CHANGES.md §4.2
+Owner: Member 1 · docs/archive/PROACTIVE_FEATURE_CHANGES.md §4.2
 """
 from __future__ import annotations
 

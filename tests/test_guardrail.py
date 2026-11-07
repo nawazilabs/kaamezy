@@ -452,7 +452,7 @@ def test_withdrawn_consent_block_is_final_even_with_human_approval(db, run):
     assert (d.verdict, d.reason_code) == (B, ReasonCode.CONSENT_WITHDRAWN)
 
 
-# ------------------------------------------------------------------ proactive sessions (PROACTIVE_FEATURE_CHANGES.md)
+# ------------------------------------------------------------------ proactive sessions (docs/archive/PROACTIVE_FEATURE_CHANGES.md)
 
 def _session(db, session_id, merchant, trigger):
     db.execute("INSERT INTO sessions (session_id, merchant_id, channel, mode, trigger_source) "
@@ -620,7 +620,7 @@ def test_consent_for_a_credit_line_is_not_consent_for_a_term_loan(db, make_state
     assert d.verdict is not A and "differs" in d.reason
 
 
-# ------------------------------------------------------------------ check 7b: request_device_upgrade (DEVICE_UPGRADE_PLAN.md §4)
+# ------------------------------------------------------------------ check 7b: request_device_upgrade (docs/archive/DEVICE_UPGRADE_PLAN.md §4)
 
 def _device_state(make_state, merchant="M003", session="S1", to="ai_soundbox", recommended=True, frm="qr"):
     from chaukas.core.models import DeviceAdvice

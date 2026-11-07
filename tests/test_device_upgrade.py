@@ -1,4 +1,4 @@
-"""Device upgrade (DEVICE_UPGRADE_PLAN.md): simulated device advisor thresholds, reactive and proactive flows with
+"""Device upgrade (docs/archive/DEVICE_UPGRADE_PLAN.md): simulated device advisor thresholds, reactive and proactive flows with
 Member 2's REAL guardrail, cooling-off shared with loans, one sales offer per conversation. No network.
 
 Owner: Member 1 · Contract: CONTRACTS C1 / C3

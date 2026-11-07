@@ -1,4 +1,4 @@
-# SIMULATED device advisor (placeholders, calibration pending) — Owner: Member 1 · DEVICE_UPGRADE_PLAN.md §1
+# SIMULATED device advisor (placeholders, calibration pending) — Owner: Member 1 · docs/archive/DEVICE_UPGRADE_PLAN.md §1
 # Deterministic, no LLM. Inputs: cashflow_features + merchants.gmv_30d + the CURRENT device only
 # (never name, language, location or KYC; KYC is a guardrail gating rule, not an advisor input).
 #   avg_bill_inr       = gmv_30d // txn_count_30d

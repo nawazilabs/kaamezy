@@ -15,3 +15,7 @@ video/*
 eval/redteam_latest.json
 eval/latest.json
 eval/latest_detail.json
+
+# built UI artifacts and dependencies must never be committed (ui/ has no source; the live frontend is web/)
+ui/node_modules/
+ui/.wrangler/

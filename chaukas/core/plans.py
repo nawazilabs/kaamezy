@@ -181,7 +181,7 @@ def followup_insurance_step(state: ConversationState, step_no: int) -> PlannedSt
 
 
 def plan_device_upgrade(state: ConversationState, start_step_no: int) -> PlanResult:
-    """Device upgrade (DEVICE_UPGRADE_PLAN.md): one consent-gated field-team request for the device the ADVISOR
+    """Device upgrade (docs/archive/DEVICE_UPGRADE_PLAN.md): one consent-gated field-team request for the device the ADVISOR
     recommends (never the device the merchant named). Nothing recommended -> no step, an honest answer."""
     ctx = state.merchant
     assert ctx is not None

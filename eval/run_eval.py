@@ -310,7 +310,7 @@ def _executed(db_file: Path) -> list[tuple]:
 
 
 def _load_watcher():
-    """Member 1's event watcher (PROACTIVE_FEATURE_CHANGES.md section 4), or None while it is not built yet."""
+    """Member 1's event watcher (docs/archive/PROACTIVE_FEATURE_CHANGES.md section 4), or None while it is not built yet."""
     try:
         from chaukas.core import event_watcher
     except ImportError:

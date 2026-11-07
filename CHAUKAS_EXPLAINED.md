@@ -2,6 +2,7 @@
 
 > Ye doc team discussion ke liye hai. Har section mein **kya hai** aur **kyun hai** dono likha hai.
 > Technical detail chahiye to: `CHAUKAS_SYSTEM_DESIGN.md` (design), `CONTRACTS.md` (exact models/APIs), `data/schema.sql` (DB).
+> **Naya (7 Nov):** consumer flows (health insurance + personal loan + assistant) ke liye seedha **§16** padho.
 >
 > **Discussion kaise karein:** har section padho → "kyun" wala hissa apne shabdon mein ek doosre ko samjhao → jahan disagree ho, last section ("Team ko decide karna hai") mein note karo. Section 14 ke judge-sawaal har member ko bina doc dekhe answer karne aane chahiye.
 
@@ -338,3 +339,72 @@ Dates `days_ago` mein hain → seed script demo wale din ke hisaab se asli dates
 - [ ] Organisers se poochna: **pre-built code allowed hai ya sab venue pe banana hai?**
 - [ ] Sarvam / Gemini API keys aaj hi test karo.
 - [ ] Sab ok → `CONTRACTS.md` ka status `FROZEN v1` karo.
+
+
+---
+
+## 16. Naya (7 Nov 2026): consumer flows, health insurance + personal loan
+
+> Mentor ka feedback tha: generic customer support pehle se bana hua hai aur IFSC mismatch asli problem nahi hai (details registration par hi bhar di jaati hain). Isliye focus **loans aur insurance ki automation** par shift hua. Merchant wala poora system (sections 1 se 15) jaisa hai waisa base hai; consumer flows uske upar, usi safety ideas ke saath, alag package mein bane: `chaukas/consumer/`.
+
+### 16.1 Kya hai
+
+Paytm jaisi app mein (`web/`): sign in → home → teen live tiles: **Health Insurance**, **Loan**, **Chaukas Teammate** (purana merchant chat).
+
+| Flow | Kya hota hai |
+|------|--------------|
+| **Health insurance** | Family ki details (umar, gender, height/weight, pincode, conditions) → agent 3 insurers ka premium rule engine se nikalta hai, ek recommend karta hai (wajah ke saath) → review: PAN, nominee, DigiLocker KYC, consent → guardrail → policy (mock) |
+| **Personal loan** | Amount, tenure, income, EMI → simulated lender decide karta hai → Key Facts Statement (har kharcha) → do consents → guardrail → disbursal (mock) |
+| **Document autofill** | PAN/Aadhaar card ki photo **browser ke andar** padhi jaati hai (OCR), naam, DOB, gender, PAN nikalte hain, user confirm karta hai. Photo upload nahi hoti. |
+| **Assistant** | Claim, waiting period, EMI, charges, privacy ke sawaal Hindi / Hinglish / English mein. LLM topic aur bhasha samajhta hai aur chhota jawab likhta hai; code jawab ko check karta hai |
+| **Bridge loan** | Policy wale user ko "claim pending hai, paisa chahiye" purpose milta hai. Policy sirf wajah hai: approval, amount, rate nahi badalti |
+
+### 16.2 "Agent" kahan hai (sach-sach)
+
+| Hissa | LLM? | Kaisa |
+|-------|:----:|-------|
+| Assistant: topic + bhasha + jawab ki wording | ✅ | Asli (Sarvam), fallback: knowledge-base ka text |
+| Premium / recommendation (`engine.py`) | ❌ | Rule engine, asli code, numbers placeholder |
+| Lender ka faisla | ❌ | Simulated lender, asli code, thresholds placeholder |
+| Guardrail (8 checks insurance, 8 checks loan) | ❌ **kabhi nahi** | Asli, deterministic |
+| Document padhna (`docparse.js`) | ❌ | OCR + plain code |
+| Policy issue / loan disbursal / DigiLocker / human | ❌ | **Mock** |
+
+### 16.3 Safety: kya server par hai, kyun
+
+Browser par kuch bhi bharosemand nahi, isliye jo paisa unlock karta hai wo sab **server** par check hota hai:
+
+- **Amount** client se aata hi nahi. Server stored quote ko dobara rule engine se nikaal kar compare karta hai (`AMOUNT_MISMATCH`).
+- **KYC** ka flag server rakhta hai (sirf "verified" aur aakhri 4 digits; Aadhaar number kabhi nahi).
+- **OTP** server check karta hai. **Human approval** staff ki likhi row hai, jo exact quote + insurer se bandhi hai (bait-and-switch nahi chalega).
+- **KFS** kab dikha, ye server ghadi se likhta hai; uske bina loan accept nahi (`KFS_NOT_SHOWN`).
+- **DB triggers**: `consumer_audit` aur `consumer_consents` append-only; `consumer_executions` mein row tabhi jab audit mein ALLOW ho.
+- Same request dobara aaye to **idempotency key** purana result lauta deti hai.
+
+### 16.4 Aadhaar / PAN / LLM ka sawaal
+
+> "Aadhaar ya PAN LLM ko chala gaya to? Data breach?"
+
+LLM ko kabhi nahi jaata:
+1. **Aadhaar number** hum maangte hi nahi. KYC DigiLocker se (mock): humein sirf verified flag + aakhri 4 digits milte hain. Card ki photo mein number dikhe to parser use dekh kar **ignore** karta hai.
+2. **PAN** sirf format check ke liye server tak aata hai, masked (`XXXXX1234F`) store hota hai, kahin log nahi hota.
+3. Assistant ka prompt banne se pehle `mask_text` chalta hai; DB mein sirf masked turns. Audit mein topic aur source jaata hai, shabd nahi.
+4. Photo ka padhna browser mein hota hai (OCR engine code ki tarah download hota hai, photo nahi bhejti).
+5. Test hai jo saari consumer tables dump karke dekhta hai ki raw PAN, mobile, naam, pincode kahin nahi.
+
+### 16.5 Judge Q&A (consumer flows)
+
+1. **"Isme AI kahan hai? Sab rules hi to hain."**
+   → LLM wahan jahan ambiguity hai: user ki baat (bhasha, topic) aur jawab ki wording. Paisa rule engine aur guardrail ke haath. Jo AI premium ya loan khud tay kare, wo liability hai.
+2. **"AI galat jawab de ya promise kar de to?"**
+   → Jawab sirf knowledge-base ke facts use kar sakta hai. Naya number, ₹ amount, "approve ho gaya", OTP/Aadhaar maangna: code reject karke KB ka text bhejta hai. Model action choose nahi karta.
+3. **"Prompt injection?"**
+   → LLM call se pehle code pakadta hai ("ignore previous rules..."), BLOCK audit karta hai. Aur injection chal bhi jaye to bhi guardrail aur server ke amount checks nahi tootte.
+4. **"Policy loan approval badalti hai?"**
+   → Nahi. Lender sirf umar, income, EMI dekhta hai (fairness). Policy sirf "purpose" hai. Loan ke saath insurance kabhi zaroori nahi.
+5. **"Loan RBI-compliant hai?"**
+   → "Aligned with" bolo: KFS pehle, lender ka naam, do alag consents, grievance contact. Cooling-off dikhta hai par exit execute nahi hota (honestly bolo).
+6. **"Browser se koi OTP ya approval bypass kare?"**
+   → Mumkin nahi: dono server check karta hai, approval staff ki row hai jo exact quote se bandhi hai.
+7. **"Offline chalega?"**
+   → Nahi, backend chahiye (Render free tier so jaata hai: demo se pehle jagao).

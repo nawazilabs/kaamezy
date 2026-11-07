@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chaukas — AI teammate for Paytm merchants</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nawazi Labs · Chaukas</title>
+<meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2300b9f1'/%3E%3Cpath d='M9 16l5 5 9-10' stroke='%23fff' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
@@ -13,11 +14,6 @@
   --brand:#002e6e; --accent:#00b9f1; --accent-ink:#00587a;
   --allow:#0e9f6e; --allow-bg:#e3f6ee; --need:#b7791f; --need-bg:#fdf3dc; --block:#d14343; --block-bg:#fbe5e5;
   --bubble-agent:#eaf1fb; --bubble-me:#dff4ff; --alert:#fff7e6; --alert-line:#f5b942;
-}
-@media (prefers-color-scheme:dark){
-  :root{--bg:#0b1426; --panel:#121e36; --ink:#e8eefb; --muted:#97a6c4; --line:#243455; --brand:#7cc8ff; --accent-ink:#7fdcff;
-    --allow:#3ddc97; --allow-bg:#10382b; --need:#f0b84a; --need-bg:#3a2d10; --block:#ff7b7b; --block-bg:#3d1a1a;
-    --bubble-agent:#182a4a; --bubble-me:#0f3a52; --alert:#3a2d10; --alert-line:#b8892a}
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,"Noto Sans Devanagari",system-ui,sans-serif}
@@ -29,8 +25,6 @@ header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:s
 .chip.ok{color:var(--allow);border-color:var(--allow)} .chip.bad{color:var(--block);border-color:var(--block)}
 .v{display:inline-block;padding:2px 10px;border-radius:6px;font-size:13px;font-weight:700;letter-spacing:.2px}
 .v.ALLOW{background:var(--allow-bg);color:var(--allow)} .v.NEEDS_CONFIRMATION{background:var(--need-bg);color:var(--need)} .v.BLOCK{background:var(--block-bg);color:var(--block)}
-main{display:grid;grid-template-columns:minmax(340px,5fr) 7fr;gap:16px;padding:16px 20px;max-width:1500px;margin:0 auto}
-@media(max-width:980px){main{grid-template-columns:1fr;padding:12px 16px}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;min-height:0}
 .card h2{margin:0;padding:12px 16px;font-size:16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
 .bar{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line)}
@@ -39,7 +33,6 @@ select,input{padding:8px 10px;border:1px solid var(--line);border-radius:8px;bac
 button{padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600}
 button:hover{border-color:var(--accent)} button:disabled{opacity:.5;cursor:default}
 button.primary{background:var(--brand);border-color:var(--brand);color:#fff} button.primary:hover{filter:brightness(1.15)}
-@media(prefers-color-scheme:dark){button.primary{color:#04172e}}
 button.go{background:var(--allow);border-color:var(--allow);color:#fff} button.no{background:var(--panel);color:var(--block);border-color:var(--block)}
 button.event{background:var(--alert);border-color:var(--alert-line);color:var(--ink)}
 #chat{flex:1;min-height:360px;max-height:62vh;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
@@ -74,47 +67,499 @@ table{border-collapse:collapse;width:100%;font-size:14px} th,td{padding:6px 8px;
 .metric.pass{border-left:6px solid var(--allow)} .metric.miss{border-left:6px solid var(--block)}
 .empty{color:var(--muted);padding:20px 0;text-align:center}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--brand);color:#fff;padding:10px 16px;border-radius:10px;max-width:90vw;display:none;z-index:9}
-@media(prefers-color-scheme:dark){.toast{color:#04172e}}
-footer{max-width:1500px;margin:0 auto;padding:6px 20px 24px;color:var(--muted);font-size:13px}
 .spin{display:none;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:r .8s linear infinite} .busy .spin{display:inline-block}
 @keyframes r{to{transform:rotate(360deg)}}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* ===== phone shell: mobile = full screen, desktop = centred phone frame ===== */
+[hidden]{display:none!important}
+html,body{height:100%}
+body{overflow:hidden}
+#phone{position:relative;width:100%;height:100dvh;background:var(--p-bg);overflow:hidden}
+#screen{height:100%;display:flex;flex-direction:column}
+#sbar,#hind,.sb{display:none}
+#phone *{scrollbar-width:none}
+#phone ::-webkit-scrollbar{display:none}
+@media(min-width:600px){
+  html{background:radial-gradient(1200px 700px at 50% -10%,#cfe9f7,#e9eef6 60%) fixed}
+  body{display:grid;place-items:center}
+  /* iPhone 17 Pro proportions: 402 x 874 screen, scaled down to fit short windows */
+  #device{position:relative;width:422px;height:894px;flex:none;zoom:var(--s,1)}
+  #phone{width:100%;height:100%;border-radius:64px;border:10px solid #17181c;
+    box-shadow:0 0 0 2px #7a7f88,0 0 0 3.5px #0b0c0e,inset 0 0 0 2px #2c2f36,0 40px 80px rgba(0,30,70,.38)}
+  .sb{display:block;position:absolute;width:4px;border-radius:2px;background:linear-gradient(90deg,#5b6068,#2b2e34)}
+  .sb.s1{left:-6px;top:150px;height:34px}
+  .sb.s2{left:-6px;top:215px;height:62px}
+  .sb.s3{left:-6px;top:290px;height:62px}
+  .sb.s4{right:-6px;top:240px;height:96px;background:linear-gradient(270deg,#5b6068,#2b2e34)}
+  #sbar{display:flex;position:absolute;z-index:25;top:0;left:0;right:0;height:54px;align-items:center;justify-content:space-between;padding:6px 30px 0 34px;pointer-events:none;color:#0f1f3a;font-weight:700;font-size:17px;background:linear-gradient(#fff 55%,rgba(255,255,255,0))}
+  #sbar .island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:124px;height:36px;border-radius:20px;background:#000}
+  #sbar .sicons{display:flex;align-items:center;gap:6px}
+  #sbar svg{height:13px;width:auto;fill:currentColor}
+  #screen{padding-top:54px;padding-bottom:20px}
+  #hind{display:block;position:absolute;z-index:26;left:50%;bottom:7px;transform:translateX(-50%);width:136px;height:5px;border-radius:3px;background:#0f1f3a;opacity:.85;pointer-events:none}
+  .scan-dock{bottom:1.9rem}
+  .askfab{bottom:30px}
+}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.auth-page,#home,.cz,.chs,.ins{animation:fadein .22s ease-out}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,185,241,.55)}70%{box-shadow:0 0 0 12px rgba(0,185,241,0)}100%{box-shadow:0 0 0 0 rgba(0,185,241,0)}}
+.tile-live .service-icon{border-radius:50%;width:2.4rem;height:2.4rem;margin-top:-.3rem;background:var(--p-soft);animation:pulse 2s infinite}
+@media(prefers-reduced-motion:reduce){.auth-page,#home,.cz,.chs,.ins,.tile-live .service-icon{animation:none}}
+.toast{position:absolute;bottom:76px}
+
+/* ===== ported from pocket-payments (Paytm-style wallet UI), vars renamed to --p-* ===== */
+:root{
+  --p-bg:oklch(0.97 0.006 248); --p-card:oklch(1 0 0); --p-ink:oklch(0.318084 0.120809 258.568);
+  --p-blue:oklch(0.318084 0.120809 258.568); --p-on:oklch(1 0 0); --p-line:oklch(0.91 0.012 250);
+  --p-muted:oklch(0.5 0.018 258); --p-mutedbg:oklch(0.95 0.008 245); --p-soft:oklch(0.92 0.045 210);
+  --p-gold:oklch(0.77 0.16 78); --p-red:oklch(0.54 0.18 28);
+}
+.plink,.picon{border:0;background:none;color:var(--p-blue);font:inherit;font-weight:600;cursor:pointer;padding:.2rem}
+.picon{display:inline-grid;place-items:center;width:2.25rem;height:2.25rem;border-radius:50%;color:var(--p-ink)}
+.picon:hover{background:var(--p-mutedbg)}
+.picon svg{width:1.3rem;height:1.3rem}
+
+.paytm-screen{flex:1;min-height:0;overflow:auto;padding:0 .9rem 6.5rem;color:var(--p-ink);background:var(--p-bg);position:relative}
+.status-bar{display:flex;height:2.25rem;align-items:center;justify-content:space-between;padding-inline:.5rem;font-size:.68rem;font-weight:700}
+.topbar{display:flex;min-height:3.4rem;align-items:center;justify-content:space-between;padding:0 .3rem;background:none;border:0}
+.identity{display:flex;align-items:center;gap:.65rem}
+.avatar{display:grid;width:2.65rem;aspect-ratio:1;place-items:center;border-radius:50%;background:var(--p-soft);color:oklch(0.38 0.1 190);font-size:.9rem;font-weight:700}
+.festival-mark{display:grid;line-height:.9}
+.festival-mark span:first-child{color:var(--p-gold);font-size:.95rem;font-weight:900}
+.festival-mark span:last-child{color:var(--p-red);text-align:center;font-size:.68rem;font-weight:900}
+.topbar-actions{display:flex;align-items:center;gap:.25rem}
+.bell-icon{width:1.45rem;height:1.45rem;stroke-width:1.8}
+.search-field{display:flex;height:3rem;align-items:center;gap:.7rem;margin-top:.45rem;padding-inline:1rem;border-radius:2rem;background:var(--p-card);color:var(--p-muted);font-size:.92rem}
+.search-field svg{width:1.2rem;height:1.2rem;color:var(--p-ink);stroke-width:1.7}
+
+.chaukas-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:.75rem;width:100%;margin-top:.85rem;padding:.8rem .95rem;border:0;border-radius:1.2rem;background:linear-gradient(120deg,var(--p-blue),oklch(0.45 0.13 240));color:var(--p-on);text-align:left;cursor:pointer;font:inherit;box-shadow:0 .4rem 1rem oklch(0.2 0.06 255 / 22%)}
+.chaukas-card .cc-ic{display:grid;place-items:center;width:2.6rem;height:2.6rem;border-radius:50%;background:var(--p-soft);color:var(--p-blue)}
+.chaukas-card .cc-ic svg{width:1.4rem;height:1.4rem}
+.chaukas-card strong{display:block;font-size:1rem}
+.chaukas-card small{display:block;font-size:.76rem;opacity:.9;line-height:1.3;margin-top:.1rem}
+.chaukas-card .tag{display:inline-block;margin-left:.4rem;padding:.05rem .4rem;border-radius:.4rem;background:var(--p-gold);color:var(--p-ink);font-size:.62rem;font-weight:800;vertical-align:middle}
+.chaukas-card>svg{width:1.4rem;height:1.4rem}
+
+.quick-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.3rem;padding:1.35rem 0 1.2rem}
+.quick-action{display:grid;justify-items:center;gap:.45rem;text-align:center;font-size:.84rem;line-height:1.28}
+.quick-icon{display:grid;width:3.05rem;aspect-ratio:1;place-items:center;border-radius:50%;background:var(--p-blue);color:var(--p-on)}
+.quick-icon svg{width:1.55rem;height:1.55rem;stroke-width:1.8}
+.service-panel{padding:1.15rem .95rem .7rem;border-radius:1.35rem;background:var(--p-card)}
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.section-heading h2{margin:0;padding:0;border:0;display:block;font-size:1.25rem;font-weight:750}
+.section-heading>span{display:inline-flex;flex-shrink:0;align-items:center;color:var(--p-blue);font-size:.86rem;font-weight:650}
+.section-heading svg{width:1rem;height:1rem}
+.service-grid{display:grid}
+.recharge-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:.25rem;padding-top:.85rem}
+.service-item{position:relative;display:flex;min-width:0;flex-direction:column;align-items:center;justify-content:flex-start;gap:.38rem;text-align:center;font-size:.79rem;line-height:1.2}
+.service-icon{display:grid;min-height:1.8rem;place-items:center;color:var(--p-blue)}
+.service-icon svg{width:1.5rem;height:1.5rem;stroke-width:1.65}
+.service-badge{position:absolute;top:-.55rem;z-index:1;max-width:calc(100% + .4rem);padding:.1rem .32rem;border-radius:.5rem;background:var(--p-gold);color:var(--p-ink);font-size:.61rem;font-weight:750;white-space:nowrap}
+.pager-dots{display:flex;align-items:center;justify-content:center;gap:.25rem;padding-top:.75rem}
+.pager-dots span{width:2.15rem;height:.42rem;border-radius:1rem;background:var(--p-muted)}
+.pager-dots i{width:.35rem;height:.35rem;border-radius:50%;background:var(--p-line)}
+.exclusive-strip{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:.75rem;min-height:4rem;margin-top:.85rem;padding:.55rem .95rem;border-radius:2rem;background:var(--p-soft)}
+.exclusive-strip>svg:first-child{width:2rem;height:2rem;color:var(--p-red);stroke-width:1.8}
+.exclusive-strip>svg:last-child{width:1.4rem;height:1.4rem}
+.exclusive-strip div{display:grid;gap:.15rem;min-width:0}
+.exclusive-strip strong{font-size:.96rem}
+.exclusive-strip span{font-size:.78rem}
+.offer-grid{display:grid;grid-template-columns:1.2fr 1fr;grid-template-rows:repeat(2,minmax(4.2rem,auto));gap:.65rem;margin-top:.8rem}
+.postpaid-offer,.mini-offer{background:var(--p-card);border-radius:1.2rem}
+.postpaid-offer{display:flex;grid-row:span 2;flex-direction:column;justify-content:space-between;min-height:10.8rem;padding:1rem}
+.postpaid-offer>svg{width:1.45rem;height:1.45rem;color:var(--p-muted);stroke-width:1.5}
+.postpaid-offer div{display:grid;gap:.25rem}
+.postpaid-offer strong{font-size:.92rem;font-weight:500}
+.postpaid-offer span{color:var(--p-muted);font-size:.79rem;line-height:1.3}
+.mini-offer{display:flex;min-width:0;align-items:center;gap:.6rem;padding:.75rem}
+.mini-offer svg{width:1.25rem;height:1.25rem;flex-shrink:0;color:var(--p-muted);stroke-width:1.6}
+.mini-offer strong{font-size:.8rem;font-weight:500;line-height:1.25}
+.topic-strip{display:flex;overflow:hidden;gap:.55rem;margin:.85rem -.9rem;padding:0 .9rem}
+.topic-chip{display:flex;min-height:2.4rem;flex:0 0 auto;align-items:center;gap:.4rem;padding:.45rem .7rem;border-radius:2rem;background:var(--p-card);font-size:.77rem;white-space:nowrap}
+.topic-chip svg{width:1rem;height:1rem;color:var(--p-blue)}
+.topic-chip:first-child svg{color:var(--p-gold)}
+.festival-banner{display:flex;min-height:9.8rem;align-items:center;justify-content:space-between;gap:.75rem;padding:1rem 1.15rem;border-radius:1.2rem;background:var(--p-blue);color:var(--p-on)}
+.banner-brand{display:grid;justify-items:start;gap:.45rem}
+.paytm-wordmark{padding:.23rem .42rem;border-radius:.4rem;background:var(--p-card);color:var(--p-blue);font-size:.78rem;font-weight:900}
+.banner-brand strong{color:var(--p-gold);font-size:1.5rem;line-height:1}
+.banner-copy{display:grid;justify-items:end;gap:.3rem;text-align:right;font-size:.83rem}
+.banner-copy strong{color:var(--p-gold);font-size:.9rem}
+.banner-cta{display:flex;align-items:center;gap:.2rem;margin-top:.35rem;padding:.55rem .9rem;border-radius:2rem;background:var(--p-card);color:var(--p-ink);font-size:.8rem;font-weight:700}
+.banner-cta svg{width:1rem;height:1rem}
+.finance-panel{margin-top:.8rem;padding-bottom:1rem}
+.finance-grid{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:1rem;padding-top:1.15rem}
+.finance-grid .service-item{gap:.42rem}
+.scan-dock{position:absolute;z-index:5;right:0;bottom:1.1rem;left:0;display:flex;width:fit-content;min-width:9.8rem;min-height:3.25rem;align-items:center;justify-content:center;gap:.55rem;margin-inline:auto;padding:.6rem 1.15rem;border:.12rem solid var(--p-soft);border-radius:2rem;background:var(--p-blue);color:var(--p-on);box-shadow:0 .3rem .8rem oklch(0.2 0.04 255 / 20%);font-size:.94rem}
+.scan-dock svg{width:1.3rem;height:1.3rem}
+
+/* auth (ported from /auth) */
+.auth-page{flex:1;min-height:0;overflow:auto;display:grid;align-content:start;padding:1.5rem 1.1rem;background:var(--p-bg);color:var(--p-ink)}
+.auth-wrap{width:100%}
+.auth-brand{display:flex;align-items:center;gap:.65rem;margin:0 0 1.5rem .2rem}
+.auth-brand-mark{display:grid;width:2.55rem;aspect-ratio:1;place-items:center;border-radius:.8rem;background:var(--p-blue);color:var(--p-on)}
+.auth-brand-mark svg{width:1.35rem;height:1.35rem}
+.auth-brand-name{display:grid;gap:.16rem}
+.auth-brand-name strong{font-size:1.05rem}
+.auth-brand-name span{color:var(--p-muted);font-size:.76rem}
+.auth-panel{padding:1.35rem;border:1px solid var(--p-line);border-radius:.5rem;background:var(--p-card)}
+.auth-panel h1{margin:0;font-size:1.8rem;line-height:1.15}
+.auth-intro{margin:.55rem 0 1.55rem;color:var(--p-muted);font-size:.94rem;line-height:1.5}
+.auth-form{display:grid;gap:1rem}
+.auth-field{display:grid;gap:.42rem;color:var(--p-ink);font-size:.84rem;font-weight:600}
+.auth-field input{width:100%;min-width:0;height:2.9rem;padding:0 .85rem;border:1px solid var(--p-line);border-radius:.35rem;background:var(--p-bg);color:var(--p-ink);font:inherit;font-weight:400;outline:none}
+.auth-field input:focus-visible{border-color:var(--p-blue);box-shadow:0 0 0 2px color-mix(in oklab,var(--p-blue) 25%,transparent)}
+.auth-password-wrap{position:relative;display:block}
+.auth-password-wrap input{padding-right:3rem}
+.auth-password-toggle{position:absolute;top:50%;right:.35rem;transform:translateY(-50%)}
+.auth-help-row{display:flex;justify-content:flex-end;margin-top:-.55rem}
+.auth-help-row .plink,.auth-switch .plink,.auth-back{font-size:.84rem}
+.auth-submit{width:100%;min-height:2.9rem;margin-top:.15rem;border:0;border-radius:.45rem;background:var(--p-blue);color:var(--p-on);font:inherit;font-weight:700;cursor:pointer}
+.auth-submit:hover{background:color-mix(in oklab,var(--p-blue) 88%,black)}
+.auth-submit:disabled{opacity:.6;cursor:default}
+.auth-message{margin:1rem 0 0;padding:.75rem .85rem;border-radius:.35rem;background:var(--p-mutedbg);color:var(--p-ink);font-size:.86rem;line-height:1.45}
+.auth-message[data-kind="error"]{background:color-mix(in oklab,var(--p-red) 10%,white);color:var(--p-red)}
+.auth-switch{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:.2rem;margin:1.35rem 0 0;color:var(--p-muted);font-size:.88rem}
+.auth-back{display:inline-flex;align-items:center;gap:.35rem;margin:0 0 1.25rem -.15rem}
+.auth-back svg{width:1rem;height:1rem}
+
+/* ===== Chaukas landing, chat and insights screens (modelled on a claims-assistant flow) ===== */
+.tile-live{border:0;background:none;font:inherit;color:inherit;cursor:pointer;padding:0}
+.tile-live .service-badge{background:var(--p-soft);color:var(--p-blue)}
+.cz,.chs,.ins{flex:1;min-height:0;display:flex;flex-direction:column;position:relative;background:#f3f6fb;color:var(--ink)}
+.czbar{display:grid;grid-template-columns:2.5rem 1fr auto;align-items:center;gap:.4rem;padding:.55rem .75rem;background:#fff;border-bottom:1px solid var(--line)}
+.czlogo{text-align:center;line-height:1.1}
+.czlogo b{display:block;font-size:1.35rem;font-weight:800;letter-spacing:-.6px;color:var(--p-blue)}
+.czlogo small{font-size:.7rem;color:var(--p-muted);font-weight:600}
+.czhelp{color:var(--accent);font-size:1rem}
+.czbody{flex:1;min-height:0;overflow:auto;padding:14px 14px 96px}
+.czhero{background:#eaf2fc;border-radius:1.4rem;padding:1.2rem 1.1rem}
+.czhero h1{margin:0 0 .8rem;font-size:2rem;line-height:1.12;letter-spacing:-.8px;color:#0f1f3a}
+.czhero mark{background:#e8f55a;color:inherit;padding:0 .35rem;border-radius:.35rem}
+.czhero ul{list-style:none;margin:0;padding:0;display:grid;gap:.5rem}
+.czhero li{display:flex;gap:.55rem;align-items:center;font-size:.95rem}
+.czhero li svg{width:1.1rem;height:1.1rem;flex-shrink:0}
+.czcard{margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:1.4rem;padding:1.1rem;box-shadow:0 .25rem .8rem rgba(0,30,70,.06)}
+.czcard h2{margin:0 0 .5rem;padding:0;border:0;display:block;font-size:1.15rem}
+.czcard p{margin:0 0 1rem;color:var(--muted);line-height:1.45}
+.czcard small{display:block;text-align:center;color:var(--muted);margin-top:.7rem}
+.czbtn{display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;height:3rem;border:0;border-radius:999px;background:var(--p-blue);color:#fff;font:inherit;font-size:1.05rem;font-weight:700;cursor:pointer}
+.czbtn+.czbtn,.czbtn+.plink{margin-top:.6rem}
+.czbtn.soft{background:#e3f3fc;color:var(--p-blue)}
+.czbtn svg{width:1.2rem;height:1.2rem}
+.czcard.menu{padding:.4rem 1rem}
+.czrow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.85rem;width:100%;padding:.85rem 0;border:0;border-radius:0;background:none;text-align:left;cursor:pointer;font:inherit;color:inherit}
+.czrow+.czrow{border-top:1px solid var(--line)}
+.czrow:hover{border-color:var(--line)}
+.rico{display:grid;place-items:center;width:2.7rem;height:2.7rem;border-radius:50%;background:#e3f3fc;color:var(--p-blue)}
+.rico.red{background:#fdeaea;color:var(--p-red)}
+.rico svg{width:1.3rem;height:1.3rem}
+.rtxt{display:grid;gap:.1rem;min-width:0}
+.rtxt b{font-size:1.02rem}
+.rtxt span{color:var(--muted);font-size:.88rem;line-height:1.3}
+.czrow>svg{width:1.3rem;height:1.3rem;color:#0f1f3a}
+.czfoot{margin:14px 6px 8px;color:var(--muted);font-size:.74rem;text-align:center;line-height:1.4}
+.czstat{display:flex;justify-content:center;align-items:center;gap:.5rem}
+.czstat .plink{font-size:.8rem}
+.avatar-b{display:grid;place-items:center;width:2.6rem;height:2.6rem;border-radius:.8rem;background:linear-gradient(135deg,#e3f3fc,#fff);border:2px solid var(--p-blue);color:var(--p-blue);flex-shrink:0}
+.avatar-b svg{width:1.4rem;height:1.4rem}
+.askfab{position:absolute;right:12px;bottom:14px;display:grid;justify-items:center;gap:.15rem;padding:.35rem .4rem .25rem;border:0;border-radius:1.1rem;background:#fff;box-shadow:0 .4rem 1rem rgba(0,30,70,.2);cursor:pointer;font:inherit}
+.askfab b{color:var(--p-blue);font-size:.9rem}
+.chhead{display:flex;align-items:center;gap:.7rem;padding:.6rem .8rem;background:#fff;border-bottom:1px solid var(--line)}
+.chtitle{flex:1;min-width:0;display:grid;line-height:1.2}
+.chtitle strong{font-size:1.05rem}
+.chtitle small{color:var(--muted);font-size:.8rem}
+.chs{background:#fff}
+.chs #chat{min-height:0;max-height:none;flex:1;background:#fff;padding:14px}
+.chs .hints{background:#fff;padding:0 14px 8px}
+.hints button{border-radius:999px;background:#eaf2fc;border-color:transparent;color:var(--p-blue)}
+.chtools{background:#fff;padding:0 14px 8px}
+.chtools button{border-radius:999px;font-size:.85rem;padding:5px 12px}
+.msg{border-radius:1.2rem}
+.msg.agent{background:#eaf2fc;border-top-left-radius:.4rem}
+.msg.me{background:var(--p-blue);color:#fff;border-top-right-radius:.4rem}
+.msg.typing{color:var(--muted);font-style:italic}
+.listen{margin-top:.5rem;border:0;background:rgba(255,255,255,.7);border-radius:999px;padding:.3rem .8rem;color:var(--p-blue);font-weight:700;font-size:.85rem}
+.resume{align-self:stretch;border:1px solid #cfe0f5;background:#eaf2fc;border-radius:1.2rem;padding:1rem;box-shadow:0 .25rem .8rem rgba(0,30,70,.08)}
+.resume h4{margin:0;color:var(--p-blue);font-size:1.05rem}
+.resume small{display:block;color:var(--muted);margin:.2rem 0 .6rem}
+.resume p{margin:0 0 .8rem;line-height:1.45}
+.resume .acts{margin:0;display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.resume .acts button{height:2.8rem;border:0;border-radius:999px;font-weight:700;font-size:1rem}
+.resume .acts .c{background:var(--p-blue);color:#fff}
+.resume .acts .s{background:#dcecfa;color:var(--p-blue)}
+.send2{display:flex;gap:.5rem;align-items:center;padding:.7rem .8rem .5rem;background:#fff;border-top:1px solid var(--line)}
+.send2 input{flex:1;min-width:0;height:2.9rem;padding:0 1rem;border:1.5px solid var(--line);border-radius:999px;background:#fff;font-size:1rem}
+.send2 input:focus{outline:none;border-color:var(--accent)}
+.roundb{display:grid;place-items:center;flex-shrink:0;width:2.9rem;height:2.9rem;padding:0;border:0;border-radius:50%;cursor:pointer}
+.roundb svg{width:1.25rem;height:1.25rem}
+.roundb.soft{background:#e3f3fc;color:var(--p-blue)}
+.roundb.navy{background:var(--p-blue);color:#fff}
+.humanbtn{display:flex;align-items:center;justify-content:center;gap:.5rem;margin:0 .8rem .8rem;height:2.9rem;border:1.5px solid var(--line);border-radius:999px;background:#fff;color:var(--p-blue);font:inherit;font-weight:700;font-size:1.02rem;cursor:pointer}
+.humanbtn svg{width:1.2rem;height:1.2rem}
+.ins .tabs{flex-wrap:nowrap;overflow-x:auto;background:#fff}
+.ins .tab{white-space:nowrap}
+.ins .panes{flex:1;min-height:0;display:flex;flex-direction:column;background:#fff}
+.ins .pane{max-height:none;flex:1;min-height:0}
+.ins .pane.on{display:block;overflow:auto}
+.sheetbg{position:absolute;inset:0;background:rgba(10,20,40,.45);z-index:30}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:31;max-height:85%;overflow:auto;padding:1.2rem 1.1rem 1.4rem;background:#fff;border-radius:1.5rem 1.5rem 0 0;box-shadow:0 -.5rem 2rem rgba(0,0,0,.2)}
+.sheet h3{margin:0 0 .5rem;font-size:1.3rem}
+.sheet p,.sheet li{color:var(--muted);line-height:1.45}
+.sheet ol{margin:.5rem 0 1rem;padding-left:1.2rem;display:grid;gap:.6rem}
+.sheet li b{color:#0f1f3a}
+.sheet label{display:block;font-weight:600;color:var(--muted);margin:.8rem 0 .4rem}
+.sheet select{width:100%;height:3rem;margin-bottom:1rem;padding:0 .8rem;border-radius:.8rem}
+.sheet .plink{display:block;margin:.6rem auto 0}
+.kv{grid-template-columns:110px 1fr}
 </style>
+<link rel="stylesheet" href="flows.css">
 </head>
 <body>
-<header>
-  <div class="logo"><i>✓</i><div>Chaukas · चौकस<small>AI teammate for Paytm merchants · Enver AI · Track 3</small></div></div>
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-    <span class="chip" id="srv">server: checking…</span><span class="spin" id="spin"></span>
-    <button id="cfg" title="Change backend URL">⚙ API</button>
-  </div>
-</header>
+<div id="device"><i class="sb s1"></i><i class="sb s2"></i><i class="sb s3"></i><i class="sb s4"></i>
+<div id="phone">
+<div id="sbar" aria-hidden="true"><span id="clock">9:41</span><span class="island"></span><span class="sicons">
+<svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+<svg viewBox="0 0 17 12"><path d="M8.5 2.2c2.3 0 4.4.9 6 2.4l1-1.1A10.4 10.4 0 0 0 8.5.6C5.700.6 3.200 1.700 1.500 3.500l1 1.100a8.800 8.800 0 0 1 6-2.400zm0 3.400c1.400 0 2.600.5 3.600 1.400l1-1.100a7.300 7.300 0 0 0-9.200 0l1 1.100c1-.9 2.200-1.400 3.600-1.400zm0 3.300c-.7 0-1.300.3-1.800.7l1.800 2 1.800-2c-.5-.4-1.100-.7-1.800-.7z"/></svg>
+<svg viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.500" fill="none" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="20" height="9" rx="2"/><rect x="25" y="4.500" width="1.800" height="4" rx=".9" opacity=".5"/></svg>
+</span></div>
+<div id="screen">
 
-<main>
-  <section class="card" aria-label="Merchant chat">
-    <h2>Merchant chat <span class="chip">AI assistant</span></h2>
-    <div class="bar">
-      <select id="merchant" aria-label="Merchant"></select>
-      <button id="start" class="primary">New session</button>
-      <button id="scan" class="event" title="The system, not the merchant, starts the conversation">⚡ Simulate: settlement failed</button>
-      <button id="human">🙋 Talk to a human</button>
+<!-- ===== Auth (ported from pocket-payments /auth, Supabase) ===== -->
+<main class="auth-page" id="auth-page" hidden>
+  <div class="auth-wrap">
+    <div class="auth-brand" aria-label="Nawazi Labs">
+      <span class="auth-brand-mark"><i data-lucide="wallet"></i></span>
+      <span class="auth-brand-name"><strong>Nawazi Labs</strong><span>Your everyday payments</span></span>
     </div>
-    <div id="chat" aria-live="polite"></div>
-    <div class="hints" id="hints"></div>
-    <form class="send" id="form"><input id="text" placeholder="Type a message (Hindi / Hinglish / English)…" autocomplete="off" aria-label="Message"><button class="primary" id="sendbtn">Send</button></form>
+    <section class="auth-panel">
+
+      <div class="amode" data-mode="signin">
+        <h1>Welcome back</h1>
+        <p class="auth-intro">Sign in to continue to your payments.</p>
+        <form class="auth-form" id="f-signin">
+          <label class="auth-field">Email address<input name="email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
+          <label class="auth-field">Password<span class="auth-password-wrap"><input name="password" type="password" autocomplete="current-password" minlength="6" required><button type="button" class="picon auth-password-toggle pw-toggle" title="Show password" aria-label="Show password"><i data-lucide="eye" class="eye-on"></i><i data-lucide="eye-off" class="eye-off" hidden></i></button></span></label>
+          <div class="auth-help-row"><button type="button" class="plink" data-go="forgot">Forgot password?</button></div>
+          <button class="auth-submit" type="submit">Sign in</button>
+        </form>
+        <p class="auth-switch">Don't have an account?<button type="button" class="plink" data-go="signup">Sign up</button></p>
+      </div>
+
+      <div class="amode" data-mode="signup" hidden>
+        <h1>Create your account</h1>
+        <p class="auth-intro">Start with your email and a secure password.</p>
+        <form class="auth-form" id="f-signup">
+          <label class="auth-field">Name<input name="name" type="text" autocomplete="name" placeholder="Your name" required></label>
+          <label class="auth-field">Email address<input name="email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
+          <label class="auth-field">Password<span class="auth-password-wrap"><input name="password" type="password" autocomplete="new-password" minlength="6" required><button type="button" class="picon auth-password-toggle pw-toggle" title="Show password" aria-label="Show password"><i data-lucide="eye" class="eye-on"></i><i data-lucide="eye-off" class="eye-off" hidden></i></button></span></label>
+          <button class="auth-submit" type="submit">Create account</button>
+        </form>
+        <p class="auth-switch">Already have an account?<button type="button" class="plink" data-go="signin">Sign in</button></p>
+      </div>
+
+      <div class="amode" data-mode="forgot" hidden>
+        <button type="button" class="plink auth-back" data-go="signin"><i data-lucide="arrow-left"></i> Back to sign in</button>
+        <h1>Reset your password</h1>
+        <p class="auth-intro">Enter your email and we’ll send you a link to choose a new password.</p>
+        <form class="auth-form" id="f-forgot">
+          <label class="auth-field">Email address<input name="email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
+          <button class="auth-submit" type="submit">Send reset link</button>
+        </form>
+      </div>
+
+      <div class="amode" data-mode="recovery" hidden>
+        <h1>Choose a new password</h1>
+        <p class="auth-intro">Enter a new password for your account.</p>
+        <form class="auth-form" id="f-recovery">
+          <label class="auth-field">New password<input name="password" type="password" autocomplete="new-password" minlength="6" required></label>
+          <label class="auth-field">Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="6" required></label>
+          <button class="auth-submit" type="submit">Update password</button>
+        </form>
+      </div>
+
+      <p class="auth-message" id="auth-msg" hidden></p>
+    </section>
+  </div>
+</main>
+
+<!-- ===== Wallet home (ported from pocket-payments /) ===== -->
+<main class="paytm-screen" id="home" hidden>
+  <header class="topbar">
+    <div class="identity">
+      <div class="avatar" id="avatar">S</div>
+      <div class="festival-mark"><span>GOLDEN</span><span>DIWALI</span></div>
+    </div>
+    <div class="topbar-actions">
+      <i data-lucide="bell" class="bell-icon"></i>
+      <button class="picon" id="home-out" aria-label="Sign out" title="Sign out"><i data-lucide="log-out"></i></button>
+    </div>
+  </header>
+
+  <div class="search-field" aria-label="Search for contacts to pay"><i data-lucide="search"></i><span>Search for contacts to pay</span></div>
+
+  <section class="quick-actions" aria-label="Quick payments">
+    <div class="quick-action"><span class="quick-icon"><i data-lucide="qr-code"></i></span><span>Scan any<br>QR</span></div>
+    <div class="quick-action"><span class="quick-icon"><i data-lucide="user-plus"></i></span><span>Pay<br>Anyone</span></div>
+    <div class="quick-action"><span class="quick-icon"><i data-lucide="building-2"></i></span><span>To Bank &amp;<br>Self A/c</span></div>
+    <div class="quick-action"><span class="quick-icon"><i data-lucide="receipt-text"></i></span><span>Balance &amp;<br>History</span></div>
   </section>
 
-  <section class="card" aria-label="Behind the scenes">
-    <div class="tabs" role="tablist" id="tabs"></div>
+  <section class="service-panel">
+    <div class="section-heading"><h2>Recharge &amp; Bills</h2><span>View All <i data-lucide="chevron-right"></i></span></div>
+    <div class="service-grid recharge-grid">
+      <div class="service-item"><span class="service-icon"><i data-lucide="smartphone"></i></span><span>Mobile<br>Recharge</span></div>
+      <div class="service-item"><span class="service-badge">Get ₹50</span><span class="service-icon"><i data-lucide="credit-card"></i></span><span>Credit Card<br>Bill</span></div>
+      <div class="service-item"><span class="service-icon"><i data-lucide="lightbulb"></i></span><span>Electricity<br>Bill</span></div>
+      <div class="service-item"><span class="service-icon"><i data-lucide="car"></i></span><span>FASTag<br>Recharge</span></div>
+      <div class="service-item"><span class="service-icon"><i data-lucide="calendar-days"></i></span><span>Loan EMI<br>Payment</span></div>
+    </div>
+    <div class="pager-dots" aria-hidden="true"><span></span><i></i></div>
+  </section>
+
+  <div class="exclusive-strip">
+    <i data-lucide="gift"></i>
+    <div><strong>Exclusive offer for You!</strong><span>Claim your exclusive reward</span></div>
+    <i data-lucide="chevron-right"></i>
+  </div>
+
+  <section class="offer-grid" aria-label="Offers">
+    <article class="postpaid-offer"><i data-lucide="calendar-days"></i><div><strong>Postpaid Offer</strong><span>Pay &amp; Earn 11,000 Gold Coins — Activate Now</span></div></article>
+    <article class="mini-offer"><i data-lucide="plane"></i><strong>Get Gold* on Flights</strong></article>
+    <article class="mini-offer"><i data-lucide="users-round"></i><strong>Refer &amp; Win ₹450</strong></article>
+  </section>
+
+  <div class="topic-strip" aria-label="Featured offers">
+    <div class="topic-chip"><i data-lucide="sparkles"></i><span>Golden Diwali</span></div>
+    <div class="topic-chip"><i data-lucide="gift"></i><span>Refer &amp; Win ₹450</span></div>
+    <div class="topic-chip"><i data-lucide="banknote"></i><span>Cashback &amp; Offers</span></div>
+  </div>
+
+  <section class="festival-banner">
+    <div class="banner-brand"><span class="paytm-wordmark">paytm</span><strong>GOLDEN<br>DIWALI</strong></div>
+    <div class="banner-copy"><span>Pay using Paytm</span><strong>Win Gold Every Hour</strong><span class="banner-cta">Pay Now <i data-lucide="chevron-right"></i></span></div>
+  </section>
+
+  <section class="service-panel finance-panel">
+    <div class="section-heading"><h2>Financial Services</h2><span>View All <i data-lucide="chevron-right"></i></span></div>
+    <div class="service-grid finance-grid">
+      <button class="service-item tile-live" id="open-ln"><span class="service-badge">New</span><span class="service-icon"><i data-lucide="banknote"></i></span><span>Loan</span></button>
+      <div class="service-item"><span class="service-badge">SIP @ ₹21</span><span class="service-icon"><i data-lucide="chart-bar"></i></span><span>Mutual Fund</span></div>
+      <button class="service-item tile-live" id="open-hi"><span class="service-badge">New</span><span class="service-icon"><i data-lucide="heart-pulse"></i></span><span>Health<br>Insurance</span></button>
+      <div class="service-item"><span class="service-icon"><i data-lucide="bike"></i></span><span>Bike Insurance</span></div>
+      <div class="service-item"><span class="service-icon"><i data-lucide="wallet"></i></span><span>Paytm<br>Postpaid</span></div>
+      <div class="service-item"><span class="service-icon"><i data-lucide="trending-up"></i></span><span>Stocks</span></div>
+      <div class="service-item"><span class="service-icon"><i data-lucide="credit-card"></i></span><span>Get Credit Card</span></div>
+      <button class="service-item tile-live" id="open-chaukas"><span class="service-badge">Ask</span><span class="service-icon"><i data-lucide="shield-check"></i></span><span>Chaukas<br>Teammate</span></button>
+    </div>
+  </section>
+</main>
+<div class="scan-dock" id="dock" aria-hidden="true" hidden><i data-lucide="qr-code"></i><span>Scan QR</span></div>
+
+<!-- ===== Chaukas landing (the one live tile in the wallet opens this) ===== -->
+<section class="cz" id="cz" hidden>
+  <header class="czbar">
+    <button class="picon" id="cz-back" aria-label="Back to wallet"><i data-lucide="arrow-left"></i></button>
+    <div class="czlogo"><b>chaukas</b><small>चौकस · AI teammate</small></div>
+    <button class="plink czhelp" id="cz-help">Help</button>
+  </header>
+  <div class="czbody">
+    <div class="czhero">
+      <h1>Your payouts,<br><mark>sorted right.</mark></h1>
+      <ul>
+        <li><i data-lucide="sparkles"></i>Understands you in Hindi, Hinglish, English</li>
+        <li><i data-lucide="calculator"></i>Amounts come from your ledger, never guessed</li>
+        <li><i data-lucide="shield-check"></i>Every money action is guardrail-checked</li>
+      </ul>
+    </div>
+
+    <div class="czcard" id="cz-start">
+      <h2>New here? Start with step 1</h2>
+      <p>Link the business you already have, or walk through a full fix with a made-up merchant. Nothing real is sent anywhere.</p>
+      <button class="czbtn" id="cz-link"><i data-lucide="plus"></i> Link my business</button>
+      <button class="czbtn soft" id="cz-sample"><i data-lucide="circle-play"></i> Try with a sample merchant</button>
+      <small>Tap Help at the top right any time to see the 4 steps.</small>
+    </div>
+
+    <div class="czcard menu">
+      <button class="czrow" id="row-biz"><span class="rico"><i data-lucide="store"></i></span><span class="rtxt"><b>My Business</b><span id="biz-sub">Link the business you already have</span></span><i data-lucide="chevron-right"></i></button>
+      <button class="czrow" id="row-settle"><span class="rico red"><i data-lucide="banknote"></i></span><span class="rtxt"><b>My settlements</b><span>Check payouts, failures and delays</span></span><i data-lucide="chevron-right"></i></button>
+      <button class="czrow" id="row-loan"><span class="rico"><i data-lucide="hand-coins"></i></span><span class="rtxt"><b>Loan offers</b><span>See what you are eligible for, with your consent</span></span><i data-lucide="chevron-right"></i></button>
+      <button class="czrow" id="row-desk"><span class="rico"><i data-lucide="headset"></i></span><span class="rtxt"><b>Agent desk</b><span>Where a human decides what AI shouldn't</span></span><i data-lucide="chevron-right"></i></button>
+      <button class="czrow" id="row-privacy"><span class="rico"><i data-lucide="lock"></i></span><span class="rtxt"><b>Privacy &amp; AI activity</b><span>Consents and everything AI did with your data</span></span><i data-lucide="chevron-right"></i></button>
+      <button class="czrow" id="row-scene"><span class="rico"><i data-lucide="activity"></i></span><span class="rtxt"><b>Behind the scenes</b><span>Trace, red-team and scorecard</span></span><i data-lucide="chevron-right"></i></button>
+    </div>
+
+    <p class="czfoot">Nawazi Labs · Chaukas prototype (demo). Paytm payout, ticketing and the lender are mocks; the agents, guardrail, audit log and eval are real. Designed to align with RBI's FREE-AI framework, RBI Digital Lending Directions and the DPDP Act 2023.</p>
+    <div class="czstat"><span class="chip" id="srv">checking…</span><span class="spin" id="spin"></span><button class="plink" id="cfg" title="Change backend URL">⚙ API</button></div>
+  </div>
+  <button class="askfab" id="ask" aria-label="Ask Chaukas"><span class="avatar-b"><i data-lucide="shield-check"></i></span><b>Ask</b></button>
+</section>
+
+<!-- ===== Chaukas assistant (chat) ===== -->
+<section class="chs" id="chs" hidden aria-label="Chaukas assistant">
+  <header class="chhead">
+    <span class="avatar-b"><i data-lucide="shield-check"></i></span>
+    <div class="chtitle"><strong>Chaukas assistant</strong><small>Replies in your language · knows your business</small></div>
+    <button class="picon" id="start" aria-label="Start a new conversation" title="New conversation"><i data-lucide="trash-2"></i></button>
+    <button class="picon" id="ch-close" aria-label="Close"><i data-lucide="x"></i></button>
+  </header>
+  <div id="chat" aria-live="polite"></div>
+  <div class="hints" id="hints"></div>
+  <div class="chtools"><button id="scan" class="event" title="The system, not the merchant, starts the conversation">⚡ Simulate: settlement failed</button></div>
+  <form class="send2" id="form">
+    <button type="button" class="roundb soft" id="attach" aria-label="Attach a file"><i data-lucide="paperclip"></i></button>
+    <input id="text" placeholder="Ask anything about your payouts…" autocomplete="off" aria-label="Message">
+    <button type="button" class="roundb soft" id="mic" aria-label="Speak"><i data-lucide="mic"></i></button>
+    <button class="roundb navy" id="sendbtn" aria-label="Send"><i data-lucide="send"></i></button>
+  </form>
+  <button class="humanbtn" id="human"><i data-lucide="headphones"></i> Talk to a human</button>
+</section>
+
+<!-- ===== Behind the scenes (judges / Paytm staff) ===== -->
+<section class="ins" id="ins" hidden aria-label="Behind the scenes">
+  <header class="czbar">
+    <button class="picon" id="ins-back" aria-label="Back"><i data-lucide="arrow-left"></i></button>
+    <div class="czlogo"><b>Behind the scenes</b><small>trace · desk · audit · red-team · scorecard</small></div>
+    <span style="width:2.25rem"></span>
+  </header>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div class="panes">
     <div class="pane on" id="p-trace"></div>
     <div class="pane" id="p-desk"></div>
     <div class="pane" id="p-audit"></div>
     <div class="pane" id="p-redteam"></div>
     <div class="pane" id="p-score"></div>
-  </section>
-</main>
-<footer>Prototype. Paytm payout, ticketing and the lender are mocks; the agents, guardrail, audit log and eval are real. Designed to align with RBI's FREE-AI framework, RBI Digital Lending Directions and the DPDP Act 2023.</footer>
+  </div>
+</section>
+
+<!-- ===== Sheets ===== -->
+<div class="sheetbg" id="sheetbg" hidden></div>
+<div class="sheet" id="sheet-link" hidden role="dialog" aria-label="Link my business">
+  <h3>Link my business</h3>
+  <p>Pick the merchant account Chaukas should work on. These are demo merchants, each with a different situation.</p>
+  <label for="merchant">Merchant</label>
+  <select id="merchant"></select>
+  <button class="czbtn" id="link-ok">Link this business</button>
+  <button class="plink" data-close>Cancel</button>
+</div>
+<div class="sheet" id="sheet-help" hidden role="dialog" aria-label="How it works">
+  <h3>How it works</h3>
+  <ol>
+    <li><b>Link your business.</b> Choose the merchant account to work on.</li>
+    <li><b>Ask in your language.</b> Hindi, Hinglish or English, typed or spoken.</li>
+    <li><b>Guardrail checks every money step.</b> Plain code decides ALLOW, ask-first or BLOCK, and amounts come from your ledger.</li>
+    <li><b>A human steps in when needed.</b> Over-limit or unclear cases go to an agent with a ready brief.</li>
+  </ol>
+  <button class="czbtn" data-close>Got it</button>
+</div>
+
 <div class="toast" id="toast" role="status"></div>
+</div>
+<div id="hind"></div>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://unpkg.com/lucide@0.575.0/dist/umd/lucide.min.js"></script>
 
 <script>
 "use strict";
@@ -154,14 +599,14 @@ function sys(t){ $("chat").append(el("div",{class:"sys",text:t})); scroll(); }
 function me(t){ $("chat").append(el("div",{class:"msg me",text:t})); scroll(); }
 function agent(text, opts={}){
   const who = el("div",{class:"who"}, opts.proactive?"🔔 Chaukas ne dekha":"Chaukas", el("b",{text:"AI"}));
-  const m = el("div",{class:"msg agent"+(opts.proactive?" proactive":"")}, who, el("div",{text:text}));
+  const m = el("div",{class:"msg agent"+(opts.proactive?" proactive":"")}, who, el("div",{text:text}), el("button",{class:"listen",type:"button",onclick:()=>speak(text),text:"🔊 Listen"}));
   $("chat").append(m); scroll(); return m;
 }
 async function startSession(){
   const mid = $("merchant").value; if(!mid) return null;
   const r = await api("POST","/api/sessions",{merchant_id:mid,channel:"chat",mode:"autonomous"});
   if(!r.ok){ toast("Could not start session: "+errText(r)); return null; }
-  st.sid=r.data.session_id; st.merchant=mid; st.turns=0; $("chat").replaceChildren();
+  st.sid=r.data.session_id; st.merchant=mid; st.turns=0; $("chat").replaceChildren(); setLinked(mid);
   agent(r.data.disclosure||"Main Chaukas hoon, Paytm ka AI assistant.");
   loadHints(mid); loadTraceEmpty(); return st.sid;
 }
@@ -175,7 +620,9 @@ async function send(text){
   text=(text||"").trim(); if(!text) return;
   if(!st.sid || st.merchant!==$("merchant").value){ if(!(await startSession())) return; }
   me(text); $("text").value="";
+  const ty = el("div",{class:"msg agent typing",text:"Chaukas is typing…"}); $("chat").append(ty); scroll();
   const r = await api("POST","/api/sessions/"+st.sid+"/messages",{text});
+  ty.remove();
   if(!r.ok){ toast("Error: "+errText(r)); return; }
   handleTurn(r.data);
 }
@@ -186,7 +633,7 @@ function decisionChips(t){
 }
 function handleTurn(t, opts={}){
   st.turns++; st.trace=t.trace_id;
-  const m = agent(t.reply||"(no reply)", opts);
+  const m = agent(t.reply||"(no reply)", opts); saveLast(t.reply);
   if((t.decisions||[]).length) m.append(decisionChips(t));
   (t.actions||[]).filter(a=>a.status==="success"&&a.ref_id).forEach(a=>m.append(el("div",{class:"sys",text:"✔ "+a.action_type+" → "+a.ref_id+(a.replayed?" (replayed)":"")})));
   const pc = t.pending_confirmation;
@@ -220,7 +667,7 @@ async function scanEvent(){
   if(!r.ok){ toast("Scan failed: "+errText(r)); return; }
   const hit=(r.data||[])[0];
   if(!hit){ toast("Nothing to report: no failed settlement for "+mid+", or the merchant was already notified. Restart the server to reset."); return; }
-  st.sid=hit.session_id; st.merchant=mid; $("chat").replaceChildren();
+  st.sid=hit.session_id; st.merchant=mid; setLinked(mid); $("chat").replaceChildren();
   sys("Chaukas detected a failed settlement on its own — the merchant has not typed anything.");
   handleTurn(hit.turn,{proactive:true}); loadHints(mid);
 }
@@ -338,16 +785,193 @@ async function loadScore(){
 async function boot(){
   buildTabs(); loadTraceEmpty();
   $("form").addEventListener("submit",e=>{e.preventDefault(); send($("text").value);});
-  $("start").onclick=startSession; $("scan").onclick=scanEvent; $("human").onclick=()=>send("insaan se baat karao");
-  $("merchant").onchange=()=>{ st.sid=null; $("chat").replaceChildren(); $("hints").replaceChildren(); sys("New merchant selected — press New session or just type."); refreshOpenTab(); };
+  $("start").onclick=()=>{ clearLast(); startSession(); }; $("scan").onclick=scanEvent; $("human").onclick=()=>send("insaan se baat karao");
+  $("merchant").onchange=()=>{ st.sid=null; $("chat").replaceChildren(); $("hints").replaceChildren(); refreshOpenTab(); };
   $("cfg").onclick=()=>{ const v=prompt("Backend URL",API); if(v){ API=v.replace(/\/$/,""); store.set("chaukas_api",API); location.reload(); } };
   const h=await api("GET","/health");
   $("srv").textContent=h.ok?"server: online":"server: unreachable"; $("srv").className="chip "+(h.ok?"ok":"bad");
   const m=await api("GET","/api/merchants");
   if(m.ok) m.data.forEach(x=>$("merchant").append(el("option",{value:x.merchant_id,text:x.merchant_id+" · "+x.name_masked+" · "+x.scenario+" ("+x.preferred_lang+")"})));
-  sys("Pick a merchant and press New session — or press ⚡ to let Chaukas speak first.");
 }
-boot();
+/* ---------------- wallet shell: auth (Supabase) + screens ---------------- */
+const SB_URL = "https://fwmrhovprgeqihoddhmg.supabase.co";
+const SB_KEY = "sb_publishable_aUj98w7B1_R8joa87GylhA_X20ChAm6";   /* publishable (client-side) key, safe to ship in the browser */
+let sb = null;
+try{ sb = window.supabase.createClient(SB_URL, SB_KEY); }catch(e){ sb = null; }
+
+let cur = null, user = null, recovering = false;
+const SCREENS = ["auth-page","home","cz","chs","ins","hi","hiw","hip","hia","ich","ln","lnw","lnl"];
+function icons(){ try{ window.lucide && lucide.createIcons(); }catch(e){} }
+function showScreen(id){
+  cur = id; SCREENS.forEach(s => { const n = $(s); if(n) n.hidden = s !== id; }); closeSheets();
+  $("dock").hidden = id !== "home"; icons();
+  try { const n = $(id); if(n){ n.setAttribute("tabindex","-1"); n.focus({preventScroll:true}); } } catch(e){}
+}
+function authMode(m){
+  document.querySelectorAll(".amode").forEach(x => x.hidden = x.dataset.mode !== m);
+  setMsg(null);
+}
+function setMsg(text, kind){
+  const b = $("auth-msg"); b.hidden = !text; b.textContent = text || ""; b.dataset.kind = kind || "";
+  b.setAttribute("role", kind === "error" ? "alert" : "status");
+}
+function authErr(e, action){
+  const m = (e && e.message) || "";
+  if(/invalid login credentials/i.test(m)) return "That email and password don’t match. Please try again.";
+  if(/already registered/i.test(m)) return "An account already exists for this email. Try signing in instead.";
+  return m || ("We couldn’t " + action + ". Please try again.");
+}
+async function submitAuth(form, busyText, action, fn){
+  const btn = form.querySelector(".auth-submit"), label = btn.textContent;
+  if(!sb){ setMsg("Sign-in service could not load. Check your connection and refresh.", "error"); return; }
+  btn.disabled = true; btn.textContent = busyText; setMsg(null);
+  try{ await fn(new FormData(form)); }
+  catch(e){ setMsg(authErr(e, action), "error"); }
+  finally{ btn.disabled = false; btn.textContent = label; }
+}
+const field = (f, k) => String(f.get(k) || "").trim();
+
+function renderUser(){
+  const md = (user && user.user_metadata) || {};
+  const name = typeof md.full_name === "string" && md.full_name ? md.full_name : ((user && user.email) || "");
+  $("avatar").textContent = (name.trim().charAt(0) || "S").toUpperCase();
+}
+function tick(){ const d = new Date(); $("clock").textContent = d.getHours()+":"+String(d.getMinutes()).padStart(2,"0"); }
+function fit(){ const s = Math.min(1, (innerHeight - 24) / 894, (innerWidth - 24) / 422); document.documentElement.style.setProperty("--s", s.toFixed(3)); }
+
+let bootP = null;
+function ensureBoot(){ if(!bootP) bootP = boot(); return bootP; }
+let linked = null;
+const lastKey = () => "chaukas_last_" + (user ? user.id : "anon");
+function loadLast(){ try{ return JSON.parse(store.get(lastKey()) || "null"); }catch(e){ return null; } }
+function saveLast(reply){ store.set(lastKey(), JSON.stringify({ m: st.merchant, ts: Date.now(), t: String(reply || "").slice(0, 240) })); }
+function clearLast(){ store.set(lastKey(), ""); }
+function setLinked(mid, skipSave){
+  linked = mid || null;
+  if(mid && user && !skipSave) store.set("chaukas_linked_" + user.id, mid);
+  $("cz-start").hidden = !!linked;
+  const o = [...$("merchant").options].find(x => x.value === mid);
+  $("biz-sub").textContent = linked && o ? "1 linked · " + o.text.split(" · ").slice(0, 2).join(" ") : "Link the business you already have";
+}
+function restoreLinked(){
+  if(!user) return;
+  const mid = store.get("chaukas_linked_" + user.id);
+  if(mid && [...$("merchant").options].some(o => o.value === mid)){ $("merchant").value = mid; setLinked(mid, true); } else setLinked(null);
+}
+function openSheet(id){ $("sheetbg").hidden = false; $(id).hidden = false; }
+function closeSheets(){ $("sheetbg").hidden = true; document.querySelectorAll(".sheet").forEach(s => s.hidden = true); }
+function goCz(){ showScreen("cz"); ensureBoot().then(restoreLinked); }
+function openIns(tab){ showScreen("ins"); ensureBoot().then(() => openTab(tab)); }
+function showResume(last){
+  const when = new Date(last.ts).toLocaleString("en-IN", { day:"numeric", month:"short", hour:"numeric", minute:"2-digit" });
+  const c = el("button",{class:"c",type:"button",text:"Continue"}), s = el("button",{class:"s",type:"button",text:"Start fresh"});
+  c.onclick = () => { if(last.m && [...$("merchant").options].some(o => o.value === last.m)) $("merchant").value = last.m; startSession(); };
+  s.onclick = () => { clearLast(); startSession(); };
+  $("chat").replaceChildren(el("div",{class:"resume"}, el("h4",{text:"Where we left off"}), el("small",{text:when}), el("p",{text:last.t}), el("div",{class:"acts"}, c, s)));
+}
+async function openChat(){
+  showScreen("chs"); await ensureBoot();
+  if(st.sid && st.merchant === $("merchant").value) return;
+  const last = loadLast();
+  if(last && last.t){ showResume(last); return; }
+  await startSession();
+}
+function speak(text){
+  try{ speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = /[\u0900-\u097F]/.test(text) ? "hi-IN" : "en-IN"; speechSynthesis.speak(u); }
+  catch(e){ toast("Voice playback isn't available in this browser."); }
+}
+
+function wireShell(){
+  tick(); setInterval(tick, 30000); fit(); addEventListener("resize", fit);
+  document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => authMode(b.dataset.go)));
+  document.querySelectorAll(".pw-toggle").forEach(b => b.addEventListener("click", () => {
+    const inp = b.parentElement.querySelector("input"), show = inp.type === "password";
+    inp.type = show ? "text" : "password";
+    b.querySelector(".eye-on").hidden = show; b.querySelector(".eye-off").hidden = !show;
+    b.title = show ? "Hide password" : "Show password"; b.setAttribute("aria-label", b.title);
+  }));
+
+  $("f-signin").addEventListener("submit", e => { e.preventDefault();
+    submitAuth(e.target, "Please wait…", "sign in", async f => {
+      const { error } = await sb.auth.signInWithPassword({ email: field(f,"email"), password: String(f.get("password")||"") });
+      if(error) throw error;
+    }); });
+
+  $("f-signup").addEventListener("submit", e => { e.preventDefault();
+    submitAuth(e.target, "Please wait…", "create your account", async f => {
+      const { data, error } = await sb.auth.signUp({ email: field(f,"email"), password: String(f.get("password")||""),
+        options: { emailRedirectTo: location.origin + location.pathname, data: { full_name: field(f,"name") } } });
+      if(error) throw error;
+      if(!data.session) setMsg("Check your email to confirm your account, then come back to sign in.", "success");
+    }); });
+
+  $("f-forgot").addEventListener("submit", e => { e.preventDefault();
+    submitAuth(e.target, "Sending…", "send a reset link", async f => {
+      const { error } = await sb.auth.resetPasswordForEmail(field(f,"email"), { redirectTo: location.origin + location.pathname });
+      if(error) throw error;
+      setMsg("If an account exists for that email, a password reset link is on its way.", "success");
+    }); });
+
+  $("f-recovery").addEventListener("submit", e => { e.preventDefault();
+    submitAuth(e.target, "Updating…", "update your password", async f => {
+      if(String(f.get("password")) !== String(f.get("confirm"))) throw new Error("The two passwords don’t match.");
+      const { error } = await sb.auth.updateUser({ password: String(f.get("password")) });
+      if(error) throw error;
+      recovering = false; showScreen("home");
+    }); });
+
+  const signOut = async () => {
+    st.sid = null; st.merchant = null; $("chat").replaceChildren(); $("hints").replaceChildren(); setLinked(null);
+    if(sb) await sb.auth.signOut();
+  };
+  $("home-out").onclick = signOut;
+  $("open-chaukas").onclick = goCz;
+  $("cz-back").onclick = () => showScreen("home");
+  $("cz-help").onclick = () => openSheet("sheet-help");
+  $("cz-link").onclick = $("row-biz").onclick = () => { ensureBoot().then(() => openSheet("sheet-link")); };
+  $("cz-sample").onclick = () => ensureBoot().then(() => {
+    const sel = $("merchant"); if([...sel.options].some(o => o.value === "M001")) sel.value = "M001";
+    st.sid = null; clearLast(); setLinked(sel.value); openChat();
+  });
+  $("link-ok").onclick = () => {
+    const v = $("merchant").value; if(!v) return;
+    st.sid = null; $("chat").replaceChildren(); $("hints").replaceChildren(); clearLast(); setLinked(v); closeSheets(); toast("Business linked.");
+  };
+  $("sheetbg").onclick = closeSheets;
+  document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeSheets));
+  $("ask").onclick = $("row-settle").onclick = $("row-loan").onclick = openChat;
+  $("ch-close").onclick = () => showScreen("cz");
+  $("ins-back").onclick = () => showScreen("cz");
+  $("row-desk").onclick = () => openIns("desk");
+  $("row-privacy").onclick = () => openIns("audit");
+  $("row-scene").onclick = () => openIns("trace");
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  $("mic").onclick = () => {
+    if(!SR){ toast("Voice input isn't supported in this browser."); return; }
+    const r = new SR(); r.lang = "hi-IN"; r.interimResults = false;
+    r.onresult = e => send(e.results[0][0].transcript);
+    r.onerror = () => toast("Couldn't hear that. Please try again.");
+    try{ r.start(); toast("Listening…"); }catch(e){}
+  };
+  $("attach").onclick = () => toast("Attachments aren't part of this demo yet.");
+}
+
+function startApp(){
+  wireShell();
+  if(!sb){ showScreen("auth-page"); authMode("signin"); setMsg("Sign-in service could not load. Check your connection and refresh.", "error"); return; }
+  sb.auth.onAuthStateChange((ev, session) => {      /* sync only: never await supabase calls in here */
+    if(ev === "PASSWORD_RECOVERY"){ recovering = true; showScreen("auth-page"); authMode("recovery"); return; }
+    if(ev === "SIGNED_OUT"){ user = null; recovering = false; showScreen("auth-page"); authMode("signin"); return; }
+    if(session && session.user){
+      user = session.user; renderUser();
+      if(!recovering && (cur === null || cur === "auth-page")) showScreen("home");
+    } else if(ev === "INITIAL_SESSION"){ showScreen("auth-page"); authMode("signin"); }
+  });
+}
+startApp();
+
 </script>
+<script src="docparse.js"></script>
+<script src="flows.js"></script>
 </body>
 </html>

@@ -1,0 +1,73 @@
+# SIMULATED partners for the consumer flows: health insurance + personal loan (placeholders, calibration pending).
+# In production a licensed insurer issues policies (IRDAI) and a regulated lender decides loans (RBI Digital Lending);
+# Chaukas only prices with their rules, shows the facts, and gates every money step through the guardrail.
+# Every number here is ILLUSTRATIVE. Owner: Member 1 (integration) / Member 2 (rules). Money is int rupees.
+
+health_insurance:
+  insurers:
+    - id: suraksha
+      name: "Suraksha Health"
+      price_multiplier: 0.92
+      tag: "Lowest premium"
+      points: ["30-day initial wait, 2 yr for existing illness", "10% co-pay for members above 60", "Cashless at 6,500+ hospitals"]
+    - id: arogya
+      name: "Arogya Plus"
+      price_multiplier: 1.0
+      tag: "Best balance"
+      points: ["30-day initial wait, 3 yr for existing illness", "No co-pay", "Cashless at 9,200+ hospitals"]
+    - id: navjeevan
+      name: "Navjeevan Care"
+      price_multiplier: 1.15
+      tag: "Fastest cover for existing illness"
+      points: ["15-day initial wait, 1 yr for existing illness", "No co-pay, single private room", "Cashless at 12,000+ hospitals"]
+  balanced_insurer_id: arogya          # recommended when a member is older or a condition is declared
+  covers_inr: [500000, 1000000, 2500000, 5000000]
+  cover_factor: {500000: 1.0, 1000000: 1.35, 2500000: 1.9, 5000000: 2.5}
+  age_base_inr: [[25, 3200], [35, 4200], [45, 6000], [55, 9500], [65, 15000]]   # [max age, base yearly premium]
+  extra_member_factor: 0.55            # every member after the costliest one pays this share
+  older_member_age: 45                 # above this age the balanced plan is recommended
+  metro_pincode_prefixes: ["110", "400", "560", "600", "700", "500", "411", "380"]
+  metro_factor: 1.12
+  conditions:
+    diabetes: {name: "Diabetes", load: 0.25}
+    bp: {name: "High BP", load: 0.15}
+    heart: {name: "Heart condition", load: 0.45}
+    asthma: {name: "Asthma", load: 0.10}
+    thyroid: {name: "Thyroid", load: 0.08}
+    cancer: {name: "Cancer (past)", load: 0.50}
+  smoker_load: 0.2
+  surgery_load: 0.1
+  bmi: {threshold: 30, load: 0.1}
+  load_cap: 1.0
+  gst: 0.18
+  guardrail:
+    min_proposer_age: 18
+    max_proposer_age: 65
+    auto_limit_inr: 30000                       # a premium above this needs a one-time code
+    heart_review_above_cover_inr: 1000000       # heart condition above this cover needs a human underwriter
+    human_review_conditions: [cancer]           # these always need a human underwriter
+    quote_ttl_minutes: 60
+
+personal_loan:
+  lender:
+    name: "Demo NBFC Partner (simulated)"
+    min_age: 21
+    max_age: 60
+    min_income_inr: 15000
+    foir: 0.5                                   # existing + new EMI may use at most this share of income
+    income_multiple: 10
+    cap_inr: 500000
+    min_amount_inr: 10000
+    round_to_inr: 5000
+    processing_fee_pct: 2
+    gst: 0.18
+    cooling_off_days: 3
+    grievance_contact: "grievance@demo-lender.example (mock)"
+    apr_bands: [[30000, 24], [60000, 19], [null, 15]]   # [max monthly income, APR %]; null = no upper limit
+  tenures_months: [6, 12, 18, 24, 36]
+  guardrail:
+    auto_limit_inr: 100000                      # a loan above this needs a one-time code
+    max_active_loans: 2
+    self_employed_review_above_inr: 100000      # self-employed above this needs a human to check income proof
+    duplicate_window_hours: 24
+    quote_ttl_minutes: 60

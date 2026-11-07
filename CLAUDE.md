@@ -1,63 +1,71 @@
 # Chaukas — instructions for Claude Code
 
-Chaukas (चौकस) is a hackathon prototype for Paytm Build for India, Track 3 (Autonomous AI Teammates). It is an AI teammate for Paytm merchants. It understands a merchant's problem in their language, plans a fix, runs every money action through a **deterministic guardrail** before executing it through **mock** APIs, and hands a human a decision brief when it should. Finals build day: **31 Oct 2026, ~9 AM to evening**. A team of 3 builds it.
+Chaukas (चौकस) is a prototype for the Paytm Build for India hackathon: an AI teammate that does real work safely. Every money step goes through a **deterministic guardrail** before it runs through **mock** partners, and a human gets a decision brief when they should. The LLM is used only where there is ambiguity (understanding the message, wording a reply); code decides everything that touches money.
 
-## Who you are working for
+It has two product areas:
 
-There are 3 team members, and each one owns a part of the codebase. **At the start of a session, if you don't already know which member you are helping, ask.** Then read that member's file **fully**, plus the files it tells you to read:
+1. **Merchant side** (built for the 31 Oct 2026 finals): a merchant's settlement problem, loan offers, shop insurance and device upgrades, in their language, with proactive outreach.
+2. **Consumer side** (current focus: **loans and insurance automation**): a person buys **health insurance** and takes a **personal loan** in a Paytm-style app, with on-device document autofill and an AI assistant. Backend in `chaukas/consumer/`, UI in `web/`.
 
-| Member | Owns | Start here |
-|--------|------|-----------|
-| Member 1 | Agent core + API: models, orchestrator, LLM agents, mocks, FastAPI | `MEMBER_1_AGENT_CORE.md` |
-| Member 2 | Guardrail + data + privacy + compliance + eval | `MEMBER_2_GUARDRAIL_EVAL.md` |
-| Member 3 | UI + demo + video + deck + submission | `MEMBER_3_INTERFACE_PRIVACY_DEMO.md` |
+## Who is working on it
 
-## Document map (what each file is for)
+One person now (the three-member split of the finals build day is over). You may edit any file. The old "Member N owns this" labels in docstrings are historical; the old per-person plans are in `docs/archive/`. **Shared contracts** still deserve care: `chaukas/core/models.py`, `data/schema.sql`, `CONTRACTS.md`, `config/policy.yaml`, `requirements.txt`. Change them additively (new optional field, new enum value) and update `CONTRACTS.md` in the same change.
+
+## Document map
 
 | File | Read it when |
 |------|-------------|
-| `CONTRACTS.md` | **Before writing any code.** It holds the exact shared models (C1), the guardrail contract (C2), tool signatures (C3), privacy functions (C4), API (C5), and the repo layout plus file owners (C6). It is the source of truth for names, types and file locations. |
-| `data/schema.sql` | Before touching the DB or anything that reads or writes it. The table and column names here are final. |
-| `data/merchant_fixtures.json` | The seed data. There are 20 merchants, and each one has a `scenario` label. The `_meta` section holds conventions, the simulated-lender rule, `cause_to_plan`, and offer gating. |
-| `COMPLIANCE.md` | Before building anything user-facing, consent-related, loan-related or PII-related. It maps RBI FREE-AI, RBI Digital Lending and the DPDP Act 2023 to concrete controls. |
-| `DEMO_SCRIPT.md` | It defines what must work on stage: 5 scenes with exact inputs and expected outputs. **Priorities come from here.** |
-| `CHAUKAS_EXPLAINED.md` | A full design explanation in Hinglish, with the *why* behind every decision. §14 holds the judge Q&A. |
-| `CHAUKAS_SYSTEM_DESIGN.md` | The HLD/LLD background. Where it conflicts with `CONTRACTS.md`, **CONTRACTS wins** (B1, B2 and B10 are marked superseded). |
-| `CHAUKAS_PROBLEM_STATEMENT.md` | The problem, scope, tech stack, and the acceptance metrics. |
-| `TEAM_MEETING_29OCT.md` | Open team decisions (D1–D15) and pending tasks (P1–P12). |
+| `README.md` | First. What it is, how to run it, what is real and what is mock. |
+| `CONTRACTS.md` | **Before writing code.** Shared models (C1), guardrail (C2), tools (C3), privacy (C4), merchant API (C5), **consumer API (C5b)**, repo layout (C6). |
+| `data/schema.sql` · `data/consumer_schema.sql` | Before touching the DB. Merchant tables and consumer tables are separate files. |
+| `config/*.yaml` | Every limit, threshold and fact lives here (`policy.yaml`, `consumer.yaml`, `consumer_kb.yaml`, `lender_sim.yaml`, `models.yaml`, ...). |
+| `prompts/*.v1.txt` | Every LLM prompt (`intent`, `reply`, `handoff`, `proactive_notify`, `consumer_assistant`). |
+| `COMPLIANCE.md` | Before anything user-facing, consent-, loan-, insurance- or PII-related. Maps RBI FREE-AI, RBI Digital Lending, IRDAI-aligned practice and the DPDP Act to concrete controls. |
+| `DEMO_SCRIPT.md` | What must work on stage: the 5 merchant scenes, plus the consumer flows (appendix). |
+| `CHAUKAS_EXPLAINED.md` | The design with the *why*, in Hinglish. §14 judge Q&A, §16 consumer flows. |
+| `CHAUKAS_SYSTEM_DESIGN.md` | HLD/LLD background. Where it conflicts with `CONTRACTS.md`, **CONTRACTS wins**. |
+| `CHAUKAS_PROBLEM_STATEMENT.md` | The problem, scope and acceptance metrics (has a scope update at the top). |
+| `web/README.md` | The static frontend: flow, files, deploy. |
+| `docs/archive/` | History only (finals-day plans, change logs). Not instructions. |
 
 ## Non-negotiable rules
 
-1. **The guardrail is deterministic Python. Never use an LLM inside it.** No code path may execute an action without an ALLOW `Decision`. The DB also enforces this through the `executions_require_allow` trigger, so never remove or bypass that trigger.
-2. **Money amounts come from the ledger, never from the merchant's message.** Amounts are `int` rupees, never `float`.
-3. **BLOCK is final.** No confirmation, whether from the merchant or a human, turns a BLOCK into an ALLOW.
-4. **Never cache money state.** That covers settlements, balances, payouts and guardrail decisions.
-5. **No raw PII** may reach logs, traces, `audit_log`, `turns`, `handoffs` or LLM prompts. Route it through `chaukas/privacy/` (`mask`, `mask_text`, `tokenise`, `scrub`). Only `chaukas/agents/action.py` may call `detokenise()`.
-6. **`audit_log` and `consents` are append-only.** Never write UPDATE or DELETE against them.
-7. **Config lives in `config/*.yaml` and prompts live in `prompts/*.v1.txt`.** Never hardcode limits, thresholds or prompt text.
-8. **No LangChain or LangGraph.** Use plain Python with FastAPI and Pydantic v2. Every external service (payments, tickets, lending) is a deterministic **mock**.
-9. **Shared models live only in `chaukas/core/models.py`.** Never redefine `PlannedStep`, `Decision` or the others elsewhere.
-10. In pitch-facing text, never say "RBI-compliant" or "certified". Say "aligned with".
+1. **The guardrail is deterministic Python. Never use an LLM inside it.** No code path may execute an action without an ALLOW decision. The DBs also enforce it with triggers (`executions_require_allow`, `consumer_exec_require_allow`): never remove or bypass them.
+2. **Money amounts come from the ledger / rule engine, never from the user's message, the client, or an LLM.** Amounts are `int` rupees, never `float`. Consumer premiums and loan figures come only from `chaukas/consumer/engine.py`; the client never sends an amount and the server recomputes and compares (`AMOUNT_MISMATCH`).
+3. **BLOCK is final.** No confirmation (OTP, human, "yes") turns a BLOCK into an ALLOW.
+4. **Never cache money state** (settlements, balances, payouts, quotes, guardrail decisions, auth tokens). `tests/test_cache_safety.py` fails on any module-level `cache`/`memo` container or new `lru_cache`.
+5. **No raw PII** in logs, traces, audit tables, turns, handoffs or LLM prompts. Route it through `chaukas/privacy/` (`mask`, `mask_text`, `tokenise`, `scrub`). Only `chaukas/agents/action.py` may call `detokenise()`. The **Aadhaar number is never collected, stored or logged** (KYC is a DigiLocker mock: a verified flag + last 4 digits). PAN is format-checked and stored masked only.
+6. **Audit and consent tables are append-only** (`audit_log`, `consents`, `consumer_audit`, `consumer_consents`): never write UPDATE or DELETE against them.
+7. **Config lives in `config/*.yaml`, prompts in `prompts/*.v1.txt`.** Never hardcode limits, thresholds, facts or prompt text.
+8. **No LangChain or LangGraph.** Plain Python, FastAPI, Pydantic v2. Every external service (payments, tickets, lender, insurer, DigiLocker) is a deterministic **mock**.
+9. **Shared models live only in `chaukas/core/models.py`.** Never redefine `PlannedStep`, `Decision` or the others elsewhere. (Consumer request bodies live in `chaukas/consumer/models.py`; they are new, not redefinitions.)
+10. In pitch-facing text never say "RBI-compliant" or "certified". Say "aligned with".
+11. **The consumer assistant cannot act.** The model picks a topic and a language and words a short reply from `config/consumer_kb.yaml`; code masks PII first, stops prompt injection before any model call, rejects a reply that adds a number, a promise or personal data, and maps topic to on-screen action. The model never chooses an action.
+12. **OTP, human approval and KYC are checked on the server.** The browser never holds a flag that unlocks money. A human approval is a staff-written row bound to the exact quote and insurer.
 
 ## Working rules
 
-- **Stay inside your member's files** (the owners are listed in CONTRACTS §C6). If a change needs another member's file or a **shared file**, stop and tell the user. The shared files are `chaukas/core/models.py`, `data/schema.sql`, `CONTRACTS.md`, `config/policy.yaml` and `requirements.txt`. These need a PR approved by another member.
-- **The contracts are additive-only once frozen.** You may add new optional fields or enum values. Renaming or removing anything needs team agreement.
-- **Every skeleton file already exists with a docstring** that states its purpose, owner and contract. Read the docstring before you write the file.
-- **Build in priority order:** P0 items first (each member file has a priority table), then P1. Build P2 only if idle.
-- **Git:** short task branches named `m1/…`, `m2/…` or `m3/…`, a PR into `main`, and a merge every 1–2 hours. Never force-push `main`. Never commit `.env` or `data/*.db`.
-- After 4 PM on build day, make **bug fixes only**, with no new features.
+- **Build in priority order**, test as you go, and keep changes small. After a demo or freeze is declared, bug fixes only.
+- **Tests are the contract.** Add a test with every behaviour change. Full run: `python -m pytest` (about 2 minutes, ~840 tests). The suite includes project guards: cache safety, PII leak, fairness, red-team.
+- **Be honest about what is real.** The rule engines, guardrails, audit, OCR parsing and LLM assistant are real code; partners, KYC, payouts, policy issue and loan disbursal are mocks. Do not let UI text or docs claim otherwise.
+- **Git:** short task branches (`feat/…`), merge to `main` often, never force-push `main`, never commit `.env` or `data/*.db`. `ui/node_modules`, `ui/.wrangler` and `logs/` are untracked on purpose.
+- Every skeleton file has a docstring stating purpose and contract: read it before editing.
 
 ## Commands
 
-- Run everything from the repo root, and use absolute imports (`from chaukas.core.models import PlannedStep`).
-- Install: `pip install -r requirements.txt` (Python 3.11)
-- Seed the DB: `python -m data.seed`, which writes `data/chaukas.db`
-- Run the API: `uvicorn chaukas.main:app --reload`
-- Run the tests: `pytest`
-- Run the eval: `python -m eval.run_eval`, then `python -m eval.redteam`
-- Secrets go in `.env`. Copy it from `.env.example`.
+Run everything from the repo root; imports are absolute (`from chaukas.core.models import PlannedStep`).
 
-## Known stale items
+- Install: `python -m pip install -r requirements.txt` (Python 3.11)
+- Seed the merchant DB: `python -m data.seed` (writes `data/chaukas.db`; the consumer tables are created on first use)
+- Run the API: `python -m uvicorn chaukas.main:app --reload` (port 8000)
+- Run the frontend: `python -m http.server 8080 --directory web`, then open `http://localhost:8080` (on localhost it talks to `http://localhost:8000`; elsewhere use `?api=https://…`)
+- Tests: `python -m pytest` · parser test: `node web/docparse.test.js`
+- Eval: `python -m eval.run_eval`, then `python -m eval.redteam`
+- Secrets in `.env` (copy `.env.example`): `SARVAM_API_KEY`, `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `CHAUKAS_STAFF_KEY`. Local consumer-API testing without login: `CHAUKAS_CONSUMER_AUTH=off`.
 
-- `data/golden_set.json` and `data/redteam_set.json` follow the **old** design (old intents and action names). Member 2 rewrites them under task P7. Do not build eval logic around their current shape.
+## Known gaps (keep these honest in the pitch)
+
+- Only `SARVAM_API_KEY` is configured; without a working model the assistant and the merchant agents fall back to deterministic text (the response says so).
+- The consumer UI has no offline mode: it needs the backend (Render free tier sleeps: wake it before a demo).
+- "Demo: a human approves" uses a demo staff key from the browser; a real deployment sets `CHAUKAS_STAFF_KEY` and keeps it on the agent desk.
+- All rule numbers (premium factors, lender thresholds, limits) are illustrative placeholders in `config/`.

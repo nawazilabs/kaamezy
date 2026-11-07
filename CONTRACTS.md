@@ -1,6 +1,6 @@
-# Chaukas — Shared Contracts (v1 · PROPOSED)
+# Chaukas — Shared Contracts (v1)
 
-> **Status:** PROPOSED — team review pending. Once all 3 members agree, change the status to `FROZEN v1`. After freezing, only **additive** changes are allowed (new optional field, new enum value). Breaking changes need all 3 to agree.
+> **Status:** IN USE. The three-person team treated v1 as frozen on 29-31 Oct 2026; one person maintains it now. Only **additive** changes (new optional field, new enum value, new endpoint). **C5b** (consumer API) was added on 7 Nov 2026 without touching C1-C5.
 > **Companion docs:** `CHAUKAS_PROBLEM_STATEMENT.md` (why), `CHAUKAS_SYSTEM_DESIGN.md` (how), `data/schema.sql` + `data/merchant_fixtures.json` (C0, done).
 > Hinglish walkthrough of all of this: `CHAUKAS_EXPLAINED.md`.
 
@@ -12,6 +12,7 @@
 | C3 | Tool / integration signatures + rollback + trace span | Person 1 | P2 (eval expects these actions), P3 (trace view) |
 | C4 | Privacy function signatures (`privacy/`) | Person 3 | P1, P2 |
 | C5 | Backend ↔ UI API (FastAPI) | Person 3 | P1 (implements), P3 (calls) |
+| C5b | Consumer API: health insurance, personal loan, assistant (`/api/consumer`, see C5b below) | — | `web/` |
 | C6 | Config files + repo layout | Person 2 | all |
 
 All models are **Pydantic v2**. All money is `int` rupees. All timestamps ISO-8601 UTC strings. Lang codes BCP-47 (`hi-IN`).
@@ -409,6 +410,30 @@ class TurnResponse(BaseModel):
 
 A typed "haan bhejo" message and the confirm button reach the same code path (`Confirmation`). Step-up (over-limit) **requires** the confirm endpoint with OTP — a chat "haan" alone is not enough for over-limit money.
 
+### C5b. Consumer API (health insurance + personal loan) — ADDITIVE, `chaukas/consumer/`
+
+Same rules as above: amounts come from the server's rule engine / simulated lender (never the client), the guardrail is
+deterministic Python, BLOCK is final, nothing raw is stored or logged. Tables: `data/consumer_schema.sql` (separate file,
+`schema.sql` is untouched). Config: `config/consumer.yaml`. Auth: `Authorization: Bearer <Supabase token>` (see `consumer/auth.py`).
+
+| Method & path | Body | Returns |
+|---------------|------|---------|
+| `GET /api/consumer/config` | — | options and limits (public) |
+| `POST /api/consumer/kyc/digilocker-demo` · `GET /api/consumer/kyc` | — | `{verified, ref_last4}` (mock; no Aadhaar number) |
+| `POST /api/consumer/insurance/quote` | `InsuranceProposal` | `{quote_id, city_tier, quotes[], recommended}` |
+| `POST /api/consumer/insurance/purchase` | `{quote_id, insurer_id, consent_share_health, pan, mobile, holder_name, nominee_*, otp?, handoff_id?}` | `{decision, audit_id, handoff?, policy?}` |
+| `POST /api/consumer/loan/decide` | `LoanApplication` | `{quote_id, decision, kfs?}` |
+| `POST /api/consumer/loan/quotes/{id}/kfs-shown` | — | server records when the Key Facts were on screen |
+| `POST /api/consumer/loan/accept` | `{quote_id, consent_offer, consent_credit_check, pan, mobile, holder_name, pincode, otp?, handoff_id?}` | `{decision, audit_id, handoff?, loan?}` |
+| `POST /api/consumer/assistant/session` | — | `{session_id, disclosure, intro}` (AI disclosure line from `config/disclosure.yaml`) |
+| `POST /api/consumer/assistant/message` | `{session_id, text (<=500), screen: home\|insurance\|loan}` | `{reply, topic, lang, source: llm\|kb\|keyword\|guard, action, confidence, latency_ms, cost_inr}` |
+| `GET /api/consumer/policies` · `/loans` · `/activity` | — | the caller's own records (masked) |
+| `POST /api/consumer/handoffs/{id}/resolve` | `{decision, staff_id}` + header `X-Staff-Key` | staff approval, bound to the exact quote and insurer |
+
+`decision = {verdict: ALLOW|NEEDS_CONFIRMATION|BLOCK, kind: otp|human|null, reason_code, reason, checks[{name, ok}]}`.
+
+The assistant (`consumer/assistant.py`, prompt `prompts/consumer_assistant.v1.txt`, facts `config/consumer_kb.yaml`) uses the LLM only to pick a topic and language and to word a short reply. Code masks PII before the prompt, screens prompt injection before any model call, rejects a reply that adds a number, a promise or personal data, and maps the topic to the on-screen `action` (the model never chooses it). `source`: `llm` = model's wording, `kb` = knowledge-base text (model unsure or reply rejected), `keyword` = model unavailable, `guard` = injection stopped in code.
+
 ---
 
 ## C6. Config + repo layout
@@ -417,7 +442,8 @@ A typed "haan bhejo" message and the confirm button reach the same code path (`C
 
 ```
 paytm_agentic_project/                 # repo root
-├── *.md                               # docs: PROBLEM_STATEMENT, SYSTEM_DESIGN, CONTRACTS, COMPLIANCE, EXPLAINED, DEMO_SCRIPT, MEMBER_*
+├── README.md, CLAUDE.md, *.md         # docs: README, CLAUDE (rules), CONTRACTS, COMPLIANCE, EXPLAINED, DEMO_SCRIPT, PROBLEM_STATEMENT, SYSTEM_DESIGN
+├── docs/archive/                      # history only: finals-day plans and change logs
 ├── requirements.txt                   # Python 3.11; pin versions after first install
 ├── .env.example                       # SARVAM_API_KEY, GEMINI_API_KEY, CHAUKAS_DB_PATH, CHAUKAS_REPLAY_MODE  (.env is gitignored)
 ├── .gitignore
@@ -456,6 +482,14 @@ paytm_agentic_project/                 # repo root
 │   ├── privacy/                       # M2                                                 (C4)
 │   │   ├── pii.py                     #     detect, mask, mask_text, tokenise, detokenise, encrypt, decrypt
 │   │   └── scrub.py                   #     scrub(obj)
+│   ├── consumer/                      #     health insurance + personal loan + assistant (C5b); ALL partners are [MOCK]
+│   │   ├── models.py                  #     request bodies (Pydantic validates before the guardrail)
+│   │   ├── engine.py                  #     rule engine (premiums) + simulated lender: the ONLY source of amounts
+│   │   ├── guardrail.py               #     deterministic checks, no LLM
+│   │   ├── store.py                   #     tables from data/consumer_schema.sql (append-only audit, ALLOW-only executions)
+│   │   ├── auth.py                    #     Supabase token check (server side)
+│   │   ├── assistant.py               #     LLM agent: topic + language + wording, code-checked, falls back to the knowledge base
+│   │   └── api.py                     #     router mounted at /api/consumer
 │   ├── observability/                 # M2
 │   │   ├── trace.py                   #     Span emitter -> traces/{trace_id}.jsonl
 │   │   └── audit.py                   #     audit_log (append-only) + executions writes
@@ -467,20 +501,24 @@ paytm_agentic_project/                 # repo root
 │   │                                  #     allow_list, never_allowed, disabled_actions (kill switch), consent_required,
 │   │                                  #     pii_fields, intent_confidence_threshold 0.7, retention_days
 │   ├── lender_sim.yaml                # M1  SIMULATED lender thresholds (placeholders)
+│   ├── consumer.yaml                  #     consumer insurance + loan rules and limits (placeholders)
+│   ├── consumer_kb.yaml               #     the ONLY facts the consumer assistant may state (en / hi / hinglish)
 │   ├── models.yaml                    # M1  sarvam-30b core, gemini flash fallback
 │   ├── mock.yaml                      # M1  mock OTP, fail_ids (rollback demo)
 │   └── languages.yaml                 # M1  text: hi-IN, en-IN, ...; voice v1: hi-IN
-├── prompts/                           # M1  intent.v1.txt, reply.v1.txt, handoff.v1.txt (versioned, never inline)
+├── prompts/                           # M1  intent, reply, handoff, proactive_notify, consumer_assistant (*.v1.txt, versioned, never inline)
 ├── data/                              # M2
-│   ├── schema.sql                     #     C0 — DB structure (source of truth)
+│   ├── schema.sql                     #     C0 — merchant DB structure (source of truth)
+│   ├── consumer_schema.sql            #     consumer tables (additive, created on first use)
 │   ├── merchant_fixtures.json         #     C0 — seed data, 20 scenario merchants
-│   ├── golden_set.json                #     eval cases  ⚠ STALE — rewrite to C1 intents/actions (task P7)
-│   ├── redteam_set.json               #     attack cases ⚠ STALE — rewrite (task P7)
+│   ├── golden_set.json                #     eval cases (current intents and actions)
+│   ├── redteam_set.json               #     attack cases (current)
 │   ├── seed.py                        #     python -m data.seed -> data/chaukas.db (gitignored)
 │   └── README.md                      #     intent list + pointers
 ├── eval/                              # M2  run_eval.py, redteam.py  (python -m eval.run_eval)
 ├── tests/                             # M1/M2  pytest: test_guardrail, test_privacy, test_fairness, test_orchestrator, conftest
-├── ui/                                # M3  framework TBD (team meeting) — panels per DEMO_SCRIPT §4
+├── web/                               #     the live static frontend: sign-in, Paytm-style home, insurance, loan, assistant (web/README.md)
+├── ui/                                #     older Lovable merchant UI build output (no source here); README.md says so
 ├── recordings/                        # M1  replay-mode LLM recordings (committed — demo depends on them)
 └── traces/                            #     runtime spans (gitignored)
 ```

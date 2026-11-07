@@ -51,6 +51,10 @@ async def _http_error(_: Request, exc: HTTPException):
 app.include_router(chat.router)
 app.include_router(desk.router)
 
+from chaukas.consumer import api as consumer_api  # noqa: E402  (health insurance + personal loan, additive)
+
+app.include_router(consumer_api.router)
+
 try:  # Member 2's ops router (traces / audit / redteam / eval) — mounted once it exists
     from chaukas.api import ops
 

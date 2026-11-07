@@ -1,6 +1,6 @@
 # Chaukas — Regulatory Compliance Map
 
-> **Owner:** Member 2 (controls) · Member 3 (UI surfaces + deck slide 9)
+> **Owner:** one person now (formerly Member 2 for controls, Member 3 for UI surfaces and deck slide 9)
 > **Purpose:** every regulatory requirement we claim → the exact control in Chaukas → where it lives (file / table) → how we prove it (demo scene / test). If a row isn't **Built**, the deck must not claim it as built.
 >
 > ⚠️ **Verify before slides:** section numbers and requirement wording below are our reading of the regulations. Before anything goes on a slide, check it against the official text (RBI website, MeitY gazette). Say "aligned with", not "certified compliant" — accountability stays with the regulated entity (Paytm / the lender).
@@ -11,7 +11,7 @@
 | Code | Regulation | Why it applies to us |
 |------|-----------|----------------------|
 | **R** | RBI **FREE-AI** framework (Aug 2025) — Framework for Responsible and Ethical Enablement of AI; 7 sutras, 26 recommendations | AI used by a regulated payments/lending business, touching customer money |
-| **L** | RBI **Digital Lending Directions, 2025** (consolidating the 2022 digital lending guidelines) | We make loan offers inside the conversation |
+| **L** | RBI **Digital Lending Directions, 2025** (consolidating the 2022 digital lending guidelines) | We make loan offers inside the conversation, and run a personal-loan flow (section 2c) |
 | **P** | RBI directive on **storage of payment system data** (2018) | Settlement / payout data is payment data |
 | **D** | **DPDP Act 2023** (Digital Personal Data Protection Act) + DPDP Rules | We process merchants' personal data (name, phone, VPA, PAN, bank account) |
 
@@ -57,6 +57,53 @@ Chaukas recommends the cover that fits and records the merchant's interest. It n
 
 Safe to say: "Chaukas suggests the cover that fits the shop and never buys it for the merchant: it asks first, records interest, and the licensed insurer takes it from there." Never say "IRDAI-compliant" or "certified".
 
+## 2c. Consumer flows: personal loan, health insurance, assistant (additive)
+
+Code: `chaukas/consumer/` · rules: `config/consumer.yaml` · facts: `config/consumer_kb.yaml` · tables: `data/consumer_schema.sql` · tests: `tests/test_consumer.py`, `tests/test_consumer_assistant.py`. Insurer, lender, DigiLocker and disbursal are mocks; every number is illustrative.
+
+**Personal loan** (same Digital Lending ideas as section 2, now with a server-side clock and two consents)
+
+| ID | Requirement | Chaukas control | Where | Proof | Status |
+|----|-------------|-----------------|-------|-------|:------:|
+| CL1 | KFS shown **before** the borrower agrees | The screen calls `kfs-shown` when the Key Facts are on display; the **server** stamps `kfs_shown_at`. Guardrail check 2 BLOCKs `KFS_NOT_SHOWN`; `consumer_loans.kfs_shown_at` is NOT NULL | `consumer/api.py`, `guardrail.check_loan_accept` | `test_no_loan_before_the_key_facts_were_shown` | ✅ |
+| CL2 | Every cost, and the lender's name, shown up front; no bundling | KFS lists lender, APR, EMI, interest, processing fee + GST, amount received, total repaid, cooling-off, grievance contact, and `insurance_required: false` | `engine.build_kfs` | `test_take_a_loan_end_to_end` | ✅ |
+| CL3 | Explicit consent, per purpose, no auto-acceptance | Two separate consents (`loan_offer`, `credit_check`) both required (check 3); rows in append-only `consumer_consents` | guardrail check 3, `store.consent` | `test_no_loan_without_both_consents_or_identity` | ✅ |
+| CL4 | The credit decision belongs to the lender | Simulated lender decides eligibility and amount; Chaukas only decides whether acceptance may proceed | `engine.lender_decide` | `test_lender_caps_the_amount_and_declines_for_plain_reasons` | ✅ (mock lender) |
+| CL5 | Fairness | The lender sees only age, income, EMIs, amount, tenure. `LoanApplication` has no name, gender, location or language field | `consumer/models.py` | `test_lender_never_sees_name_gender_location_or_language` | ✅ |
+| CL6 | Amount integrity | The accept request carries no amount; the server compares the stored offer with a fresh lender run (`AMOUNT_MISMATCH`) | guardrail check 5 | `test_the_amount_comes_from_the_lender_never_from_the_request` | ✅ |
+| CL7 | Big or risky loans need more than a "yes" | One-time code above the auto limit (checked on the server); self-employed above the review limit needs a human; duplicates and more than 2 active loans BLOCK | guardrail checks 6-8 | `test_a_big_loan_needs_the_one_time_code`, `test_at_most_two_active_loans` | ✅ |
+| CL8 | Borrower can exit in a cooling-off period | Shown in the KFS and stored (`cooling_off_end`); the exit / prepayment action itself is **not built** | `consumer_loans.cooling_off_end` | — | 🔵 shown, not executed |
+
+**Health insurance** (IRDAI-aligned practice; in real life a licensed insurer must issue and advise: verify the rules before any claim on slides)
+
+| ID | Requirement | Chaukas control | Where | Proof | Status |
+|----|-------------|-----------------|-------|-------|:------:|
+| CI1 | Honest, explainable recommendation | Deterministic rule engine; the recommendation carries a plain reason; the person picks | `engine.quotes`, `engine.recommend` | `test_recommendation_is_deterministic_and_explained` | ✅ |
+| CI2 | Consent to share health details, per purpose | `share_health_data` consent required (check 2) before any purchase | guardrail check 2 | `test_insurance_blocks_bad_input` | ✅ |
+| CI3 | Identity without collecting the Aadhaar number | DigiLocker mock: the server keeps a verified flag and the last 4 digits; the card photo reader ignores any Aadhaar number | `store.set_kyc`, `web/docparse.js` | `test_no_policy_without_verified_identity`, `docparse.test.js` | ✅ (mock KYC) |
+| CI4 | No mis-selling | The assistant cannot buy; purchase only through the guardrail; the loan flow never requires insurance and a policy never changes loan approval, amount or rate | `consumer/guardrail.py` | `test_a_reply_that_adds_facts_promises_or_leaks_is_replaced_by_the_knowledge_base` | ✅ |
+| CI5 | Underwriting review for risky declarations | Heart condition above the cover limit, cancer history, or a member above the age limit needs a human; the approval is bound to the exact quote and insurer (no bait-and-switch) | guardrail check 7, `consumer_handoffs` | `test_a_human_approval_is_bound_to_the_exact_insurer` | ✅ (mock human) |
+| CI6 | Proposer eligibility is a final BLOCK | Age outside the range BLOCKs; no OTP or human can override | guardrail check 3 | `test_proposer_age_is_a_final_block` | ✅ |
+| CI7 | Nominee and holder details captured, masked at rest | Nominee, holder and PAN stored masked only | `store`, `api.insurance_purchase` | `test_no_raw_pii_is_stored_anywhere` | ✅ |
+
+**Assistant (LLM) and privacy**
+
+| ID | Requirement | Chaukas control | Where | Proof | Status |
+|----|-------------|-----------------|-------|-------|:------:|
+| CA1 | The person knows it is AI, and which kind of answer they got | AI line from `config/disclosure.yaml` at chat start; the header says "Live AI model" or "Backup helper (the AI model is unavailable)" | `assistant.disclosure`, `web/flows.js` | `test_the_session_starts_with_the_ai_disclosure` | ✅ |
+| CA2 | Answers are grounded | A reply may use only facts in `config/consumer_kb.yaml`: no new number, no rupee amount, no "approved / issued / guaranteed", no ask for OTP / PIN / Aadhaar / PAN, no personal data, right language; otherwise the knowledge-base text is sent | `assistant.reply_problem` | `test_a_reply_that_adds_facts_promises_or_leaks_is_replaced_by_the_knowledge_base` | ✅ |
+| CA3 | The model cannot act | Topic maps to one on-screen action in code; an "action" in the model's JSON is ignored | `config/consumer_kb.yaml`, `assistant.answer` | `test_the_model_picks_the_topic_but_code_picks_the_action` | ✅ |
+| CA4 | Prompt injection | Screened in code **before** any model call (`config/injection.yaml`), audited as `BLOCK SUSPECTED_INJECTION`; user text is XML-escaped in the prompt | `assistant.answer` | `test_prompt_injection_is_stopped_before_any_model_call` | ✅ |
+| CA5 | No raw PII to the model or in storage | `mask_text` before the prompt; only masked turns stored; the audit stores topic and source, never the words | `assistant.answer`, `store.add_turn` | `test_raw_pii_never_reaches_the_prompt_or_storage` | ✅ |
+| CA6 | A human is reachable | The `human_request` topic answers and writes `request_human` to the audit log; the consumer agent desk itself is not built | `assistant.answer` | `test_a_human_request_is_logged_for_the_desk` | 🟡 logged, no live desk |
+| CP1 | Documents read without uploading them | The photo is read in the browser tab by an open-source OCR engine; a parser extracts name, date of birth, gender, PAN; the person confirms before use. (The OCR engine and model are downloaded as code; the photo is not uploaded) | `web/flows.js`, `web/docparse.js` | `node web/docparse.test.js` | ✅ |
+| CP2 | The person can see what the AI did | "Privacy & AI activity" lists every decision from the append-only `consumer_audit` | `GET /api/consumer/activity` | `test_activity_lists_the_decisions_and_never_pii` | ✅ |
+| CP3 | Append-only trail, no unlogged execution | Triggers on `consumer_audit`, `consumer_consents`; `consumer_exec_require_allow` | `data/consumer_schema.sql` | `test_audit_log_and_consents_are_append_only`, `test_the_database_refuses_an_execution_without_an_allow_decision` | ✅ |
+| CP4 | Only the caller's own data | The user id comes from the Supabase token the server checks on every request; every query is scoped to it | `consumer/auth.py` | `test_other_users_data_is_not_reachable` | ✅ |
+| CP5 | Withdraw consent, see and erase my data (DPDP s.6, s.11-12) | Consents are recorded and append-only, but there is **no withdraw button, data summary or erasure** for consumers yet | — | — | 🔵 planned |
+
+Safe to say: "Premiums and loan figures come from a rule engine and a lender, never from the AI. The AI can explain but cannot buy: every purchase passes a deterministic guardrail, and your Aadhaar number never reaches us or the AI." Never say "IRDAI-compliant", "RBI-compliant" or "certified".
+
 ## 3. RBI payment data storage
 
 | ID | Requirement | Chaukas control | Where | Status |
@@ -89,7 +136,7 @@ Safe to say: "Chaukas suggests the cover that fits the shop and never buys it fo
 - "Loan offers show the Key Fact Statement and the lender's name before consent — the database itself rejects an acceptance without it."
 - ❌ Don't say: "RBI-compliant", "certified", "approved". ❌ Don't cite section numbers on slides until verified.
 
-## 6. Who builds what
+## 6. Who builds what (historical: one person owns everything now)
 
 | Item | Owner |
 |------|-------|

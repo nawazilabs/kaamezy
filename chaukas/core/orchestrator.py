@@ -216,7 +216,7 @@ def handle_event(merchant_id: str, settlement_id: str) -> TurnResponse:
 
 
 def handle_device_event(merchant_id: str, to_device: str) -> TurnResponse:
-    """Proactive device-upgrade nudge (DEVICE_UPGRADE_PLAN.md §3A): the merchant's own transaction pattern crossed
+    """Proactive device-upgrade nudge (docs/archive/DEVICE_UPGRADE_PLAN.md §3A): the merchant's own transaction pattern crossed
     a threshold. Same house: context, plan, guardrail and action are the reactive ones. Nothing is requested in
     this turn: the guardrail parks the request for the merchant's yes (check 10, proactive), and _execute()
     refuses to run one that it does not park."""
@@ -244,7 +244,7 @@ def handle_device_event(merchant_id: str, to_device: str) -> TurnResponse:
 
 
 def _sales_offer_in_session(session_id: str) -> bool:
-    """One sales offer per conversation (DEVICE_UPGRADE_PLAN.md §3): an accepted loan / credit line / device
+    """One sales offer per conversation (docs/archive/DEVICE_UPGRADE_PLAN.md §3): an accepted loan / credit line / device
     request in this session means no second offer."""
     conn = db.connect()
     try:

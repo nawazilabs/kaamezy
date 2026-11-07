@@ -1,5 +1,5 @@
 # Proactive notification templates — deterministic, never sent to an LLM (amounts must not come from a model).
-# Owner: Member 1 · PROACTIVE_FEATURE_CHANGES.md §4.4
+# Owner: Member 1 · docs/archive/PROACTIVE_FEATURE_CHANGES.md §4.4
 # Placeholders (filled from the LEDGER / config): {amount} {settlement_id} {cause_text} {kyc_link}
 # One block per [lang.variant]. Missing language -> en-IN. Lines starting with # are comments.
 #   retriggerable  payout can be re-sent; waiting for the merchant's yes (Haan / Abhi nahi buttons)
@@ -8,7 +8,7 @@
 #   kyc            KYC pending: never retriggered
 #   declined       merchant said "abhi nahi" to the payout
 #   generic        anything else (the settlement could not be actioned automatically)
-#   device.<to>    device-upgrade nudge (DEVICE_UPGRADE_PLAN.md): {txn_count} {avg_bill} {per_day} from the device
+#   device.<to>    device-upgrade nudge (docs/archive/DEVICE_UPGRADE_PLAN.md): {txn_count} {avg_bill} {per_day} from the device
 #                  advisor; no price (the field team quotes it); waiting for the merchant's yes
 
 [hi-IN.retriggerable]

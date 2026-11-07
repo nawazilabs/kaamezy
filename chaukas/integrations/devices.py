@@ -1,4 +1,4 @@
-"""[MOCK] SIMULATED device advisor + field-team device-upgrade request (DEVICE_UPGRADE_PLAN.md).
+"""[MOCK] SIMULATED device advisor + field-team device-upgrade request (docs/archive/DEVICE_UPGRADE_PLAN.md).
 
 advise(merchant_id)            -> DeviceAdvice    deterministic, from cashflow_features + gmv_30d + current device
 request_device_upgrade(...)    -> DeviceRequest   writes device_offers (accepted) + a field-team ticket

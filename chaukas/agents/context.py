@@ -72,7 +72,7 @@ def load(merchant_id: str) -> MerchantContext:
         gmv_30d=m["gmv_30d"], bank_details_updated_at=m["bank_details_updated_at"],
         settlements=settlements, open_tickets=tickets, has_open_handoff=has_open_handoff,
         declined_offer_recently=declined_recently,
-        device_advice=devices.advise(merchant_id),  # deterministic, fresh every turn (DEVICE_UPGRADE_PLAN.md)
+        device_advice=devices.advise(merchant_id),  # deterministic, fresh every turn (docs/archive/DEVICE_UPGRADE_PLAN.md)
     )
 
 

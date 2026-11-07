@@ -1,0 +1,140 @@
+# Knowledge base for the consumer assistant (health insurance + personal loan help). Owner: Member 1 (wording by Member 2)
+# This is the ONLY source of facts the assistant may state. The LLM picks a topic and words the answer in the user's
+# language; code rejects any reply that adds a number, a promise or personal data that is not here. If the model is
+# down or its answer fails a check, the text below is sent as it is.
+# en = English (also used for Gujarati / Marathi, which are answered in English), hi = Hindi (Devanagari), hl = Hinglish.
+# Numbers here are the ONLY numbers a reply may contain. Never put a user's own figures here.
+
+# first message of a chat: the AI disclosure line comes from config/disclosure.yaml, this is the "what I can do" line
+session_intro:
+  en: "I can help with health insurance and loans: cover, claims, EMI, charges, or a quote."
+  hi: "मैं हेल्थ इंश्योरेंस और लोन में मदद कर सकता हूँ: कवर, क्लेम, EMI, खर्च, या कोट।"
+  hl: "Main health insurance aur loan mein madad kar sakta hoon: cover, claim, EMI, kharcha, ya quote."
+
+# keyword fallback (deterministic, used when the model is unavailable or unsure): first matching topic wins
+order: [human_request, privacy, medical_bridge, loan_emi, loan_charges, loan_cooling_off,
+        loan_documents, own_figures, loan_apply, insurance_quote, claim_help, waiting_period, copay, pre_existing, cashless, renewal,
+        thanks, greet]
+
+# what the screen may offer after an answer. The model never chooses an action: code maps the topic to one of these.
+topics:
+  greet:
+    action: null
+    keywords: ['\bhello\b', '^hi\b', '\bnamaste\b', '\bhey\b', 'नमस्ते']
+    en: "Hello! I can explain cover, waiting periods and claims, help with a loan, or get you a quote."
+    hi: "नमस्ते! मैं कवर, वेटिंग पीरियड और क्लेम समझा सकता हूँ, लोन में मदद कर सकता हूँ, या कोट निकाल सकता हूँ।"
+    hl: "Namaste! Main cover, waiting period aur claim samjha sakta hoon, loan mein madad kar sakta hoon, ya quote nikal sakta hoon."
+  thanks:
+    action: null
+    keywords: ['\bthanks?\b', '\bthank you\b', '\bshukriya\b', '\bdhanyavaad\b', 'धन्यवाद', 'शुक्रिया']
+    en: "You are welcome. Ask me anything else about insurance or loans."
+    hi: "आपका स्वागत है। इंश्योरेंस या लोन के बारे में कुछ और पूछना हो तो बताइए।"
+    hl: "Aapka swagat hai. Insurance ya loan ke baare mein kuch aur poochna ho to bataiye."
+  claim_help:
+    action: null
+    keywords: ['\bclaim', 'क्लेम', 'reimburse']
+    en: "To claim: for an emergency, inform the insurer within 24 hours; for planned admission, give 48 hours' notice. Use a network hospital for cashless, otherwise keep every bill and submit within 30 days of discharge."
+    hi: "क्लेम के लिए: इमरजेंसी में 24 घंटे के अंदर बीमा कंपनी को बताएँ, प्लान्ड एडमिशन में 48 घंटे पहले। नेटवर्क हॉस्पिटल में कैशलेस मिलता है, वरना सारे बिल रखें और डिस्चार्ज के 30 दिन में जमा करें।"
+    hl: "Claim ke liye: emergency mein 24 ghante ke andar insurer ko bataiye, planned admission mein 48 ghante pehle. Network hospital mein cashless milta hai, warna saare bill rakhiye aur discharge ke 30 din mein jama kijiye."
+  waiting_period:
+    action: null
+    keywords: ['\bwaiting', '\bintezaar', 'वेटिंग']
+    en: "A waiting period is the time before some claims are payable. Typically 30 days for any illness, and 1 to 3 years for conditions you already have. Accidents are covered from day one."
+    hi: "वेटिंग पीरियड वह समय है जिसके बाद कुछ क्लेम मिलते हैं। आम तौर पर 30 दिन, और पहले से मौजूद बीमारी के लिए 1 से 3 साल। दुर्घटना पहले दिन से कवर होती है।"
+    hl: "Waiting period woh samay hai jiske baad kuch claim milte hain. Aam taur par 30 din, aur pehle se maujood bimari ke liye 1 se 3 saal. Durghatna pehle din se cover hoti hai."
+  copay:
+    action: null
+    keywords: ['co-?pay', 'copay', 'को-?पे']
+    en: "Co-pay means you pay a share of each claim yourself, for example 10%. It lowers the premium but raises what you pay at the hospital."
+    hi: "को-पे का मतलब है हर क्लेम का एक हिस्सा आप खुद देते हैं, जैसे 10%। इससे प्रीमियम घटता है लेकिन अस्पताल में आपका खर्च बढ़ता है।"
+    hl: "Co-pay ka matlab hai har claim ka ek hissa aap khud dete hain, jaise 10%. Isse premium ghatta hai lekin aspataal mein aapka kharcha badhta hai."
+  pre_existing:
+    action: null
+    keywords: ['pre.?exist', '\bexisting\b', '\bped\b', '\bbimari', '\bdiabet', 'बीमारी']
+    en: "Existing conditions like diabetes or BP are covered after a waiting period, usually 1 to 3 years. You must declare them: hiding one is the most common reason for rejected claims."
+    hi: "डायबिटीज़ या BP जैसी पहले से मौजूद बीमारियाँ 1 से 3 साल के वेटिंग पीरियड के बाद कवर होती हैं। इन्हें बताना ज़रूरी है, छुपाने पर क्लेम अक्सर रिजेक्ट होता है।"
+    hl: "Diabetes ya BP jaisi pehle se maujood bimariyan 1 se 3 saal ke waiting period ke baad cover hoti hain. Inhe batana zaroori hai, chhupane par claim aksar reject hota hai."
+  cashless:
+    action: null
+    keywords: ['cashless', 'कैशलेस']
+    en: "Cashless means the insurer pays the hospital directly at network hospitals; you only pay non-covered items. Ask the hospital's insurance desk for pre-authorisation before admission if it is planned."
+    hi: "कैशलेस में बीमा कंपनी नेटवर्क हॉस्पिटल को सीधे भुगतान करती है। प्लान्ड एडमिशन से पहले हॉस्पिटल के इंश्योरेंस डेस्क से प्री-ऑथराइज़ेशन लें।"
+    hl: "Cashless mein insurer network hospital ko seedha payment karta hai. Planned admission se pehle hospital ke insurance desk se pre-authorisation lijiye."
+  renewal:
+    action: open_policies
+    keywords: ['\brenew', 'रिन्यू']
+    en: "Renewals: open My policies to see your dates. When a policy is near its end I can prepare the renewal, and the guardrail checks it before anything is charged."
+    hi: "रिन्यूअल: तारीख़ें देखने के लिए My policies खोलें। पॉलिसी ख़त्म होने के पास मैं रिन्यूअल तैयार कर सकता हूँ, और चार्ज से पहले गार्डरेल उसे जाँचेगा।"
+    hl: "Renewal: dates dekhne ke liye My policies kholiye. Policy khatam hone ke paas main renewal taiyar kar sakta hoon, aur charge se pehle guardrail use jaanchega."
+  insurance_quote:
+    action: start_insurance_quote
+    keywords: ['\bquote', '\bpremium', '\bbuy\b', '\bkhareed', '\bkharid', 'policy chahiye', 'कोट', 'खरीद', 'प्रीमियम']
+    en: "Happy to. It takes 4 short steps and I do the comparison for you."
+    hi: "ज़रूर। सिर्फ़ 4 छोटे स्टेप हैं और तुलना मैं कर दूँगा।"
+    hl: "Zaroor. Sirf 4 chhote step hain aur tulna main kar dunga."
+  loan_apply:
+    action: open_loan_check
+    keywords: ['\bloan', '\budhaar', '\budhar', 'कर्ज', 'लोन']
+    en: "I can check a loan offer in about 4 steps. A regulated lender decides the amount, using only your age, income and EMIs."
+    hi: "मैं करीब 4 स्टेप में लोन ऑफ़र चेक कर सकता हूँ। रकम रेगुलेटेड लेंडर तय करता है, सिर्फ़ आपकी उम्र, आमदनी और EMI देखकर।"
+    hl: "Main kareeb 4 step mein loan offer check kar sakta hoon. Rakam regulated lender tay karta hai, sirf aapki umar, aamdani aur EMI dekhkar."
+  loan_emi:
+    action: null
+    keywords: ['\bemi\b', 'ईएमआई']
+    en: "EMI is the fixed amount you pay every month. It depends on the loan amount, the interest rate (APR) and the months you choose. A longer tenure lowers the EMI but raises the total interest."
+    hi: "EMI वह तय रकम है जो आप हर महीने भरते हैं। यह लोन की रकम, ब्याज दर (APR) और महीनों पर निर्भर करती है। ज़्यादा समय में EMI घटती है लेकिन कुल ब्याज बढ़ता है।"
+    hl: "EMI woh tay rakam hai jo aap har mahine bharte hain. Yeh loan ki rakam, byaaj dar (APR) aur mahinon par nirbhar karti hai. Zyada samay mein EMI ghatti hai lekin kul byaaj badhta hai."
+  loan_charges:
+    action: null
+    keywords: ['\bapr\b', 'interest', 'charges?', '\bfee\b', '\bbyaj', 'ब्याज', '\bkfs\b']
+    en: "Every cost is in the Key Facts Statement before you agree: the APR, a processing fee plus GST, the EMI, the total you repay and the amount you actually receive. No insurance is required to get the loan."
+    hi: "आपके हाँ कहने से पहले Key Facts Statement में हर खर्च दिखता है: APR, प्रोसेसिंग फ़ीस और GST, EMI, कुल चुकाने की रकम और असल में मिलने वाली रकम। लोन के लिए कोई बीमा ज़रूरी नहीं है।"
+    hl: "Aapke haan kehne se pehle Key Facts Statement mein har kharcha dikhta hai: APR, processing fee aur GST, EMI, kul chukane ki rakam aur asal mein milne wali rakam. Loan ke liye koi insurance zaroori nahi hai."
+  loan_cooling_off:
+    action: null
+    keywords: ['cooling', 'cancel', 'prepay', 'foreclos']
+    en: "There is a short cooling-off period after the loan (3 days in this demo). In it you can exit by repaying the principal and the interest for the days used, with no penalty."
+    hi: "लोन के बाद एक छोटा कूलिंग-ऑफ पीरियड होता है (इस डेमो में 3 दिन)। इसमें आप मूलधन और इस्तेमाल के दिनों का ब्याज चुकाकर बिना जुर्माने के बाहर निकल सकते हैं।"
+    hl: "Loan ke baad ek chhota cooling-off period hota hai (is demo mein 3 din). Isme aap mooldhan aur istemaal ke dino ka byaaj chukakar bina jurmaane ke bahar nikal sakte hain."
+  loan_documents:
+    action: null
+    keywords: ['\bdocument', '\bpapers?\b', '\bkagaz', 'दस्तावेज']
+    en: "You need your PAN and a quick DigiLocker identity check; we never ask for your Aadhaar number. Self-employed borrowers asking for a large amount may also need 6 months of bank statements or 2 years of ITR."
+    hi: "आपको PAN और DigiLocker से पहचान की जाँच चाहिए; हम आधार नंबर नहीं माँगते। बड़ी रकम माँगने वाले स्व-रोज़गार वालों को 6 महीने के बैंक स्टेटमेंट या 2 साल का ITR भी लग सकता है।"
+    hl: "Aapko PAN aur DigiLocker se pehchaan ki jaanch chahiye; hum Aadhaar number nahi maangte. Badi rakam maangne wale self-employed logon ko 6 mahine ke bank statement ya 2 saal ka ITR bhi lag sakta hai."
+  own_figures:
+    action: null
+    keywords: ['(kitna|how much).{0,25}(premium|emi|loan|limit)', 'will (my|the) (loan|claim).{0,15}(approve|pass)', 'approve (ho|hoga)', 'am i eligible', 'eligib(le|ility)']
+    en: "I cannot know your own premium, EMI or approval. The quote and offer screens show them after the check, and the insurer or the lender decides."
+    hi: "मैं आपका अपना प्रीमियम, EMI या मंज़ूरी नहीं जान सकता। क्वोट और ऑफ़र वाली स्क्रीन जाँच के बाद ये दिखाती हैं, और फ़ैसला बीमा कंपनी या लेंडर करता है।"
+    hl: "Main aapka apna premium, EMI ya manzoori nahi jaan sakta. Quote aur offer wali screen jaanch ke baad yeh dikhati hain, aur faisla insurer ya lender karta hai."
+  medical_bridge:
+    action: open_bridge_loan
+    keywords: ['\bbridge', 'ब्रिज']
+    en: "If you are in hospital and a claim is pending, you can ask for a medical bridge loan. Your policy only tells us why you need the money; it does not change approval or the rate."
+    hi: "अगर आप अस्पताल में हैं और क्लेम पेंडिंग है, तो मेडिकल ब्रिज लोन माँग सकते हैं। पॉलिसी सिर्फ़ वजह बताती है; मंज़ूरी या दर नहीं बदलती।"
+    hl: "Agar aap aspataal mein hain aur claim pending hai, to medical bridge loan maang sakte hain. Policy sirf wajah batati hai; manzoori ya dar nahi badalti."
+  privacy:
+    action: null
+    keywords: ['aadhaar', 'aadhar', '\bpan\b', 'privacy', '\bsecure', '\bsafe', '\bdata\b', 'आधार', 'डेटा']
+    en: "Your Aadhaar number never reaches me or the AI. Identity is verified through DigiLocker and we only get a verified flag plus the last 4 digits. PAN is checked for format, shown masked and not stored. The AI sees only age band, city tier, cover and health conditions, never your name, mobile, PAN or Aadhaar."
+    hi: "आपका आधार नंबर मुझ तक या AI तक कभी नहीं पहुँचता। पहचान DigiLocker से वेरिफ़ाई होती है और हमें सिर्फ़ 'verified' फ़्लैग और आख़िरी 4 अंक मिलते हैं। AI को सिर्फ़ उम्र का दायरा, शहर की श्रेणी, कवर और बीमारियाँ दिखती हैं; नाम, मोबाइल, PAN या आधार नहीं।"
+    hl: "Aapka Aadhaar number mujh tak ya AI tak kabhi nahi pahunchta. Pehchaan DigiLocker se verify hoti hai aur humein sirf 'verified' flag aur aakhri 4 ank milte hain. AI ko sirf umar ka daayra, shehar ki shreni, cover aur bimariyan dikhti hain; naam, mobile, PAN ya Aadhaar nahi."
+  human_request:
+    action: handoff_human
+    keywords: ['\bhuman\b', '\binsaan', '\binsan\b', 'agent se', '\badvisor', '\bcomplaint', 'इंसान', 'शिकायत']
+    en: "Connecting you to a human advisor. I have noted your question so you will not need to repeat it."
+    hi: "आपको एक इंसान सलाहकार से जोड़ रहा हूँ। आपका सवाल नोट कर लिया है, दोबारा बताना नहीं पड़ेगा।"
+    hl: "Aapko ek insaan salaahkaar se jod raha hoon. Aapka sawaal note kar liya hai, dobara batana nahi padega."
+  unknown:
+    action: null
+    keywords: []
+    en: "I did not quite catch that. You can ask how to claim, what a waiting period is, about co-pay or cashless, how a loan or EMI works, or ask for a quote."
+    hi: "मैं यह ठीक से समझ नहीं पाया। आप पूछ सकते हैं: क्लेम कैसे करें, वेटिंग पीरियड क्या है, को-पे या कैशलेस, लोन या EMI कैसे काम करता है, या कोट माँगें।"
+    hl: "Main yeh theek se samajh nahi paya. Aap pooch sakte hain: claim kaise karein, waiting period kya hai, co-pay ya cashless, loan ya EMI kaise kaam karta hai, ya quote maangein."
+  injection_refusal:
+    action: null
+    keywords: []
+    en: "I can only help with health insurance and loan questions, and I can't change how I work. What would you like to know about those?"
+    hi: "मैं सिर्फ़ हेल्थ इंश्योरेंस और लोन के सवालों में मदद कर सकता हूँ, और अपने काम के नियम नहीं बदल सकता। इनके बारे में आप क्या जानना चाहेंगे?"
+    hl: "Main sirf health insurance aur loan ke sawaalon mein madad kar sakta hoon, aur apne kaam ke niyam nahi badal sakta. Inke baare mein aap kya jaanna chahenge?"

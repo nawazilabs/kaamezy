@@ -8,6 +8,18 @@
 
 This file is the single source of truth for the project. Team members **and** Claude Code should read this before writing any code. It defines *what* we are building, *why*, the *scope boundary*, the *tech stack*, and the *acceptance criteria*. Keep it updated as decisions change.
 
+
+## Scope update (7 Nov 2026), read this first
+
+The sections below describe the **merchant-side** project as built for the 31 Oct 2026 finals. Direction has since changed:
+
+- **Mentor feedback (Mumbai hackathon):** generic customer support is already built elsewhere, and IFSC mismatch is not a real problem (bank details are entered at registration). Pick something else.
+- **What the winning team did:** one painful, high-stakes moment, automated end to end; a rule engine for every number, with the AI explaining but never calculating.
+- **New focus: automating loans and insurance.** Built so far (all partners are mocks): a consumer **health-insurance** purchase flow, a **personal-loan** flow, **on-device document autofill**, and an **LLM assistant**, all behind the same deterministic guardrail. Code in `chaukas/consumer/`, frontend in `web/`.
+- **What stays:** the guardrail-first design, append-only audit, human handoff, privacy rules, and the merchant-side system as the base (settlement scenarios are de-emphasised).
+
+Where this file and the rest disagree about scope, current state is described in `README.md`, `CONTRACTS.md` (C5b) and `COMPLIANCE.md` (section 2c). Acceptance targets for the consumer flows are not defined yet: add them here when decided.
+
 ---
 
 ## 1. The track, in one line
@@ -188,7 +200,7 @@ Regulatory anchors: **RBI FREE-AI framework** (Aug 2025 — 7 sutras, 26 recomme
 | Person 2 | Guardrail + data + privacy + eval: policy engine, DB/seed, audit, PII masking, golden + red-team suites | Red teaming |
 | Person 3 | UI (6 demo panels) + live demo + video + deck + submission | Voice UI (if time) |
 
-Details per member: `MEMBER_1_AGENT_CORE.md`, `MEMBER_2_GUARDRAIL_EVAL.md`, `MEMBER_3_INTERFACE_PRIVACY_DEMO.md`. Shared contracts: `CONTRACTS.md`. Demo plan: `DEMO_SCRIPT.md`.
+Details per member: `docs/archive/MEMBER_1_AGENT_CORE.md`, `docs/archive/MEMBER_2_GUARDRAIL_EVAL.md`, `docs/archive/MEMBER_3_INTERFACE_PRIVACY_DEMO.md`. Shared contracts: `CONTRACTS.md`. Demo plan: `DEMO_SCRIPT.md`.
 
 ---
 
