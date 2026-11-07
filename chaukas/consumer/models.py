@@ -75,3 +75,4 @@ class AssistantMessage(BaseModel):
     session_id: str
     text: str = Field(min_length=1, max_length=500)
     screen: Literal["home", "insurance", "loan"] = "home"
+    ui_lang: str | None = Field(default=None, max_length=10, pattern=r"^[A-Za-z]{2,3}(-[A-Za-z]{2,4})?$")  # the app language, e.g. ta-IN

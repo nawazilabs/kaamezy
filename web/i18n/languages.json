@@ -1,0 +1,67 @@
+[
+ {
+  "code": "en-IN",
+  "native": "English",
+  "english": "English"
+ },
+ {
+  "code": "hi-IN",
+  "native": "हिन्दी",
+  "english": "Hindi"
+ },
+ {
+  "code": "mr-IN",
+  "native": "मराठी",
+  "english": "Marathi"
+ },
+ {
+  "code": "bn-IN",
+  "native": "বাংলা",
+  "english": "Bengali"
+ },
+ {
+  "code": "ta-IN",
+  "native": "தமிழ்",
+  "english": "Tamil"
+ },
+ {
+  "code": "te-IN",
+  "native": "తెలుగు",
+  "english": "Telugu"
+ },
+ {
+  "code": "kn-IN",
+  "native": "ಕನ್ನಡ",
+  "english": "Kannada"
+ },
+ {
+  "code": "ml-IN",
+  "native": "മലയാളം",
+  "english": "Malayalam"
+ },
+ {
+  "code": "gu-IN",
+  "native": "ગુજરાતી",
+  "english": "Gujarati"
+ },
+ {
+  "code": "pa-IN",
+  "native": "ਪੰਜਾਬੀ",
+  "english": "Punjabi"
+ },
+ {
+  "code": "od-IN",
+  "native": "ଓଡ଼ିଆ",
+  "english": "Odia"
+ },
+ {
+  "code": "as-IN",
+  "native": "অসমীয়া",
+  "english": "Assamese"
+ },
+ {
+  "code": "ur-IN",
+  "native": "اردو",
+  "english": "Urdu"
+ }
+]

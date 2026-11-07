@@ -97,3 +97,11 @@ section[tabindex="-1"]:focus,main[tabindex="-1"]:focus{outline:none}
 .pf-row{display:flex;justify-content:space-between;gap:1rem;padding:.2rem 0;font-size:.88rem}
 .pf-row span{color:#5a6a85}
 .pf-need{margin-top:.35rem;font-size:.82rem;font-weight:700;color:#b45309}
+
+/* account and language screen */
+.langlist{padding:.2rem 1rem}
+.lrow{display:flex;align-items:center;justify-content:space-between;gap:.6rem;width:100%;padding:.95rem 0;border:0;border-radius:0;background:none;font:inherit;color:var(--p-ink);text-align:start;cursor:pointer}
+.lrow+.lrow{border-top:1px solid var(--line)}
+.lrow .ln{color:var(--muted)}
+.lrow .ln b{color:var(--p-ink);font-size:1.02rem}
+.lrow[aria-pressed=true] .tick{display:grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:50%;background:#1a9e5c;color:#fff;font-size:.85rem;font-weight:800}

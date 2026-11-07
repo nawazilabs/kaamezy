@@ -305,10 +305,10 @@ MAX_ASSISTANT_TURNS = 60
 
 
 @router.post("/assistant/session")
-def assistant_session(user: str = Depends(current_user)) -> dict:
+def assistant_session(lang: str | None = None, user: str = Depends(current_user)) -> dict:
     conn = store.connect()
     sid = store.create_chat_session(conn, user)
-    return {"session_id": sid, **assistant.disclosure()}
+    return {"session_id": sid, **assistant.disclosure(lang)}
 
 
 @router.post("/assistant/message")
@@ -318,4 +318,4 @@ def assistant_message(body: AssistantMessage, user: str = Depends(current_user))
         raise _err(404, "SESSION_NOT_FOUND", "That chat does not exist. Start a new chat.")
     if store.turn_count(conn, body.session_id) >= MAX_ASSISTANT_TURNS:
         raise _err(429, "CHAT_TOO_LONG", "This chat is very long. Please start a new chat.")
-    return assistant.answer(conn, user, body.session_id, body.text.strip(), body.screen)
+    return assistant.answer(conn, user, body.session_id, body.text.strip(), body.screen, body.ui_lang)

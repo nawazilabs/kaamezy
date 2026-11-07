@@ -692,7 +692,7 @@
   }
   async function ensureSession() {
     if (ASESS) return ASESS;
-    const r = await capi("POST", "/assistant/session");
+    const r = await capi("POST", "/assistant/session" + uiLangQuery());
     if (!r.ok) return null;
     ASESS = r.data.session_id; AINTRO = r.data.disclosure + " " + r.data.intro;
     return ASESS;
@@ -705,7 +705,7 @@
     let r = { ok: false };
     for (let tries = 0; tries < 2 && !r.ok; tries++) {
       const sid = await ensureSession(); if (!sid) break;
-      r = await capi("POST", "/assistant/message", { session_id: sid, text, screen });
+      r = await capi("POST", "/assistant/message", { session_id: sid, text, screen, ui_lang: appLang() });
       if (!r.ok && r.status === 404) ASESS = null;   /* the server no longer knows this chat: start a new one and retry once */
       else break;
     }
@@ -729,9 +729,66 @@
     if (prefill) chatSay(prefill);
   }
 
+  /* ---------------- account and language ----------------
+     The app's fixed wording is translated ahead of time (web/i18n.js + web/i18n/*.json, built with Sarvam Translate); the
+     assistant answers in the same language from its translated knowledge base (the server checks the language). */
+  const appLang = () => (window.ChaukasI18n && ChaukasI18n.code !== "en-IN") ? ChaukasI18n.code : undefined;
+  const uiLangQuery = () => appLang() ? "?lang=" + encodeURIComponent(appLang()) : "";
+  const ACCT_HTML = `
+<section class="flow" id="acct" hidden aria-label="Account and language">
+  ${bar("home", "Account and language", "Profile")}
+  <div class="czbody">
+    <div class="czcard">
+      <b id="ac-name" translate="no" style="font-size:1.05rem"></b>
+      <div class="s" id="ac-email" translate="no" style="margin:.15rem 0 .8rem"></div>
+      <button class="czbtn soft" id="ac-pw"><i data-lucide="key-round"></i> Change password</button>
+      <form id="ac-pwform" hidden autocomplete="off">
+        <label class="auth-field" style="margin-top:.7rem">New password<input type="password" id="ac-pw1" minlength="8" autocomplete="new-password"></label>
+        <label class="auth-field" style="margin-top:.7rem">Confirm password<input type="password" id="ac-pw2" minlength="8" autocomplete="new-password"></label>
+        <div class="navrow"><button type="button" class="czbtn soft" id="ac-pwcancel">Cancel</button><button type="submit" class="czbtn">Update password</button></div>
+      </form>
+      <button class="czbtn soft" id="ac-out" style="margin-top:.6rem"><i data-lucide="log-out"></i> Sign out</button>
+    </div>
+    <p class="s" style="margin:1rem .2rem .6rem">Explanations, letters and the assistant use this language.</p>
+    <div class="czcard menu langlist" id="ac-langs"></div>
+  </div>
+</section>`;
+  function renderAccount() {
+    const u = (typeof user !== "undefined" && user) || {}, md = u.user_metadata || {};
+    $("ac-name").textContent = (typeof md.full_name === "string" && md.full_name) || (u.email || "").split("@")[0] || "You";
+    $("ac-email").textContent = u.email || "";
+    const I = window.ChaukasI18n, box = $("ac-langs"); box.replaceChildren();
+    (I ? I.list() : [{ code: "en-IN", native: "English", english: "English" }]).forEach(l => {
+      const on = !!I && I.code === l.code;
+      box.append(el("button", { type: "button", class: "lrow", "aria-pressed": on ? "true" : "false", translate: "no", lang: l.code === "en-IN" ? "en" : l.code,
+        onclick: async () => {
+          if (!I || on) return;
+          const ok = await I.set(l.code);
+          if (!ok) { toast("That language could not be loaded. Please try again."); return; }
+          renderAccount(); toast(l.native);
+        } },
+        el("span", { class: "ln" }, el("b", { text: l.native }), " · " + l.english), on ? el("span", { class: "tick", "aria-hidden": "true", text: "✓" }) : null));
+    });
+  }
+  function openAccount() { renderAccount(); showScreen("acct"); }
+
   /* ---------------- wire up ---------------- */
   function init() {
-    $("screen").insertAdjacentHTML("beforeend", HTML);
+    $("screen").insertAdjacentHTML("beforeend", HTML + ACCT_HTML);
+    const av = $("avatar");
+    if (av) { av.setAttribute("role", "button"); av.setAttribute("tabindex", "0"); av.setAttribute("aria-label", "Account and language"); av.style.cursor = "pointer";
+      av.onclick = openAccount; av.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openAccount(); } }; }
+    $("ac-out").onclick = () => $("home-out").click();
+    $("ac-pw").onclick = () => { $("ac-pwform").hidden = false; $("ac-pw").hidden = true; $("ac-pw1").focus(); };
+    $("ac-pwcancel").onclick = () => { $("ac-pwform").reset(); $("ac-pwform").hidden = true; $("ac-pw").hidden = false; };
+    $("ac-pwform").addEventListener("submit", async e => {
+      e.preventDefault();
+      const a = $("ac-pw1").value, b = $("ac-pw2").value;
+      if (a.length < 8) { toast("Use at least 8 characters."); return; }
+      if (a !== b) { toast("The two passwords don’t match."); return; }
+      try { const { error } = await sb.auth.updateUser({ password: a }); if (error) throw error; toast("Password updated."); $("ac-pwcancel").click(); }
+      catch (err) { toast((err && err.message) || "We couldn’t update your password. Please try again."); }
+    });
     document.querySelectorAll("[data-back]").forEach(b => b.addEventListener("click", () => showScreen(b.dataset.back)));
     document.querySelectorAll("#sheet-hihelp [data-close], #sheet-lnhelp [data-close]").forEach(b => b.addEventListener("click", closeSheets));
     const lt = $("open-hi"), ln = $("open-ln");

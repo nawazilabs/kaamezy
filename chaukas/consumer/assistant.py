@@ -46,8 +46,40 @@ def kb_text(topic: str, lang: str) -> str:
     return topics()[topic][_LANG_KEY.get(lang, "en")]
 
 
-def disclosure() -> dict:
-    """AI disclosure (RBI FREE-AI) from config/disclosure.yaml, plus the 'what I can do' line from the knowledge base."""
+def kb_i18n() -> dict:
+    """The knowledge base in other languages (config/consumer_kb_i18n.yaml, built by scripts/build_i18n.py with Sarvam
+    Translate; every entry passed the figures check). Missing file or entry means: no translation, use the normal path."""
+    try:
+        return load_config("consumer_kb_i18n").get("languages") or {}
+    except FileNotFoundError:
+        return {}
+
+
+def ui_language(code: str | None) -> str | None:
+    """The app language the person chose, if the assistant can answer in it; None means 'decide from the message'."""
+    if code in ("hi-IN", "hi-Latn") or code in kb_i18n():
+        return code
+    return None
+
+
+def _translated(key: str, ui_lang: str) -> str | None:
+    """The knowledge-base sentence `key` ('topic.<name>', 'session_intro', 'disclosure') in the app language."""
+    if ui_lang in _LANG_KEY:  # hi-IN / hi-Latn: the hand-written Hindi and Hinglish texts
+        if key.startswith("topic."):
+            return kb_text(key[6:], ui_lang)
+        return kb()["session_intro"][_LANG_KEY[ui_lang]] if key == "session_intro" else None
+    return (kb_i18n().get(ui_lang) or {}).get(key)
+
+
+def disclosure(ui_lang: str | None = None) -> dict:
+    """AI disclosure (RBI FREE-AI) from config/disclosure.yaml, plus the 'what I can do' line from the knowledge base.
+    In another app language the same two sentences come from the translated knowledge base."""
+    ui_lang = ui_language(ui_lang)
+    if ui_lang:
+        d = load_config("disclosure")["messages"].get(ui_lang, {}).get("ai_disclosure") if ui_lang in _LANG_KEY else _translated("disclosure", ui_lang)
+        intro = _translated("session_intro", ui_lang)
+        if d and intro:
+            return {"disclosure": d, "intro": intro}
     d = load_config("disclosure")["messages"]["hi-Latn"]["ai_disclosure"]
     return {"disclosure": d, "intro": kb()["session_intro"]["en"]}
 
@@ -142,7 +174,7 @@ def _context(screen: str, facts: dict, history: list[dict]) -> str:
                                         "recent_turns": [{"role": h["role"], "text": h["text_masked"]} for h in history] or None})
 
 
-def answer(conn, user_id: str, session_id: str, text: str, screen: str = "home") -> dict:
+def answer(conn, user_id: str, session_id: str, text: str, screen: str = "home", ui_lang: str | None = None) -> dict:
     masked = m2_shim.mask_text(text)
     history = store.recent_turns(conn, user_id, session_id, HISTORY_WINDOW)
     facts = {"has_policy": bool(store.active_policies(conn, user_id)), "active_loans": len(store.active_loans(conn, user_id)),
@@ -183,6 +215,17 @@ def answer(conn, user_id: str, session_id: str, text: str, screen: str = "home")
             source = "kb" if source == "llm" else source
         else:
             suggestion = None
+
+    # the app language wins over the language of the message: the reply is the knowledge-base sentence in that language
+    # (the model only chose the topic), so a figure or a promise can never be added in translation
+    chosen = ui_language(ui_lang)
+    if chosen and chosen != "en-IN" and source != "guard":
+        text_in_lang = _translated("topic." + topic, chosen)
+        if text_in_lang:
+            reply, lang, note = text_in_lang, chosen, (note + "; " if note else "") + "ui_lang=" + chosen
+            source = "keyword" if source == "keyword" else "kb"
+    elif chosen and source == "guard":
+        reply, lang = _translated("topic." + topic, chosen) or reply, chosen
 
     action = topics()[topic].get("action")
     store.add_turn(conn, session_id, user_id, "user", masked, topic, None)
