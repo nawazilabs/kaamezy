@@ -39,4 +39,15 @@ assert.deepStrictEqual([r.pan, r.name, r.dob, r.gender, r.aadhaarSeen], [null, n
 // 7. impossible dates are ignored
 assert.strictEqual(parse("DOB 31/02/1990 and 15/08/2090", NOW).dob, null);
 
+// 8. Aadhaar with a Hindi line, OCR noise around the name, a space-separated date and O for 0
+r = parse("Government of India\nशाहनवाज\n~ Shahnawaz Shah |\nजन्म तिथि / DOB: O5 06 1995\nMALE / पुरुष\n4321 8765 2109", NOW);
+assert.strictEqual(r.name, "Shahnawaz Shah");
+assert.strictEqual(r.dob, "1995-06-05");
+assert.strictEqual(r.gender, "M");
+assert.ok(!JSON.stringify(r).includes("2109"));
+
+// 9. year of birth only: an age, never an invented date of birth
+r = parse("Government of India\nAnita Rao\nYear of Birth : 1990\nFEMALE", NOW);
+assert.deepStrictEqual([r.dob, r.age, r.yearOnly, r.name], [null, 36, true, "Anita Rao"]);
+
 console.log("docparse: all tests passed");

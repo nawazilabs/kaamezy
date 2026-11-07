@@ -56,7 +56,7 @@
     const url = URL.createObjectURL(file);
     try {
       const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("That file is not a readable photo.")); i.src = url; });
-      const sc = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const sc = Math.min(2.5, 1600 / Math.max(img.width, img.height));   /* small card photos are enlarged: OCR needs ~30px letters */
       const c = document.createElement("canvas"); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
       const g = c.getContext("2d"); g.filter = "grayscale(1) contrast(1.3)"; g.drawImage(img, 0, 0, c.width, c.height);
       return c;
@@ -68,7 +68,16 @@
     const canvas = await prepImage(file);
     onProgress("Loading the reader", 0); await loadTess();
     const worker = await Tesseract.createWorker("eng", 1, { logger: m => { if (m.progress != null) onProgress(m.status, m.progress); } });
-    try { const { data } = await worker.recognize(canvas); return window.ChaukasDoc.parse(data.text); }
+    try {
+      const readable = d => d.name || d.age != null || d.gender || d.pan;
+      let doc = window.ChaukasDoc.parse((await worker.recognize(canvas)).data.text);
+      if (!readable(doc)) {   /* second pass: treat the card as scattered text blocks, which suits Aadhaar and tilted photos */
+        await worker.setParameters({ tessedit_pageseg_mode: "11" });
+        const again = window.ChaukasDoc.parse((await worker.recognize(canvas)).data.text);
+        doc = readable(again) ? Object.assign(again, { aadhaarSeen: again.aadhaarSeen || doc.aadhaarSeen }) : doc;
+      }
+      return doc;
+    }
     finally { await worker.terminate(); canvas.width = canvas.height = 0; }
   }
 
@@ -227,8 +236,8 @@
         say("Preparing the photo on your device…");
         const doc = await readDoc(f, (s, p) => say(String(s).replace(/^./, c => c.toUpperCase()) + " " + Math.round(p * 100) + "%"));
         const got = [doc.name && "name", doc.age != null && "date of birth", doc.gender && "gender", doc.pan && "PAN"].filter(Boolean);
-        if (!got.length) { say(doc.aadhaarSeen ? "That looks like an Aadhaar card. We ignore the number; please use DigiLocker below, or type the details." : "Could not read that clearly. Try a bright, flat photo, or type the details."); return; }
-        const rows = [["Name", doc.name], ["Age", doc.age != null ? doc.age + " (from date of birth)" : null], ["Gender", doc.gender ? (doc.gender === "F" ? "Female" : "Male") : null], ["PAN", doc.pan ? maskPan(doc.pan) : null]].filter(r => r[1]);
+        if (!got.length) { say(doc.aadhaarSeen ? "That looks like an Aadhaar card. We ignore the number, but could not read your name or date of birth from this photo. Try a bright, flat, closer photo of the front, or type the details." :"Could not read that clearly. Try a bright, flat photo, or type the details."); return; }
+        const rows = [["Name", doc.name], ["Age", doc.age != null ? doc.age + (doc.yearOnly ? " (from year of birth)" : " (from date of birth)") : null], ["Gender", doc.gender ? (doc.gender === "F" ? "Female" : "Male") : null], ["PAN", doc.pan ? maskPan(doc.pan) : null]].filter(r => r[1]);
         const use = el("button", { type: "button", class: "czbtn", text: "Use these", onclick: () => {
           apply(doc);
           toast("Filled from your document. Please check each field.");

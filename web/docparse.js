@@ -26,18 +26,23 @@
     return a;
   }
 
+  /* OCR reads the digits of a date as letters (O for 0, I or l for 1). Fix only inside something shaped like a date. */
+  const SHAPE = /(?<![A-Za-z0-9])[0-9OoIl|]{1,2}[\/ .-][0-9OoIl|]{1,2}[\/ .-][12][0-9OoIl|]{3}(?![A-Za-z0-9])/g;
+  const FIXD = { O: "0", o: "0", I: "1", l: "1", "|": "1" };
+  const fixDates = t => t.replace(SHAPE, m => m.replace(/[OoIl|]/g, c => FIXD[c]));
+
   function parse(text, now) {
     now = now || new Date();
-    const raw = String(text || "");
+    const raw = fixDates(String(text || ""));
     const up = raw.toUpperCase();
-    const res = { pan: null, name: null, dob: null, age: null, gender: null, aadhaarSeen: false };
+    const res = { pan: null, name: null, dob: null, age: null, gender: null, aadhaarSeen: false, yearOnly: false };
 
     /* Aadhaar number: spotted so we can warn, then thrown away. */
     if (/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/.test(raw)) res.aadhaarSeen = true;
 
     for (const tok of (up.match(/\b[A-Z0-9]{10}\b/g) || [])) { const p = fixPan(tok); if (p) { res.pan = p; break; } }
 
-    const dre = /\b(0?[1-9]|[12]\d|3[01])[\/\-.](0?[1-9]|1[0-2])[\/\-.]((?:19|20)\d{2})\b/g;
+    const dre = /\b(0?[1-9]|[12]\d|3[01])[\/\-. ](0?[1-9]|1[0-2])[\/\-. ]((?:19|20)\d{2})\b/g;
     let dm;
     while ((dm = dre.exec(raw))) {
       const d = +dm[1], m = +dm[2], y = +dm[3];
@@ -47,9 +52,16 @@
       if (a >= 0 && a <= 110) { res.dob = y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0"); res.age = a; break; }
     }
 
+    /* Some Aadhaar cards print only the year of birth: an age is still useful, an exact date is never invented. */
+    if (!res.dob) {
+      const ym = /(?:YEAR\s+OF\s+BIRTH|\bYOB\b)\s*[:\-]?\s*((?:19|20)\d{2})/.exec(up);
+      if (ym) { const a = now.getFullYear() - +ym[1]; if (a >= 0 && a <= 110) { res.age = a; res.yearOnly = true; } }
+    }
+
     if (/\bFEMALE\b/.test(up)) res.gender = "F"; else if (/\bMALE\b/.test(up)) res.gender = "M";
 
-    const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    /* trim OCR noise at the ends of a line ("Demo Sharma |", "~ Demo Sharma") */
+    const lines = raw.split(/\r?\n/).map(l => l.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9.]+$/g, "").trim()).filter(Boolean);
     const nameOk = l => /^[A-Za-z][A-Za-z .'-]{2,40}$/.test(l) && !NOT_A_NAME.test(l) && l.split(/\s+/).length <= 5;
     /* PAN card: the line after a "Name" label (not "Father's Name"). */
     let i = lines.findIndex(l => /name\s*$/i.test(l) && !/father|mother/i.test(l));
@@ -57,7 +69,7 @@
     /* Aadhaar card: the name sits just above the date of birth line. */
     if (!res.name) {
       const j = lines.findIndex(l => /dob|date of birth|year of birth/i.test(l) || /\b\d{2}[\/\-.]\d{2}[\/\-.]\d{4}\b/.test(l));
-      if (j > 0) for (let k = j - 1; k >= Math.max(0, j - 3); k--) if (nameOk(lines[k])) { res.name = titleCase(lines[k]); break; }
+      if (j > 0) for (let k = j - 1; k >= Math.max(0, j - 4); k--) if (nameOk(lines[k])) { res.name = titleCase(lines[k]); break; }
     }
     return res;
   }
