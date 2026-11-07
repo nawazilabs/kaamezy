@@ -68,18 +68,44 @@
     const canvas = await prepImage(file);
     onProgress("Loading the reader", 0); await loadTess();
     const worker = await Tesseract.createWorker("eng", 1, { logger: m => { if (m.progress != null) onProgress(m.status, m.progress); } });
+    /* Up to three reads of the same photo (normal layout, scattered text, black-and-white); each fills only what the
+       earlier ones missed, and we stop as soon as name, age and an identity field are all found. */
+    const bw = binarize(canvas), seen = [];
     try {
-      const readable = d => d.name || d.age != null || d.gender || d.pan;
-      let doc = window.ChaukasDoc.parse((await worker.recognize(canvas)).data.text);
-      if (!readable(doc)) {   /* second pass: treat the card as scattered text blocks, which suits Aadhaar and tilted photos */
-        await worker.setParameters({ tessedit_pageseg_mode: "11" });
-        const again = window.ChaukasDoc.parse((await worker.recognize(canvas)).data.text);
-        doc = readable(again) ? Object.assign(again, { aadhaarSeen: again.aadhaarSeen || doc.aadhaarSeen }) : doc;
+      let doc = null;
+      for (const [cv, psm] of [[canvas, "3"], [canvas, "11"], [bw, "6"]]) {
+        await worker.setParameters({ tessedit_pageseg_mode: psm });
+        const text = (await worker.recognize(cv)).data.text; seen.push(maskForDisplay(text));
+        const d = window.ChaukasDoc.parse(text);
+        if (!doc) doc = d;
+        else {
+          for (const k of ["name", "gender", "pan"]) if (!doc[k]) doc[k] = d[k];
+          if (doc.age == null && d.age != null) { doc.age = d.age; doc.dob = d.dob; doc.yearOnly = d.yearOnly; }
+          doc.aadhaarSeen = doc.aadhaarSeen || d.aadhaarSeen;
+        }
+        if (doc.name && doc.age != null && (doc.pan || doc.gender)) break;
       }
+      doc.seen = seen.join("\n— next read —\n");   /* shown on this screen only, with long numbers masked; never sent or stored */
       return doc;
     }
-    finally { await worker.terminate(); canvas.width = canvas.height = 0; }
+    finally { await worker.terminate(); canvas.width = canvas.height = 0; bw.width = bw.height = 0; }
   }
+  /* black-and-white copy (Otsu threshold): helps on cards with a coloured or patterned background */
+  function binarize(src) {
+    const c = document.createElement("canvas"); c.width = src.width; c.height = src.height;
+    const g = c.getContext("2d"); g.drawImage(src, 0, 0);
+    const im = g.getImageData(0, 0, c.width, c.height), px = im.data, hist = new Array(256).fill(0);
+    for (let i = 0; i < px.length; i += 4) hist[px[i]]++;
+    const total = px.length / 4; let sum = 0; for (let t = 0; t < 256; t++) sum += t * hist[t];
+    let wB = 0, sB = 0, best = 0, thr = 128;
+    for (let t = 0; t < 256; t++) { wB += hist[t]; if (!wB) continue; const wF = total - wB; if (!wF) break; sB += t * hist[t];
+      const v = wB * wF * ((sB / wB) - ((sum - sB) / wF)) ** 2; if (v > best) { best = v; thr = t; } }
+    for (let i = 0; i < px.length; i += 4) { const v = px[i] > thr ? 255 : 0; px[i] = px[i + 1] = px[i + 2] = v; }
+    g.putImageData(im, 0, 0); return c;
+  }
+  const maskForDisplay = t => String(t)
+    .replace(/\b\d{4}[ -]?\d{4}[ -]?\d{4}\b/g, "XXXX XXXX XXXX")
+    .replace(/\b(?=[A-Za-z0-9]{10}\b)(?=\S*\d)(?=\S*[A-Za-z])[A-Za-z0-9]{10}\b/g, "XXXXXXXXXX");
 
   /* ---------------- markup (injected so index.html stays small) ---------------- */
   const back = (to) => `<button class="picon" data-back="${to}" aria-label="Back"><i data-lucide="arrow-left"></i></button>`;
@@ -229,14 +255,17 @@
   }
   function docBox(apply) {
     const box = el("div", { class: "docbox" }), status = el("div", { class: "docstatus", role: "status" });
-    const say = txt => { status.replaceChildren(txt); };
+    const say = (txt, seen) => {
+      status.replaceChildren(txt);
+      if (seen) status.append(el("details", { style: "margin-top:.5rem;font-size:.78rem" }, el("summary", { text: "What the reader saw (numbers masked)" }), el("pre", { style: "white-space:pre-wrap;max-height:11rem;overflow:auto;margin:.3rem 0", text: seen })));
+    };
     const inp = el("input", { type: "file", accept: "image/*", hidden: "", onchange: async e => {
       const f = e.target.files[0]; e.target.value = ""; if (!f) return;
       try {
         say("Preparing the photo on your device…");
         const doc = await readDoc(f, (s, p) => say(String(s).replace(/^./, c => c.toUpperCase()) + " " + Math.round(p * 100) + "%"));
         const got = [doc.name && "name", doc.age != null && "date of birth", doc.gender && "gender", doc.pan && "PAN"].filter(Boolean);
-        if (!got.length) { say(doc.aadhaarSeen ? "That looks like an Aadhaar card. We ignore the number, but could not read your name or date of birth from this photo. Try a bright, flat, closer photo of the front, or type the details." :"Could not read that clearly. Try a bright, flat photo, or type the details."); return; }
+        if (!got.length) { say(doc.aadhaarSeen ? "That looks like an Aadhaar card. We ignore the number, but could not read your name or date of birth from this photo. Try a bright, flat, closer photo of the front, or type the details." :"Could not read that clearly. Try a bright, flat photo, or type the details.", doc.seen); return; }
         const rows = [["Name", doc.name], ["Age", doc.age != null ? doc.age + (doc.yearOnly ? " (from year of birth)" : " (from date of birth)") : null], ["Gender", doc.gender ? (doc.gender === "F" ? "Female" : "Male") : null], ["PAN", doc.pan ? maskPan(doc.pan) : null]].filter(r => r[1]);
         const use = el("button", { type: "button", class: "czbtn", text: "Use these", onclick: () => {
           apply(doc);
@@ -246,7 +275,9 @@
         status.replaceChildren(el("div", { class: "ocrres" }, el("b", { text: "We read this on your device" }),
           ...rows.map(r => el("div", { class: "prow2" }, el("span", { text: r[0] }), el("code", { text: r[1] }))),
           doc.aadhaarSeen ? el("p", { class: "s", style: "margin:.4rem 0;font-size:.8rem", text: "An Aadhaar number was visible. It was ignored and not kept." }) : null,
-          el("div", { class: "navrow", style: "margin-top:.6rem" }, no, use)));
+          got.length < 3 ? el("p", { class: "s", style: "margin:.4rem 0;font-size:.8rem", text: "Some details could not be read. Fill the rest by hand, or try a brighter, closer photo." }) : null,
+          el("div", { class: "navrow", style: "margin-top:.6rem" }, no, use),
+          doc.seen ? el("details", { style: "margin-top:.5rem;font-size:.78rem" }, el("summary", { text: "What the reader saw (numbers masked)" }), el("pre", { style: "white-space:pre-wrap;max-height:11rem;overflow:auto;margin:.3rem 0", text: doc.seen })) : null));
       } catch (err) { say(err.message || "Could not read that photo."); }
     } });
     box.append(el("b", { text: "Autofill from your PAN or Aadhaar card" }),

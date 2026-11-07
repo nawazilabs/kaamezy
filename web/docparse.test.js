@@ -50,4 +50,12 @@ assert.ok(!JSON.stringify(r).includes("2109"));
 r = parse("Government of India\nAnita Rao\nYear of Birth : 1990\nFEMALE", NOW);
 assert.deepStrictEqual([r.dob, r.age, r.yearOnly, r.name], [null, 36, true, "Anita Rao"]);
 
+// 10. a poor PAN read: no "Name" label, slashes lost from the date
+r = parse("INCOME TAX DEPARTMENT\nABCDE1234F\nDEMO KUMAR SHARMA\nRAMESH SHARMA\n01011990", NOW);
+assert.deepStrictEqual([r.pan, r.name, r.dob], ["ABCDE1234F", "Demo Kumar Sharma", "1990-01-01"]);
+
+// 11. an Aadhaar read with only the gender line and a name above it
+r = parse("Shahnawaz Shah\n[noise]\nMale\n4321 8765 2109", NOW);
+assert.deepStrictEqual([r.name, r.gender, r.dob], ["Shahnawaz Shah", "M", null]);
+
 console.log("docparse: all tests passed");
