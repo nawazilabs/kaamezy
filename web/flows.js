@@ -697,11 +697,13 @@
     ASESS = r.data.session_id; AINTRO = r.data.disclosure + " " + r.data.intro;
     return ASESS;
   }
-  async function chatSay(text) {
+  async function chatSay(text, opts) {
     text = (text || "").trim(); if (!text) return;
-    bubble("me", text); $("ic-text").value = "";
+    const voiceTurn = !!(opts && opts.voice);
+    if (voiceTurn) await ensureIntro();
+    bubble("me", (opts && opts.shown) || text); $("ic-text").value = "";
     const ty = el("div", { class: "msg agent typing", text: "Chaukas is typing…" }); $("ic-chat").append(ty); scrollChat();
-    const screen = chatFrom === "ln" ? "loan" : "insurance";
+    const screen = chatFrom === "ln" ? "loan" : chatFrom === "home" ? "home" : "insurance";
     let r = { ok: false };
     for (let tries = 0; tries < 2 && !r.ok; tries++) {
       const sid = await ensureSession(); if (!sid) break;
@@ -714,19 +716,89 @@
     const d = r.data, act = ACTIONS[d.action];
     const extra = d.action === "prefill_loan" && d.prefill ? prefillCard(d.prefill)
       : act ? el("div", { class: "acts" }, el("button", { class: "mini-cta", type: "button", text: act[0], onclick: act[1] })) : null;
-    bubble("agent", d.reply, extra);
+    const m = bubble("agent", d.reply, extra);
+    if (canSpeak(d.lang)) m.append(el("button", { class: "spk", type: "button", "aria-label": "Listen to this reply", text: "🔊", onclick: () => playReply(d.reply, d.lang) }));
+    if (voiceTurn) {   /* spoken request: say the answer, then do exactly what a tap on the button would have done (open a screen / fill the form) */
+      playReply(d.reply, d.lang);
+      if (d.action === "prefill_loan" && d.prefill) { toast(d.reply); prefillLoan(d.prefill); return; }
+      if (act) { toast(d.reply); act[1](); return; }
+      showScreen("ich");
+    }
     $("ic-sub").textContent = d.source === "keyword" ? "Backup helper (the AI model is unavailable)" : "Live AI model · insurance and loan help";
+  }
+  async function ensureIntro() {
+    if ($("ic-chat").children.length) return;
+    await ensureSession();
+    bubble("agent", AINTRO || "Main Chaukas hoon, ek AI assistant. I can help with health insurance and loans.");
+    const h = $("ic-hints"); h.replaceChildren();
+    ["How do I claim?", "I want a quote", "I need a loan", "Is my Aadhaar safe?"].forEach(t => h.append(el("button", { type: "button", text: t, onclick: () => chatSay(t) })));
   }
   async function openChat(prefill, from) {
     if (from) chatFrom = from;
     showScreen("ich");
-    if (!$("ic-chat").children.length) {
-      await ensureSession();
-      bubble("agent", AINTRO || "Main Chaukas hoon, ek AI assistant. I can help with health insurance and loans.");
-      const h = $("ic-hints"); h.replaceChildren();
-      ["How do I claim?", "I want a quote", "I need a loan", "Is my Aadhaar safe?"].forEach(t => h.append(el("button", { type: "button", text: t, onclick: () => chatSay(t) })));
-    }
+    await ensureIntro();
     if (prefill) chatSay(prefill);
+  }
+
+  /* ---------------- voice ----------------
+     The mic records a short clip, the server turns it into text with Sarvam (nothing is stored), and the text goes
+     through the same assistant path as typing: PII masked, injection screened, the topic mapped to a screen in code.
+     Voice can fill the form and open a screen. Consent, Key Facts, OTP, KYC and the guardrail stay taps on the screen. */
+  let VCFG = null, REC = null, CURAUDIO = null;
+  const authHeaders = async () => { try { const s = await sb.auth.getSession(); const t = s && s.data && s.data.session && s.data.session.access_token; return t ? { Authorization: "Bearer " + t } : {}; } catch (e) { return {}; } };
+  async function voiceConfig() {
+    if (VCFG) return VCFG;
+    const r = await capi("GET", "/voice/config");
+    VCFG = r.ok ? r.data : { tts_languages: [], language_aliases: {}, max_seconds: 20 };
+    return VCFG;
+  }
+  const canSpeak = lang => !!VCFG && VCFG.tts_languages.includes((VCFG.language_aliases || {})[lang] || lang);
+  function stopAudio() { if (CURAUDIO) { try { CURAUDIO.pause(); } catch (e) {} CURAUDIO = null; } }
+  async function playReply(text, lang) {
+    if (!canSpeak(lang) || !ASESS) return;
+    stopAudio();
+    try {
+      const r = await fetch(API + "/api/consumer/voice/speak", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await authHeaders()),
+        body: JSON.stringify({ session_id: ASESS, text, lang }) });
+      if (!r.ok) { toast("Voice playback is not available right now."); return; }
+      const url = URL.createObjectURL(await r.blob()), a = new Audio(url); CURAUDIO = a;
+      a.onended = () => URL.revokeObjectURL(url);
+      await a.play();
+    } catch (e) { /* autoplay can be blocked: the speaker button on the reply still works */ }
+  }
+  async function startVoice() {
+    if (REC) return;
+    if (!navigator.mediaDevices || !window.MediaRecorder) { toast("Voice isn't supported in this browser."); return; }
+    const cfg = await voiceConfig(); stopAudio();
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (e) { toast("Please allow the microphone to speak to Chaukas."); return; }
+    const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find(t => MediaRecorder.isTypeSupported(t)) || "";
+    const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : {}), chunks = [];
+    REC = { rec, stream, chunks, cancelled: false, timer: setTimeout(stopVoice, cfg.max_seconds * 1000) };
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = finishVoice;
+    $("vs-title").textContent = "Listening…"; $("vs-said").textContent = ""; $("vs-stop").hidden = false; $("vs-orb").classList.add("live");
+    openSheet("sheet-voice"); rec.start();
+  }
+  function stopVoice() { if (REC && REC.rec.state !== "inactive") REC.rec.stop(); }
+  function cancelVoice() { if (REC) { REC.cancelled = true; stopVoice(); } closeSheets(); }
+  async function finishVoice() {
+    const R = REC; REC = null; if (!R) return;
+    clearTimeout(R.timer); R.stream.getTracks().forEach(t => t.stop()); $("vs-orb").classList.remove("live");
+    if (R.cancelled) return;
+    const blob = new Blob(R.chunks, { type: (R.rec.mimeType || "audio/webm").split(";")[0] });
+    if (blob.size < 1500) { toast("We could not hear anything. Please try again."); closeSheets(); return; }
+    $("vs-title").textContent = "Understanding…"; $("vs-stop").hidden = true;
+    let ok = false, data = null;
+    try {
+      const r = await fetch(API + "/api/consumer/voice/transcribe", { method: "POST", headers: Object.assign({ "Content-Type": blob.type }, await authHeaders()), body: blob });
+      ok = r.ok; try { data = await r.json(); } catch (e) {}
+      if (!ok) { toast((data && data.detail && data.detail.message) || "The voice service could not read that. Please try again."); closeSheets(); return; }
+    } catch (e) { toast("The voice service could not be reached."); closeSheets(); return; }
+    closeSheets();
+    chatFrom = "home";
+    await chatSay(data.understood || data.text, { voice: true, shown: data.text });
   }
 
   /* ---------------- account and language ----------------
@@ -734,6 +806,15 @@
      assistant answers in the same language from its translated knowledge base (the server checks the language). */
   const appLang = () => (window.ChaukasI18n && ChaukasI18n.code !== "en-IN") ? ChaukasI18n.code : undefined;
   const uiLangQuery = () => appLang() ? "?lang=" + encodeURIComponent(appLang()) : "";
+  const VOICE_HTML = `
+<div class="sheet voicesheet" id="sheet-voice" hidden role="dialog" aria-label="Speak to Chaukas">
+  <div class="vorb" id="vs-orb"><i data-lucide="mic"></i></div>
+  <h3 id="vs-title">Listening…</h3>
+  <p class="s" id="vs-said" translate="no"></p>
+  <p class="s" style="font-size:.85rem">Say what you need. For example: I need a loan, and tell me the amount, how long and your income. Or: I want health insurance.</p>
+  <p class="s" style="font-size:.78rem">Your voice is sent to Sarvam to turn it into text. We do not keep the recording. You still confirm every step on the screen.</p>
+  <div class="navrow"><button class="czbtn soft" id="vs-cancel">Cancel</button><button class="czbtn" id="vs-stop">Done</button></div>
+</div>`;
   const ACCT_HTML = `
 <section class="flow" id="acct" hidden aria-label="Account and language">
   ${bar("home", "Account and language", "Profile")}
@@ -774,7 +855,13 @@
 
   /* ---------------- wire up ---------------- */
   function init() {
-    $("screen").insertAdjacentHTML("beforeend", HTML + ACCT_HTML);
+    $("screen").insertAdjacentHTML("beforeend", HTML + ACCT_HTML + VOICE_HTML);
+    const mic = $("mic-fab"); if (mic) mic.onclick = startVoice;
+    $("vs-stop").onclick = stopVoice; $("vs-cancel").onclick = cancelVoice;
+    $("sheetbg").addEventListener("click", () => { if (REC) cancelVoice(); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && REC) cancelVoice(); });
+    if (window.ChaukasI18n) ChaukasI18n.onChange(() => { ASESS = null; $("ic-chat").replaceChildren(); $("ic-hints").replaceChildren(); });   /* a new language starts a new chat greeting */
+    voiceConfig();
     const av = $("avatar");
     if (av) { av.setAttribute("role", "button"); av.setAttribute("tabindex", "0"); av.setAttribute("aria-label", "Account and language"); av.style.cursor = "pointer";
       av.onclick = openAccount; av.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openAccount(); } }; }

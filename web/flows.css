@@ -105,3 +105,12 @@ section[tabindex="-1"]:focus,main[tabindex="-1"]:focus{outline:none}
 .lrow .ln{color:var(--muted)}
 .lrow .ln b{color:var(--p-ink);font-size:1.02rem}
 .lrow[aria-pressed=true] .tick{display:grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:50%;background:#1a9e5c;color:#fff;font-size:.85rem;font-weight:800}
+
+/* voice */
+.voicesheet{text-align:center}
+.vorb{display:grid;place-items:center;width:4.2rem;height:4.2rem;margin:0 auto .6rem;border-radius:50%;background:var(--p-soft,#e3f3fc);color:var(--p-blue)}
+.vorb svg{width:1.8rem;height:1.8rem}
+.vorb.live{animation:micpulse 1.2s ease-out infinite;background:#e8f7ee;color:#1a9e5c}
+.voicesheet #vs-said{min-height:1.4rem;color:var(--p-ink);font-weight:700}
+.spk{align-self:flex-start;margin-top:.4rem;border:0;background:none;font-size:1.05rem;cursor:pointer;padding:.15rem .4rem;border-radius:.6rem}
+.spk:hover{background:rgba(0,46,110,.08)}

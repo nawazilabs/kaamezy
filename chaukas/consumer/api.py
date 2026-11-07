@@ -19,13 +19,15 @@ import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
+from starlette.concurrency import run_in_threadpool
 
 from chaukas import db
-from chaukas.consumer import assistant, engine, guardrail, store
+from chaukas.consumer import assistant, engine, guardrail, store, voice
 from chaukas.consumer.auth import current_user
-from chaukas.consumer.models import AssistantMessage, HandoffResolve, InsuranceProposal, LoanAccept, LoanApplication, PolicyPurchase
+from chaukas.consumer.models import AssistantMessage, HandoffResolve, InsuranceProposal, LoanAccept, LoanApplication, PolicyPurchase, VoiceSpeak
 from chaukas.policy.engine import load_mock_otp
+from chaukas.core import m2_shim
 from chaukas.privacy.pii import mask
 
 router = APIRouter(prefix="/api/consumer", tags=["consumer"])
@@ -319,3 +321,45 @@ def assistant_message(body: AssistantMessage, user: str = Depends(current_user))
     if store.turn_count(conn, body.session_id) >= MAX_ASSISTANT_TURNS:
         raise _err(429, "CHAT_TOO_LONG", "This chat is very long. Please start a new chat.")
     return assistant.answer(conn, user, body.session_id, body.text.strip(), body.screen, body.ui_lang)
+
+
+# ------------------------------------------------------------------ voice (speech in, replies read aloud)
+@router.get("/voice/config")
+def voice_config(user: str = Depends(current_user)) -> dict:
+    return {"tts_languages": voice.tts_languages(), "language_aliases": voice.cfg()["tts"].get("language_aliases") or {},
+            "max_seconds": voice.cfg()["stt"]["max_seconds"]}
+
+
+@router.post("/voice/transcribe")
+async def voice_transcribe(request: Request, user: str = Depends(current_user)) -> dict:
+    """Raw audio in the body (Content-Type: the recorder's type). Returns {text, understood, lang}. Nothing is stored."""
+    audio = await request.body()
+    ctype = (request.headers.get("content-type") or "audio/webm").split(";")[0].strip()
+    try:
+        out = await run_in_threadpool(voice.transcribe, audio, ctype)
+    except voice.VoiceRefused as e:
+        raise _err(422, "VOICE_REFUSED", str(e))
+    except voice.VoiceUnavailable as e:
+        raise _err(503, "VOICE_UNAVAILABLE", str(e))
+    conn = store.connect()
+    store.audit(conn, user, "agent", "voice_transcribe", "ALLOW", "READ_ONLY", note=f"lang={out['lang']}; bytes={len(audio)}; words never logged")
+    conn.commit()
+    return out
+
+
+@router.post("/voice/speak")
+async def voice_speak(body: VoiceSpeak, user: str = Depends(current_user)) -> Response:
+    """Reads aloud one of the assistant's own recent replies in this chat. Any other text is refused."""
+    conn = store.connect()
+    if not store.get_chat_session(conn, user, body.session_id):
+        raise _err(404, "SESSION_NOT_FOUND", "That chat does not exist.")
+    replies = {t["text_masked"] for t in store.recent_turns(conn, user, body.session_id, 40) if t["role"] == "assistant"}
+    if m2_shim.scrub(body.text) not in replies:
+        raise _err(422, "VOICE_REFUSED", "Only the assistant's own replies can be read aloud.")
+    try:
+        wav = await run_in_threadpool(voice.speak, body.text, body.lang)
+    except voice.VoiceRefused as e:
+        raise _err(422, "VOICE_REFUSED", str(e))
+    except voice.VoiceUnavailable as e:
+        raise _err(503, "VOICE_UNAVAILABLE", str(e))
+    return Response(content=wav, media_type="audio/wav", headers={"Cache-Control": "no-store"})

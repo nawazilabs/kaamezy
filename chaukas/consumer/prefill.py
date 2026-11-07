@@ -203,6 +203,70 @@ def validate(raw: dict, allowed: set[int]) -> tuple[dict, dict[str, str]]:
     return fields, dropped
 
 
+# ------------------------------------------------------------------ spoken numbers ("one lakh", "sixty thousand")
+# A speech-to-text transcript writes numbers as words. They are turned into digits here, in code, BEFORE the grounding
+# check, so a figure the person said aloud is just as checkable as one they typed.
+_ONES = {w: i for i, w in enumerate("zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen "
+                                    "sixteen seventeen eighteen nineteen".split())}
+_TENS = {w: 10 * (i + 2) for i, w in enumerate("twenty thirty forty fifty sixty seventy eighty ninety".split())}
+_SCALE = {"thousand": 1_000, "lakh": 100_000, "lakhs": 100_000, "lac": 100_000, "lacs": 100_000, "crore": 10_000_000, "crores": 10_000_000}
+_WORD = re.compile(r"[A-Za-z]+|\d[\d,]*(?:\.\d+)?|\s+|[^\sA-Za-z\d]+")
+
+
+def _value(words: list[str]) -> float | None:
+    """'two and a half lakh' -> 250000. None if the words do not form a number."""
+    total = current = 0.0
+    seen = False
+    i = 0
+    while i < len(words):
+        w = words[i]
+        if w in _ONES:
+            current += _ONES[w]; seen = True
+        elif w in _TENS:
+            current += _TENS[w]; seen = True
+        elif w == "hundred":
+            current = (current or 1) * 100; seen = True
+        elif w in _SCALE:
+            total += (current or 1) * _SCALE[w]; current = 0.0; seen = True
+        elif w == "and" and words[i + 1:i + 3] in (["a", "half"], ["half"]) or w == "and" and words[i + 1:i + 2] == ["half"]:
+            current += 0.5; i += 2 if words[i + 1:i + 2] == ["a"] else 1; seen = True
+        elif w == "and":
+            pass  # "one hundred and twenty"
+        else:
+            return None
+        i += 1
+    return total + current if seen else None
+
+
+def spoken_numbers(text: str) -> str:
+    """Replace runs of English number words with digits: 'twelve months' -> '12 months', 'one lakh' -> '100000'."""
+    toks = _WORD.findall(text)
+    out: list[str] = []
+    i = 0
+    numword = lambda t: t.lower() in _ONES or t.lower() in _TENS or t.lower() in _SCALE or t.lower() == "hundred"
+    while i < len(toks):
+        prev = next((t for t in reversed(out) if not t.isspace()), "")
+        if not numword(toks[i]) or (toks[i].lower() in _SCALE and prev[:1].isdigit()):
+            out.append(toks[i]); i += 1; continue  # "5 lakh" is already a figure: _figures() reads it
+        j, last = i, i
+        while j < len(toks):  # extend over number words, single spaces and the joiners "and", "a half"
+            t = toks[j].lower()
+            if numword(toks[j]) or (t in ("and", "a", "half") and j + 1 < len(toks)):
+                if numword(toks[j]) or t == "half":
+                    last = j
+                j += 1
+            elif toks[j].isspace() and j + 1 < len(toks):
+                j += 1
+            else:
+                break
+        words = [t.lower() for t in toks[i:last + 1] if not t.isspace()]
+        v = _value(words)
+        if v is None or v != int(v):
+            out.append(toks[i]); i += 1; continue
+        out.append(str(int(v))); i = last + 1
+    return "".join(out)
+
+
 def _mentions_figures(text: str) -> bool:
     return bool(_NUM.search(_ascii_digits(text)))
 
@@ -213,6 +277,7 @@ def extract(raw_text: str, masked_text: str) -> dict | None:
     `raw_text` is read in memory only, by the deterministic parser, and is never sent anywhere; the model sees
     `masked_text`. Returns {"fields", "missing", "dropped", "via", "llm"}.
     """
+    raw_text, masked_text = spoken_numbers(raw_text), spoken_numbers(masked_text)
     if not _mentions_figures(raw_text):
         return None
     allowed = grounded_values(raw_text)

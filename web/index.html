@@ -191,6 +191,12 @@ body{overflow:hidden}
 .finance-grid .service-item{gap:.42rem}
 .scan-dock{position:absolute;z-index:5;right:0;bottom:1.1rem;left:0;display:flex;width:fit-content;min-width:9.8rem;min-height:3.25rem;align-items:center;justify-content:center;gap:.55rem;margin-inline:auto;padding:.6rem 1.15rem;border:.12rem solid var(--p-soft);border-radius:2rem;background:var(--p-blue);color:var(--p-on);box-shadow:0 .3rem .8rem oklch(0.2 0.04 255 / 20%);font-size:.94rem}
 .scan-dock svg{width:1.3rem;height:1.3rem}
+.mic-fab{position:absolute;z-index:6;left:50%;bottom:4.9rem;transform:translateX(-50%);width:3.7rem;height:3.7rem;display:grid;place-items:center;border:.2rem solid #fff;border-radius:50%;background:linear-gradient(135deg,#00b9f1,#002e6e);color:#fff;box-shadow:0 8px 22px rgba(0,46,110,.38);cursor:pointer}
+.mic-fab[hidden]{display:none}
+.mic-fab svg{width:1.55rem;height:1.55rem}
+.mic-fab::after{content:"";position:absolute;inset:-.45rem;border-radius:50%;border:2px solid rgba(0,185,241,.45);animation:micpulse 2.4s ease-out infinite}
+@keyframes micpulse{0%{transform:scale(.85);opacity:.9}100%{transform:scale(1.25);opacity:0}}
+@media(prefers-reduced-motion:reduce){.mic-fab::after{animation:none}}
 
 /* auth (ported from /auth) */
 .auth-page{flex:1;min-height:0;overflow:auto;display:grid;align-content:start;padding:1.5rem 1.1rem;background:var(--p-bg);color:var(--p-ink)}
@@ -454,6 +460,7 @@ body{overflow:hidden}
   </section>
 </main>
 <div class="scan-dock" id="dock" aria-hidden="true" hidden><i data-lucide="qr-code"></i><span>Scan QR</span></div>
+<button class="mic-fab" id="mic-fab" hidden aria-label="Speak to Chaukas" title="Speak to Chaukas"><i data-lucide="mic"></i></button>
 
 <!-- ===== Chaukas landing (the one live tile in the wallet opens this) ===== -->
 <section class="cz" id="cz" hidden>
@@ -804,7 +811,7 @@ const SCREENS = ["auth-page","home","cz","chs","ins","hi","hiw","hip","hia","ich
 function icons(){ try{ window.lucide && lucide.createIcons(); }catch(e){} }
 function showScreen(id){
   cur = id; SCREENS.forEach(s => { const n = $(s); if(n) n.hidden = s !== id; }); closeSheets();
-  $("dock").hidden = id !== "home"; icons();
+  $("dock").hidden = id !== "home"; $("mic-fab").hidden = id !== "home"; icons();
   try { const n = $(id); if(n){ n.setAttribute("tabindex","-1"); n.focus({preventScroll:true}); } } catch(e){}
 }
 function authMode(m){

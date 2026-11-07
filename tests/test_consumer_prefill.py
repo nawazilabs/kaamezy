@@ -160,3 +160,28 @@ def test_the_amount_still_comes_only_from_the_lender(client, monkeypatch):
 ])
 def test_rule_parser(text, expected):
     assert prefill.rule_fields(text) == expected
+
+
+# ------------------------------------------------------------------ speech: numbers arrive as words
+@pytest.mark.parametrize("spoken,digits", [
+    ("I need a loan of one lakh for twelve months, income sixty thousand", "I need a loan of 100000 for 12 months, income 60000"),
+    ("two and a half lakh, twenty four months", "250000, 24 months"),
+    ("one hundred and twenty thousand", "120000"),
+    ("ten thousand five hundred", "10500"),
+    ("I need health insurance", "I need health insurance"),
+])
+def test_spoken_numbers_become_digits(spoken, digits):
+    assert prefill.spoken_numbers(spoken) == digits
+
+
+def test_a_spoken_loan_fills_the_form_like_a_typed_one(client, monkeypatch):
+    fake_model(monkeypatch, down=True)
+    r = chat(client, "I need a loan of one lakh for twelve months, with an income of sixty thousand.")
+    assert r["action"] == "prefill_loan"
+    assert r["prefill"]["fields"] == {"amount_inr": 100000, "tenure_months": 12, "monthly_income_inr": 60000}
+
+
+def test_a_spoken_figure_is_still_grounded_in_what_was_said(client, monkeypatch):
+    fake_model(monkeypatch, fields={**FIELDS, "amount_inr": 500000})  # the person said one lakh
+    r = chat(client, "I need a loan of one lakh for twelve months, income sixty thousand")
+    assert r["prefill"]["fields"]["amount_inr"] == 100000
