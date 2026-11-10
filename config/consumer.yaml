@@ -1,6 +1,6 @@
 # SIMULATED partners for the consumer flows: health insurance + personal loan (placeholders, calibration pending).
 # In production a licensed insurer issues policies (IRDAI) and a regulated lender decides loans (RBI Digital Lending);
-# Chaukas only prices with their rules, shows the facts, and gates every money step through the guardrail.
+# Kaamezy only prices with their rules, shows the facts, and gates every money step through the guardrail.
 # Every number here is ILLUSTRATIVE. Owner: Member 1 (integration) / Member 2 (rules). Money is int rupees.
 
 health_insurance:

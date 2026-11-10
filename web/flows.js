@@ -126,7 +126,7 @@
 
   const HTML = `
 <section class="flow" id="hi" hidden>
-  ${bar("home", "Health Insurance", "powered by Chaukas", '<button class="plink czhelp" id="hi-help">Help</button>')}
+  ${bar("home", "Health Insurance", "powered by Kaamezy", '<button class="plink czhelp" id="hi-help">Help</button>')}
   <div class="czbody">
     <div class="czhero"><h1>Your health cover,<br><mark>bought right.</mark></h1>
       <ul>
@@ -146,17 +146,17 @@
     </div>
     <p class="czfoot">Nawazi Labs · demo. Quotes, insurers and policy issue are mocks; the rule engine and the guardrail are real code. Designed to align with IRDAI norms, RBI FREE-AI and the DPDP Act 2023.</p>
   </div>
-  <button class="askfab" id="hi-ask" aria-label="Ask Chaukas"><span class="avatar-b"><i data-lucide="shield-check"></i></span><b>Ask</b></button>
+  <button class="askfab" id="hi-ask" aria-label="Ask Kaamezy"><span class="avatar-b"><i data-lucide="shield-check"></i></span><b>Ask</b></button>
 </section>
 
 <section class="flow" id="hiw" hidden>
-  ${bar("hi", "Get a quote", "Chaukas does the paperwork")}
+  ${bar("hi", "Get a quote", "Kaamezy does the paperwork")}
   <div class="steps" id="hiw-steps"></div><div class="steplabel" id="hiw-label"></div>
   <div class="czbody" id="hiw-body"></div>
 </section>
 
 <section class="flow" id="hip" hidden>
-  ${bar("hi", "My policies", "issued through Chaukas")}
+  ${bar("hi", "My policies", "issued through Kaamezy")}
   <div class="czbody" id="hip-body"></div>
 </section>
 
@@ -165,9 +165,9 @@
   <div class="czbody" id="hia-body"></div>
 </section>
 
-<section class="flow" id="ich" hidden aria-label="Chaukas insurance assistant">
+<section class="flow" id="ich" hidden aria-label="Kaamezy insurance assistant">
   <header class="chhead"><span class="avatar-b"><i data-lucide="shield-check"></i></span>
-    <div class="chtitle"><strong>Chaukas assistant</strong><small id="ic-sub">Insurance and loan help</small></div>
+    <div class="chtitle"><strong>Kaamezy assistant</strong><small id="ic-sub">Insurance and loan help</small></div>
     <button class="picon" id="ic-new" aria-label="Clear chat" title="Clear chat"><i data-lucide="trash-2"></i></button>
     <button class="picon" id="ic-close" aria-label="Close"><i data-lucide="x"></i></button></header>
   <div class="ichat" id="ic-chat" aria-live="polite"></div>
@@ -181,7 +181,7 @@
 </section>
 
 <section class="flow" id="ln" hidden>
-  ${bar("home", "Loan", "powered by Chaukas", '<button class="plink czhelp" id="ln-help">Help</button>')}
+  ${bar("home", "Loan", "powered by Kaamezy", '<button class="plink czhelp" id="ln-help">Help</button>')}
   <div class="czbody">
     <div class="czhero"><h1>Money when you need it,<br><mark>sorted right.</mark></h1>
       <ul>
@@ -204,17 +204,17 @@
     </div>
     <p class="czfoot">Nawazi Labs · demo. The lender, offer and disbursal are mocks; the guardrail is real code. The amount comes from the lender's rules, never from the AI. Designed to align with RBI's Digital Lending Directions, RBI FREE-AI and the DPDP Act 2023.</p>
   </div>
-  <button class="askfab" id="ln-ask" aria-label="Ask Chaukas"><span class="avatar-b"><i data-lucide="shield-check"></i></span><b>Ask</b></button>
+  <button class="askfab" id="ln-ask" aria-label="Ask Kaamezy"><span class="avatar-b"><i data-lucide="shield-check"></i></span><b>Ask</b></button>
 </section>
 
 <section class="flow" id="lnw" hidden>
-  ${bar("ln", "Check my offer", "Chaukas does the paperwork")}
+  ${bar("ln", "Check my offer", "Kaamezy does the paperwork")}
   <div class="steps" id="lnw-steps"></div><div class="steplabel" id="lnw-label"></div>
   <div class="czbody" id="lnw-body"></div>
 </section>
 
 <section class="flow" id="lnl" hidden>
-  ${bar("ln", "My loans", "issued through Chaukas")}
+  ${bar("ln", "My loans", "issued through Kaamezy")}
   <div class="czbody" id="lnl-body"></div>
 </section>
 
@@ -344,7 +344,7 @@
 
   async function step3() {
     STEP = 3; setSteps(3, "Agent compares plans"); const b = $("hiw-body"); b.replaceChildren();
-    b.append(el("h2", { class: "t", text: "Chaukas is working" }), el("p", { class: "s", text: "Each line below is a real check in the rule engine." }));
+    b.append(el("h2", { class: "t", text: "Kaamezy is working" }), el("p", { class: "s", text: "Each line below is a real check in the rule engine." }));
     const list = el("div", { class: "agentlist" }); b.append(list);
     const req = capi("POST", "/insurance/quote", proposalBody());
     for (const n of ["Checking your KYC on file", "Applying eligibility rules", "Pricing 3 insurers with the rule engine", "Ranking plans for your family"]) {
@@ -387,7 +387,7 @@
     const c = el("div", { class: "kyc" });
     const draw = () => {
       c.replaceChildren(el("b", { text: "Verify your identity" }),
-        el("p", { class: "s", style: "margin:.3rem 0 .6rem;font-size:.85rem", text: KYC.ok ? "Verified through DigiLocker (demo). Reference ••••" + KYC.ref + ". Your Aadhaar number never reaches Chaukas or the AI." : "We use DigiLocker so your Aadhaar number never comes to us. You approve it in the DigiLocker screen, and we only get a 'verified' flag." }),
+        el("p", { class: "s", style: "margin:.3rem 0 .6rem;font-size:.85rem", text: KYC.ok ? "Verified through DigiLocker (demo). Reference ••••" + KYC.ref + ". Your Aadhaar number never reaches Kaamezy or the AI." : "We use DigiLocker so your Aadhaar number never comes to us. You approve it in the DigiLocker screen, and we only get a 'verified' flag." }),
         KYC.ok ? el("span", { class: "v ALLOW", text: "VERIFIED" }) : el("button", { type: "button", class: "czbtn soft", text: "Verify with DigiLocker (demo)", onclick: async () => {
           const r = await capi("POST", "/kyc/digilocker-demo"); if (!r.ok) { toast(errMsg(r)); return; }
           KYC = { ok: true, ref: r.data.ref_last4 }; draw(); } }));
@@ -419,7 +419,7 @@
     const cb = el("input", { type: "checkbox", id: "hiw-consent" }); cb.checked = CONSENT; cb.onchange = () => { CONSENT = cb.checked; };
     b.append(el("label", { class: "consent" }, cb, el("span", { text: "I agree to share my health details with " + q.name + " only to issue this policy. I can withdraw this consent any time from Privacy & AI activity." })));
     const res = el("div", { id: "hiw-res" });
-    b.append(el("div", { class: "navrow" }, el("button", { class: "czbtn soft", text: "Back", onclick: () => step3() }), el("button", { class: "czbtn", id: "hiw-buy", text: "Buy with Chaukas", onclick: () => attempt({}) })), res);
+    b.append(el("div", { class: "navrow" }, el("button", { class: "czbtn soft", text: "Back", onclick: () => step3() }), el("button", { class: "czbtn", id: "hiw-buy", text: "Buy with Kaamezy", onclick: () => attempt({}) })), res);
     refresh();
   }
 
@@ -467,7 +467,7 @@
       el("dl", { class: "sum" }, el("dt", { text: "Cover" }), el("dd", { text: inr(p.cover_inr) }), el("dt", { text: "Premium paid" }), el("dd", { text: inr(p.premium_inr) }),
         el("dt", { text: "Valid" }), el("dd", { text: day(p.start_date) + " – " + day(p.end_date) })),
       el("p", { class: "s", text: "Demo only: no money moved and no real policy exists. The decision is saved in Privacy & AI activity." }),
-      el("div", { class: "navrow" }, el("button", { class: "czbtn soft", text: "My policies", onclick: () => openPolicies() }), el("button", { class: "czbtn", text: "Ask Chaukas", onclick: () => openChat(undefined, "hi") })));
+      el("div", { class: "navrow" }, el("button", { class: "czbtn soft", text: "My policies", onclick: () => openPolicies() }), el("button", { class: "czbtn", text: "Ask Kaamezy", onclick: () => openChat(undefined, "hi") })));
     refresh();
   }
 
@@ -531,7 +531,7 @@
 
   async function lstep2() {
     setSteps(2, "The lender decides", "lnw"); const b = $("lnw-body"); b.replaceChildren();
-    b.append(el("h2", { class: "t", text: "Chaukas is checking" }), el("p", { class: "s", text: "Each line is a real check. The lender's rules, not the AI, decide." }));
+    b.append(el("h2", { class: "t", text: "Kaamezy is checking" }), el("p", { class: "s", text: "Each line is a real check. The lender's rules, not the AI, decide." }));
     const list = el("div", { class: "agentlist" }); b.append(list);
     const req = capi("POST", "/loan/decide", { amount_inr: L.amount, tenure_months: L.tenure, purpose: L.purpose,
       employment: L.employment === "self" ? "self_employed" : "salaried", monthly_income_inr: L.income, existing_emi_inr: L.emi, age: L.age });
@@ -600,7 +600,7 @@
       el("dl", { class: "sum" }, el("dt", { text: "Credited to ••••4321" }), el("dd", { text: inr(ln.net_inr) }), el("dt", { text: "First EMI" }), el("dd", { text: inr(ln.emi_inr) + " on " + day(ln.first_emi_date) }),
         el("dt", { text: "Cooling-off until" }), el("dd", { text: day(ln.cooling_off_end) })),
       el("p", { class: "s", text: "Demo only: no money moved and no real loan exists. The decision is saved in Privacy & AI activity." }),
-      el("div", { class: "navrow" }, el("button", { class: "czbtn soft", text: "My loans", onclick: () => openLoans() }), el("button", { class: "czbtn", text: "Ask Chaukas", onclick: () => openChat(undefined, "ln") })));
+      el("div", { class: "navrow" }, el("button", { class: "czbtn soft", text: "My loans", onclick: () => openLoans() }), el("button", { class: "czbtn", text: "Ask Kaamezy", onclick: () => openChat(undefined, "ln") })));
     refresh();
   }
 
@@ -699,7 +699,7 @@
   let ASESS = null, AINTRO = null, chatFrom = "hi";
   const scrollChat = () => { $("ic-chat").scrollTop = $("ic-chat").scrollHeight; };
   function bubble(kind, text, extra) {
-    const m = el("div", { class: "msg " + kind }, kind === "agent" ? el("div", { class: "who" }, "Chaukas", el("b", { text: "AI" })) : null, el("div", { text }));
+    const m = el("div", { class: "msg " + kind }, kind === "agent" ? el("div", { class: "who" }, "Kaamezy", el("b", { text: "AI" })) : null, el("div", { text }));
     if (extra) m.append(extra); $("ic-chat").append(m); scrollChat(); return m;
   }
   async function ensureSession() {
@@ -714,7 +714,7 @@
     const voiceTurn = !!(opts && opts.voice);
     if (voiceTurn) await ensureIntro();
     bubble("me", (opts && opts.shown) || text); $("ic-text").value = "";
-    const ty = el("div", { class: "msg agent typing", text: "Chaukas is typing…" }); $("ic-chat").append(ty); scrollChat();
+    const ty = el("div", { class: "msg agent typing", text: "Kaamezy is typing…" }); $("ic-chat").append(ty); scrollChat();
     const screen = chatFrom === "ln" ? "loan" : chatFrom === "home" ? "home" : "insurance";
     let r = { ok: false };
     for (let tries = 0; tries < 2 && !r.ok; tries++) {
@@ -741,7 +741,7 @@
   async function ensureIntro() {
     if ($("ic-chat").children.length) return;
     await ensureSession();
-    bubble("agent", AINTRO || "Main Chaukas hoon, ek AI assistant. I can help with health insurance and loans.");
+    bubble("agent", AINTRO || "Main Kaamezy hoon, ek AI assistant. I can help with health insurance and loans.");
     const h = $("ic-hints"); h.replaceChildren();
     ["How do I claim?", "I want a quote", "I need a loan", "Is my Aadhaar safe?"].forEach(t => h.append(el("button", { type: "button", text: t, onclick: () => chatSay(t) })));
   }
@@ -784,7 +784,7 @@
     const cfg = await voiceConfig(); stopAudio();
     let stream;
     try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-    catch (e) { toast("Please allow the microphone to speak to Chaukas."); return; }
+    catch (e) { toast("Please allow the microphone to speak to Kaamezy."); return; }
     const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find(t => MediaRecorder.isTypeSupported(t)) || "";
     const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : {}), chunks = [];
     REC = { rec, stream, chunks, cancelled: false, timer: setTimeout(stopVoice, cfg.max_seconds * 1000) };
@@ -819,7 +819,7 @@
   const appLang = () => (window.ChaukasI18n && ChaukasI18n.code !== "en-IN") ? ChaukasI18n.code : undefined;
   const uiLangQuery = () => appLang() ? "?lang=" + encodeURIComponent(appLang()) : "";
   const VOICE_HTML = `
-<div class="sheet voicesheet" id="sheet-voice" hidden role="dialog" aria-label="Speak to Chaukas">
+<div class="sheet voicesheet" id="sheet-voice" hidden role="dialog" aria-label="Speak to Kaamezy">
   <div class="vorb" id="vs-orb"><i data-lucide="mic"></i></div>
   <h3 id="vs-title">Listening…</h3>
   <p class="s" id="vs-said" translate="no"></p>

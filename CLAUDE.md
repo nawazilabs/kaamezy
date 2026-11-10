@@ -1,6 +1,6 @@
-# Chaukas — instructions for Claude Code
+# Kaamezy — instructions for Claude Code
 
-Chaukas (चौकस) is a prototype for the Paytm Build for India hackathon: an AI teammate that does real work safely. Every money step goes through a **deterministic guardrail** before it runs through **mock** partners, and a human gets a decision brief when they should. The LLM is used only where there is ambiguity (understanding the message, wording a reply); code decides everything that touches money.
+Kaamezy (कामईज़ी) is a prototype for the Paytm Build for India hackathon: an AI teammate that does real work safely. Every money step goes through a **deterministic guardrail** before it runs through **mock** partners, and a human gets a decision brief when they should. The LLM is used only where there is ambiguity (understanding the message, wording a reply); code decides everything that touches money.
 
 It has two product areas:
 

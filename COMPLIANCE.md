@@ -1,7 +1,7 @@
-# Chaukas — Regulatory Compliance Map
+# Kaamezy — Regulatory Compliance Map
 
 > **Owner:** one person now (formerly Member 2 for controls, Member 3 for UI surfaces and deck slide 9)
-> **Purpose:** every regulatory requirement we claim → the exact control in Chaukas → where it lives (file / table) → how we prove it (demo scene / test). If a row isn't **Built**, the deck must not claim it as built.
+> **Purpose:** every regulatory requirement we claim → the exact control in Kaamezy → where it lives (file / table) → how we prove it (demo scene / test). If a row isn't **Built**, the deck must not claim it as built.
 >
 > ⚠️ **Verify before slides:** section numbers and requirement wording below are our reading of the regulations. Before anything goes on a slide, check it against the official text (RBI website, MeitY gazette). Say "aligned with", not "certified compliant" — accountability stays with the regulated entity (Paytm / the lender).
 
@@ -19,9 +19,9 @@
 
 ## 1. RBI FREE-AI — responsible AI
 
-| ID | Requirement | Chaukas control | Where | Proof | Status |
+| ID | Requirement | Kaamezy control | Where | Proof | Status |
 |----|-------------|-----------------|-------|-------|:------:|
-| R1 | Customers must know they're dealing with AI | First message of every session: "Main Chaukas hoon, Paytm ka AI assistant" + "AI" badge in chat | `chaukas/compliance/disclosure.py`, `chaukas/gateway/session.py`, UI | Scene 1 | ✅ |
+| R1 | Customers must know they're dealing with AI | First message of every session: "Main Kaamezy hoon, Paytm ka AI assistant" + "AI" badge in chat | `chaukas/compliance/disclosure.py`, `chaukas/gateway/session.py`, UI | Scene 1 | ✅ |
 | R2 | Human oversight; customer can reach a human | Handoff with decision brief; intent `human_request` ("insaan se baat karao") always → handoff; "Talk to a human" button | `chaukas/agents/handoff.py`, `handoffs` table, UI | Scene 3 | ✅ |
 | R3 | Explainability ("understandable by design") | Every decision carries `reason_code` + human-readable `reason`; lender returns `reason_codes`; brief lists verified / done / refused + why | `audit_log.reason_code`, `chaukas/agents/guardrail.py`, `chaukas/integrations/lending.py` | Scenes 2, 3, 5 | ✅ |
 | R4 | Accountability + audit trail | Append-only `audit_log` (DB trigger), `actor` column (agent / merchant / human / system), `ticket_events` | `data/schema.sql`, `chaukas/observability/audit.py` | Scene 5 (UPDATE → ABORT) | ✅ |
@@ -33,19 +33,19 @@
 
 ## 2. RBI Digital Lending — the loan offer
 
-| ID | Requirement | Chaukas control | Where | Proof | Status |
+| ID | Requirement | Kaamezy control | Where | Proof | Status |
 |----|-------------|-----------------|-------|-------|:------:|
 | L1 | **Key Fact Statement (KFS)** with APR, fees, tenure shown **before** the borrower agrees | Offer card shows KFS (mock values); `offers.kfs_shown_at` must be set before `accepted` — **DB CHECK enforces it** | `offers.kfs_json`, `offers.kfs_shown_at`, UI KFS card | Scene 1 | ✅ |
 | L2 | Name the regulated lender | `offers.lender_name` shown on the card ("Offered by <Demo NBFC> via Paytm") | `offers.lender_name`, `config/lender_sim.yaml` | Scene 1 | ✅ |
 | L3 | Explicit borrower consent; no auto-acceptance | `create_offer` always NEEDS_CONFIRMATION (`CONSENT_REQUIRED`); acceptance only on CONFIRM / button | `chaukas/agents/guardrail.py` check 10 | Scene 1 | ✅ |
-| L4 | Credit decision belongs to the regulated lender | Simulated lender decides eligibility + amount; Chaukas only decides **whether and when** to offer | `chaukas/integrations/lending.py`, design B4.1 | Deck slide 11 | ✅ |
+| L4 | Credit decision belongs to the regulated lender | Simulated lender decides eligibility + amount; Kaamezy only decides **whether and when** to offer | `chaukas/integrations/lending.py`, design B4.1 | Deck slide 11 | ✅ |
 | L5 | Grievance redressal contact | Grievance contact in KFS and in the disclosure message | `compliance/disclosure.py`, `kfs_json.grievance_contact` | Scene 1 | ✅ |
 | L6 | Borrower can exit the loan in a cooling-off / look-up period | Lender-side, after disbursal — **out of scope** (we only make the offer). ⚠ Our "offer cooling-off" (don't re-offer for 7 days after a decline) is a **different thing** — see decision D14 | — | — | 🔵 |
 | L7 | Collect only needed data, with consent | Lender gets cashflow features only; purpose-specific consent `loan_offer` | `consents` table | — | ✅ |
 
 ## 2b. Shop insurance (additive, v3.3): same pattern as the loan offer
 
-Chaukas recommends the cover that fits and records the merchant's interest. It never issues a policy, never charges a premium and moves no money. All insurer names, covers and premiums are ILLUSTRATIVE mock values (`config/insurance_sim.yaml`).
+Kaamezy recommends the cover that fits and records the merchant's interest. It never issues a policy, never charges a premium and moves no money. All insurer names, covers and premiums are ILLUSTRATIVE mock values (`config/insurance_sim.yaml`).
 
 | # | Requirement | How we meet it | Where | Test | Status |
 |---|-------------|----------------|-------|------|:---:|
@@ -55,7 +55,7 @@ Chaukas recommends the cover that fits and records the merchant's interest. It n
 | I4 | No mis-selling | Support first (open issue, pending KYC, open handoff all block), one product per conversation, 7-day cooling-off after a no, no second lead for the same product, only the recommended product can be offered | engine check 7, `insurance_leads` | red-team RT-N2..N9, golden I01-I05 | ✅ |
 | I5 | Insurance distribution is regulated (IRDAI): a licensed insurer or broker must issue and advise | Prototype = recommendation + interest record only; the licensed partner follows up. **Verify the exact distribution rules before any claim on slides** | roadmap | none | 🔵 |
 
-Safe to say: "Chaukas suggests the cover that fits the shop and never buys it for the merchant: it asks first, records interest, and the licensed insurer takes it from there." Never say "IRDAI-compliant" or "certified".
+Safe to say: "Kaamezy suggests the cover that fits the shop and never buys it for the merchant: it asks first, records interest, and the licensed insurer takes it from there." Never say "IRDAI-compliant" or "certified".
 
 ## 2c. Consumer flows: personal loan, health insurance, assistant (additive)
 
@@ -63,12 +63,12 @@ Code: `chaukas/consumer/` · rules: `config/consumer.yaml` · facts: `config/con
 
 **Personal loan** (same Digital Lending ideas as section 2, now with a server-side clock and two consents)
 
-| ID | Requirement | Chaukas control | Where | Proof | Status |
+| ID | Requirement | Kaamezy control | Where | Proof | Status |
 |----|-------------|-----------------|-------|-------|:------:|
 | CL1 | KFS shown **before** the borrower agrees | The screen calls `kfs-shown` when the Key Facts are on display; the **server** stamps `kfs_shown_at`. Guardrail check 2 BLOCKs `KFS_NOT_SHOWN`; `consumer_loans.kfs_shown_at` is NOT NULL | `consumer/api.py`, `guardrail.check_loan_accept` | `test_no_loan_before_the_key_facts_were_shown` | ✅ |
 | CL2 | Every cost, and the lender's name, shown up front; no bundling | KFS lists lender, APR, EMI, interest, processing fee + GST, amount received, total repaid, cooling-off, grievance contact, and `insurance_required: false` | `engine.build_kfs` | `test_take_a_loan_end_to_end` | ✅ |
 | CL3 | Explicit consent, per purpose, no auto-acceptance | Two separate consents (`loan_offer`, `credit_check`) both required (check 3); rows in append-only `consumer_consents` | guardrail check 3, `store.consent` | `test_no_loan_without_both_consents_or_identity` | ✅ |
-| CL4 | The credit decision belongs to the lender | Simulated lender decides eligibility and amount; Chaukas only decides whether acceptance may proceed | `engine.lender_decide` | `test_lender_caps_the_amount_and_declines_for_plain_reasons` | ✅ (mock lender) |
+| CL4 | The credit decision belongs to the lender | Simulated lender decides eligibility and amount; Kaamezy only decides whether acceptance may proceed | `engine.lender_decide` | `test_lender_caps_the_amount_and_declines_for_plain_reasons` | ✅ (mock lender) |
 | CL5 | Fairness | The lender sees only age, income, EMIs, amount, tenure. `LoanApplication` has no name, gender, location or language field | `consumer/models.py` | `test_lender_never_sees_name_gender_location_or_language` | ✅ |
 | CL6 | Amount integrity | The accept request carries no amount; the server compares the stored offer with a fresh lender run (`AMOUNT_MISMATCH`) | guardrail check 5 | `test_the_amount_comes_from_the_lender_never_from_the_request` | ✅ |
 | CL7 | Big or risky loans need more than a "yes" | One-time code above the auto limit (checked on the server); self-employed above the review limit needs a human; duplicates and more than 2 active loans BLOCK | guardrail checks 6-8 | `test_a_big_loan_needs_the_one_time_code`, `test_at_most_two_active_loans` | ✅ |
@@ -76,7 +76,7 @@ Code: `chaukas/consumer/` · rules: `config/consumer.yaml` · facts: `config/con
 
 **Health insurance** (IRDAI-aligned practice; in real life a licensed insurer must issue and advise: verify the rules before any claim on slides)
 
-| ID | Requirement | Chaukas control | Where | Proof | Status |
+| ID | Requirement | Kaamezy control | Where | Proof | Status |
 |----|-------------|-----------------|-------|-------|:------:|
 | CI1 | Honest, explainable recommendation | Deterministic rule engine; the recommendation carries a plain reason; the person picks | `engine.quotes`, `engine.recommend` | `test_recommendation_is_deterministic_and_explained` | ✅ |
 | CI2 | Consent to share health details, per purpose | `share_health_data` consent required (check 2) before any purchase | guardrail check 2 | `test_insurance_blocks_bad_input` | ✅ |
@@ -88,7 +88,7 @@ Code: `chaukas/consumer/` · rules: `config/consumer.yaml` · facts: `config/con
 
 **Assistant (LLM) and privacy**
 
-| ID | Requirement | Chaukas control | Where | Proof | Status |
+| ID | Requirement | Kaamezy control | Where | Proof | Status |
 |----|-------------|-----------------|-------|-------|:------:|
 | CA1 | The person knows it is AI, and which kind of answer they got | AI line from `config/disclosure.yaml` at chat start; the header says "Live AI model" or "Backup helper (the AI model is unavailable)" | `assistant.disclosure`, `web/flows.js` | `test_the_session_starts_with_the_ai_disclosure` | ✅ |
 | CA2 | Answers are grounded | A reply may use only facts in `config/consumer_kb.yaml`: no new number, no rupee amount, no "approved / issued / guaranteed", no ask for OTP / PIN / Aadhaar / PAN, no personal data, right language; otherwise the knowledge-base text is sent | `assistant.reply_problem` | `test_a_reply_that_adds_facts_promises_or_leaks_is_replaced_by_the_knowledge_base` | ✅ |
@@ -109,17 +109,17 @@ Safe to say: "Premiums and loan figures come from a rule engine and a lender, ne
 
 ## 3. RBI payment data storage
 
-| ID | Requirement | Chaukas control | Where | Status |
+| ID | Requirement | Kaamezy control | Where | Status |
 |----|-------------|-----------------|-------|:------:|
 | P1 | Payment system data stored only in India | DB local (prototype) / India region (prod). LLM routing rule: **raw-ish context only to the India-hosted core model; the fallback model receives masked/tokenised data only.** Verify each provider's hosting region before claiming | `config/models.yaml`, `chaukas/llm/client.py` | ✅ rule · 🔵 prod hosting |
 
 ## 4. DPDP Act 2023 — personal data
 
-| ID | Requirement (section — verify) | Chaukas control | Where | Proof | Status |
+| ID | Requirement (section — verify) | Kaamezy control | Where | Proof | Status |
 |----|-------------------------------|-----------------|-------|-------|:------:|
 | D1 | **Notice** before processing: what data, why, rights (s.5) | Disclosure message includes a short notice + link; `notice_version` (hash of the exact wording) recorded. Full notice in Hinglish, Hindi, English. Final languages are Hindi, English, Marathi, Hinglish, Gujarati: Marathi and Gujarati carry the AI-disclosure line only (the notice is English), **planned** until a native speaker reviews them. Tamil, Telugu, Malayalam, Bengali and Punjabi were removed; those codes fall back to the full Hindi notice | `compliance/disclosure.py`, `config/disclosure.yaml`, `consents.notice_version` | Scene 1 | ✅ (hi / hi-Latn / en) · 🔵 mr / gu notice translation |
 | D2 | **Consent**: free, specific, informed, clear affirmative action (s.6) | Per-purpose consent artefacts (`ai_assistance`, `loan_offer`), append-only history (UPDATE and DELETE both refused by DB triggers); `loan_offer` consent is only valid after the KFS was shown | `consents` table, `compliance/consent.py`, `GET/POST /api/merchants/{id}/consents` | `tests/test_compliance.py` | ✅ `ai_assistance` is granted at session start (gateway), `loan_offer` on accept with the KFS shown (orchestrator) |
-| D10 | Proactive outreach: Chaukas may *inform* first, but never *move money* first (s.6 consent before action) | A session started by the system (`sessions.trigger_source = 'proactive'`, read fresh from the DB) can never auto-execute `retrigger_payout` or `create_offer`: check 10 returns NEEDS_CONFIRMATION `CONSENT_REQUIRED` even under the limit. One yes covers one action (same action + identical params). List in `config/policy.yaml` `proactive_consent_required` | `policy/engine.py` check 10, `config/policy.yaml`, `data/schema.sql` | `tests/test_guardrail.py` (proactive), red-team RT-P1..P5, golden P01..P08 | ✅ guardrail + red-team · ⏳ golden cases run once Member 1's event watcher lands · notification opt-in / quiet hours are roadmap |
+| D10 | Proactive outreach: Kaamezy may *inform* first, but never *move money* first (s.6 consent before action) | A session started by the system (`sessions.trigger_source = 'proactive'`, read fresh from the DB) can never auto-execute `retrigger_payout` or `create_offer`: check 10 returns NEEDS_CONFIRMATION `CONSENT_REQUIRED` even under the limit. One yes covers one action (same action + identical params). List in `config/policy.yaml` `proactive_consent_required` | `policy/engine.py` check 10, `config/policy.yaml`, `data/schema.sql` | `tests/test_guardrail.py` (proactive), red-team RT-P1..P5, golden P01..P08 | ✅ guardrail + red-team · ⏳ golden cases run once Member 1's event watcher lands · notification opt-in / quiet hours are roadmap |
 | D3 | Withdrawal as easy as giving consent (s.6) | "Consent wapas lo" → `withdrawn` row; the guardrail then BLOCKs `create_offer` with `CONSENT_WITHDRAWN` (final, no confirmation can lift it) | `compliance/consent.py`, `policy/engine.py` check 7, `POST /api/merchants/{id}/consents` | red-team RT40, `tests/test_guardrail.py` | ✅ guardrail side · UI toggle (M3) pending |
 | D4 | Purpose limitation / data minimisation | Each agent gets only the fields it needs (access matrix, design B7.3); guardrail sees **no identity**; LLM never sees raw cashflow or raw PII | `chaukas/privacy/`, agents | Trace panel | ✅ |
 | D5 | Reasonable security safeguards (s.8) | Mask at ingestion, tokenise to model, scrub logs, encrypt at rest (prod), only Action agent detokenises one field | `chaukas/privacy/pii.py`, `scrub.py` | Scene 5, PII-leak test | ✅ (encryption 🔵) |

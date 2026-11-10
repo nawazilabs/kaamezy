@@ -422,7 +422,7 @@ def session_trigger_source(ctx: Ctx) -> str:
 def check_consent(ctx: Ctx) -> Outcome | None:                                         # 10
     required = ctx.policy["consent_required"]
     needs = ctx.action in required or (not ctx.step.reversible and "any_irreversible" in required)
-    # Proactive: Chaukas started this, the merchant asked for nothing -> money never moves without a yes.
+    # Proactive: Kaamezy started this, the merchant asked for nothing -> money never moves without a yes.
     # Default (key absent) = every money action + create_offer, so a stripped policy fails safe.
     proactive = ctx.policy.get("proactive_consent_required", [*ctx.policy["money_actions"], "create_offer"])
     if ctx.action in proactive and session_trigger_source(ctx) == "proactive":

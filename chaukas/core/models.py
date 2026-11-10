@@ -265,7 +265,7 @@ class HandoffBrief(BaseModel):  # agent-desk renders THIS; never a transcript
     asked: str  # what the merchant wanted, 1 line, masked
     verified: list[str]  # facts checked fresh, e.g. "SET-51002 failed, IFSC_MISMATCH"
     done: list[str]  # actions already executed
-    refused: list[RefusedStep]  # what Chaukas would NOT do, and why
+    refused: list[RefusedStep]  # what Kaamezy would NOT do, and why
     reason_code: str  # ReasonCode or HandoffReason
     confidence: float  # 0..1
     decision_needed: str  # the ONE decision the human must make

@@ -99,7 +99,7 @@ def norm(s: str) -> str:
 
 # brand names, sample data and code-ish strings that happen to look like text: never translated
 NEVER = {"Bearer", "Escape", "Authorization", "Noto Sans Devanagari", "Demo Sharma", "Demo Sharma Jr", "Nawazi Labs", "Paytm",
-         "Chaukas", "XXXX XXXX XXXX", "— next read —"}
+         "Kaamezy", "XXXX XXXX XXXX", "— next read —"}
 
 
 def looks_like_ui(s: str) -> bool:

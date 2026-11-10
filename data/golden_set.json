@@ -431,7 +431,7 @@
     },
     {
       "case_id": "P01", "merchant_id": "M001", "scenario": "happy_path_with_loan", "trigger": "proactive",
-      "title": "Failed payout found by the system: Chaukas tells the merchant and WAITS (no execution)",
+      "title": "Failed payout found by the system: Kaamezy tells the merchant and WAITS (no execution)",
       "turns": [{"scan": true}],
       "expect": {
         "intent": "settlement_delay",
@@ -677,7 +677,7 @@
     },
     {
       "case_id": "P09", "merchant_id": "M003", "scenario": "loan_ask_ineligible", "trigger": "proactive",
-      "title": "Threshold crossed: Chaukas suggests an AI Soundbox and WAITS for the yes",
+      "title": "Threshold crossed: Kaamezy suggests an AI Soundbox and WAITS for the yes",
       "turns": [{"scan": "device_upgrade"}],
       "expect": {
         "intent": "device_upgrade",

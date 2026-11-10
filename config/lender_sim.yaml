@@ -1,5 +1,5 @@
 # SIMULATED lender (placeholders, calibration pending) — Owner: Member 1 · design B4.1
-# In production the regulated lender decides eligibility; Chaukas only consumes the result.
+# In production the regulated lender decides eligibility; Kaamezy only consumes the result.
 lender_name: "Demo NBFC Partner (simulated)"
 eligibility:
   min_avg_balance: 20000

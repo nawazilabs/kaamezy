@@ -32,7 +32,7 @@ async def _lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Chaukas", version="0.1", lifespan=_lifespan)
+app = FastAPI(title="Kaamezy", version="0.1", lifespan=_lifespan)
 
 # CORS: the web frontend (e.g. on Vercel) is a different origin from this API. CHAUKAS_CORS_ORIGINS is a comma list
 # of allowed origins; default "*" is fine for the prototype because there are no cookies or credentials.

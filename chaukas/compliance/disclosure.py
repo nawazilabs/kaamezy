@@ -22,7 +22,7 @@ NOTICE_LANG = "en-IN"          # the notice language used when a language has on
 @dataclass(frozen=True)
 class Disclosure:
     lang: str                  # the language actually used (after fallback)
-    ai_disclosure: str         # "I am Chaukas, Paytm's AI assistant."
+    ai_disclosure: str         # "I am Kaamezy, Paytm's AI assistant."
     notice: str                # DPDP notice: data used, purpose, rights, human, grievance
     grievance_contact: str
     notice_url: str

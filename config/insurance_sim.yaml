@@ -1,5 +1,5 @@
 # SIMULATED insurance partner (placeholders, calibration pending). In production a licensed insurer / broker
-# decides and issues policies, and IRDAI rules apply; Chaukas only recommends and records the merchant's interest.
+# decides and issues policies, and IRDAI rules apply; Kaamezy only recommends and records the merchant's interest.
 # Every number here is ILLUSTRATIVE. Owner: Member 2 (rules) / Member 1 (integration).
 insurer_name: "Demo General Insurance (simulated)"
 grievance_contact: "claims@demo-insurer.example (mock)"

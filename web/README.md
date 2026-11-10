@@ -1,9 +1,9 @@
-# Chaukas web frontend
+# Kaamezy web frontend
 
 Static files, no build step: `index.html` (shell, auth, merchant chat), `flows.js` + `flows.css` (health insurance and loan flows). It calls the FastAPI backend over HTTPS.
 
-Flow: sign in / sign up (Supabase) -> Paytm-style wallet home (only the "Chaukas Teammate" tile is live)
--> Chaukas landing (link a business or try a sample merchant) -> assistant chat, plus "Behind the scenes"
+Flow: sign in / sign up (Supabase) -> Paytm-style wallet home (only the "Kaamezy Teammate" tile is live)
+-> Kaamezy landing (link a business or try a sample merchant) -> assistant chat, plus "Behind the scenes"
 (trace, agent desk, audit log, red-team, scorecard). On desktop it renders inside a phone frame.
 
 - Auth: Supabase JS from a CDN, using the project's publishable (client-side) key. The login is front-end only; the FastAPI backend does not check it.

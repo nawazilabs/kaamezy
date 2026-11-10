@@ -1,6 +1,6 @@
-# Chaukas — System Design (HLD + LLD)
+# Kaamezy — System Design (HLD + LLD)
 
-> **Project:** Chaukas (चौकस — "vigilant") · **Team:** Enver AI · **Track 3 — Autonomous AI Teammates**
+> **Project:** Kaamezy (कामईज़ी — "vigilant") · **Team:** Enver AI · **Track 3 — Autonomous AI Teammates**
 > **Companion doc:** `CHAUKAS_PROBLEM_STATEMENT.md` (read that first for the *why*; this doc is the *how*).
 
 This is the engineering design. Part A is the **High-Level Design** (components, data flow, boundaries). Part B is the **Low-Level Design** (module contracts, schemas, algorithms, data models). Prototype choices are called out explicitly — anything marked **[MOCK]** is a stub for the finals, **[PROD]** is the real-world version we describe but don't build now.
@@ -46,7 +46,7 @@ This is the engineering design. Part A is the **High-Level Design** (components,
 |-------|---------------|-----------------|
 | **Channel** | Accept voice/chat; ASR in, TTS out; agent-desk UI | Chat first; voice (Hindi) added after |
 | **Gateway** | Auth, session management, language detection, rate limiting | Minimal: session id + lang tag |
-| **Core (Chaukas)** | Orchestrator + 5 agents; the decision/action loop | Full build |
+| **Core (Kaamezy)** | Orchestrator + 5 agents; the decision/action loop | Full build |
 | **Integration** | Adapters to payments, CRM, ticketing, lending | **[MOCK]** deterministic fixtures |
 | **Data** | Merchant 360 store, policy store, audit log, trace store | SQLite / in-memory + JSON fixtures |
 | **Observability** | Structured tracing, immutable audit log, cost + latency metering | Full build (it's our differentiator) |
@@ -171,7 +171,7 @@ Caching directly supports our headline metric (cost per resolved conversation < 
 
 ## A8. Data privacy & PII handling (finance-grade)
 
-Chaukas touches settlements, loan eligibility, and merchant identity — this is regulated financial data. PII protection is a first-class requirement, not a cleanup step. (Designed to generalise to healthcare too: same masking/encryption/scoping model applies to PHI.)
+Kaamezy touches settlements, loan eligibility, and merchant identity — this is regulated financial data. PII protection is a first-class requirement, not a cleanup step. (Designed to generalise to healthcare too: same masking/encryption/scoping model applies to PHI.)
 
 **PII/sensitive fields:** account number, VPA/UPI id, phone, PAN, Aadhaar (if ever present), full name, bank IFSC+account pair, exact amounts tied to identity.
 
@@ -390,10 +390,10 @@ pii_fields: [account_no, ifsc, vpa, pan, aadhaar, phone, name]   # canonical —
 
 Two different decisions, two different owners:
 
-> **The lender decides *how much*. The Chaukas guardrail decides *whether and when* to offer.**
+> **The lender decides *how much*. The Kaamezy guardrail decides *whether and when* to offer.**
 
 **Simulated lender (`integrations/lending.py` + `config/lender_sim.yaml`) — [MOCK]**
-- In production, eligibility and amount are the regulated lender's underwriting decision (RBI digital lending guidelines). Chaukas only **consumes** the lender's output; it never invents credit decisions.
+- In production, eligibility and amount are the regulated lender's underwriting decision (RBI digital lending guidelines). Kaamezy only **consumes** the lender's output; it never invents credit decisions.
 - For the prototype, a deterministic mock stands in: input = `cashflow_features`, output = `{eligible, max_amount, reason_codes}`.
 - Thresholds are **placeholders, calibration pending with lender data** — say this explicitly if asked.
 
@@ -632,7 +632,7 @@ Eval must respect the same PII rules as runtime (A8 / DPDP). The data-egress poi
 
 1. **Live scorecard** — one screen, six metrics vs targets, green/red; run `run_eval.py` live on stage.
 2. **Red-team table** — N adversarial cases → each BLOCKED / NEEDS_CONFIRMATION, headline "0 unsafe actions." This claim is only possible *because* the core is deterministic.
-3. **Side-by-side** — same injection against a naive LLM-agent (complies) vs Chaukas (deterministic BLOCK).
+3. **Side-by-side** — same injection against a naive LLM-agent (complies) vs Kaamezy (deterministic BLOCK).
 
 All three can live in the agent-desk as a small eval dashboard.
 

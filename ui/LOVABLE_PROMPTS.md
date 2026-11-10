@@ -1,4 +1,4 @@
-# Lovable prompts — Chaukas demo UI
+# Lovable prompts — Kaamezy demo UI
 
 > Owner: Member 3. Paste these into Lovable **in order**, all in the **same project**: Prompt 1 builds the merchant side, Prompt 2 the agent side, Prompt 3 the proof panels.
 > Every data value comes from `data/merchant_fixtures.json` and `DEMO_SCRIPT.md`. If Lovable invents numbers, names or features, remove them.
@@ -9,7 +9,7 @@
 ## Prompt 1 — Merchant side
 
 ```text
-Build a desktop demo web app called "Chaukas" (Hindi: चौकस) — an AI teammate for Paytm merchants.
+Build a desktop demo web app called "Kaamezy" (Hindi: कामईज़ी) — an AI teammate for Paytm merchants.
 It will be screen-recorded at 1920×1080 and shown to hackathon judges, so it must look polished and
 be readable from a distance.
 
@@ -30,7 +30,7 @@ BRAND
 - Fonts: Inter for Latin, "Noto Sans Devanagari" for Hindi. Body min 16px. Rounded-2xl cards, soft shadows.
 
 LAYOUT (single screen, no scrolling of the page itself)
-- Top bar (#002E6E): logo "च" in a cyan circle, "Chaukas" + subtitle "AI teammate for Paytm merchants",
+- Top bar (#002E6E): logo "च" in a cyan circle, "Kaamezy" + subtitle "AI teammate for Paytm merchants",
   a merchant picker dropdown, and a segmented toggle "Merchant | Agent desk" (Agent desk = empty
   placeholder page for now).
 - Left 45%: merchant chat inside a phone-style frame.
@@ -44,7 +44,7 @@ Selecting a merchant starts a new session and clears chat + trace.
 
 CHAT (every bot message has a small "AI" badge)
 - First bubble on every new session, always:
-  "नमस्ते! मैं Chaukas हूँ, Paytm का AI assistant। आपकी बातचीत सुरक्षित रखी जाती है और आप कभी भी इंसान से बात कर सकते हैं।"
+  "नमस्ते! मैं Kaamezy हूँ, Paytm का AI assistant। आपकी बातचीत सुरक्षित रखी जाती है और आप कभी भी इंसान से बात कर सकते हैं।"
 - An always-visible secondary button "इंसान से बात करें / Talk to a human" above the input.
 - Input box with send button and a mic button (mic is visual only for now — show a tooltip "Voice coming soon").
 - Quick-reply chips above the input with the demo messages for the selected merchant (clicking sends it).
@@ -57,7 +57,7 @@ M001 Sharma Kirana Store
   "SET-99213 · ₹18,400 · 6 दिन पहले"
   "Failed: बैंक डिटेल्स (IFSC) गलत थी · आपने कल डिटेल्स अपडेट कर दी"
   status pill "Re-triggered" (green), ticket chip "TKT-xxxxx — ticket raised",
-  footer pill "Checked by Chaukas Guardrail · ALLOW" (green).
+  footer pill "Checked by Kaamezy Guardrail · ALLOW" (green).
 - Bot text: "आपका ₹18,400 का भुगतान दोबारा भेज दिया गया है। स्टेटस: retriggered। टिकट TKT-xxxxx पर मैं नज़र रखूँगा।"
   (Do NOT promise any time like "24 घंटे में".)
 - Bot shows a LOAN OFFER card:
@@ -130,7 +130,7 @@ LAYOUT
   NEVER invent numbers).
 - Left column (25%): "Handoff queue" — list of open handoffs from getHandoffs("open").
   Mock: one item → HO-xxxxx · Patel Electronics (Pa****) · OVER_AUTO_LIMIT · "Approve ₹32,500 retrigger?" · time.
-  Only handed-off cases appear here (NOT the M001 case Chaukas already solved).
+  Only handed-off cases appear here (NOT the M001 case Kaamezy already solved).
 - Middle column (40%): "Decision brief" for the selected handoff — a structured card, NOT a transcript:
   ASKED: "Merchant wants failed settlement of ₹32,500 sent" (Hinglish original shown small below)
   VERIFIED: "SET-51002 failed (IFSC_MISMATCH)" · "Bank details updated after failure" · "Amount matches ledger"

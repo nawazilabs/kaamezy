@@ -1,6 +1,6 @@
-# Chaukas — Problem Statement & Build Reference
+# Kaamezy — Problem Statement & Build Reference
 
-> **Project:** Chaukas (चौकस — "vigilant")
+> **Project:** Kaamezy (कामईज़ी — "vigilant")
 > **Team:** Enver AI (3 members)
 > **Event:** Paytm Build for India — AI Hackathon
 > **Track:** Track 3 — Autonomous AI Teammates
@@ -47,9 +47,9 @@ Four concrete pain points:
 
 ---
 
-## 3. Our solution — Chaukas
+## 3. Our solution — Kaamezy
 
-Chaukas is an AI teammate that closes the loop: it understands the merchant, decides what the fix actually is, executes it through APIs, **verifies every action against policy before it runs**, and escalates with full context only when it should.
+Kaamezy is an AI teammate that closes the loop: it understands the merchant, decides what the fix actually is, executes it through APIs, **verifies every action against policy before it runs**, and escalates with full context only when it should.
 
 ### The 5-stage loop
 
@@ -65,7 +65,7 @@ Chaukas is an AI teammate that closes the loop: it understands the merchant, dec
 
 Merchant says (Hindi): *"पिछले हफ्ते का पैसा अभी तक नहीं आया।"* (Last week's money hasn't come yet.)
 
-Chaukas:
+Kaamezy:
 1. Detects intent = `settlement_delay`, language = `hi`, urgency = `high`
 2. Fetches context: ₹2.1L GMV (30d), settlement `SET-99213` failed, cause = IFSC mismatch
 3. Plans: verify ledger → re-trigger payout → raise ticket → evaluate loan eligibility
@@ -82,7 +82,7 @@ Chaukas:
 Yes — by design.
 
 - **Customer support** is the core: dispute resolution, tickets, escalation.
-- **Sales** is attached to the *same* conversation: once the issue is resolved, Chaukas checks the merchant's 360° context for an eligible loan or upgrade and offers it **with consent**, never pushed.
+- **Sales** is attached to the *same* conversation: once the issue is resolved, Kaamezy checks the merchant's 360° context for an eligible loan or upgrade and offers it **with consent**, never pushed.
 
 The sales moment is deliberately placed *after* the problem is solved, because that is when merchant trust is highest. The offer is consent-gated and treated as part of the guardrail, so it never feels like spam.
 
@@ -121,7 +121,7 @@ Deliberately small. Each agent has a typed contract, a single responsibility, an
 - **Mode 1 — Merchant-facing:** voice/chat in the merchant's language, resolves autonomously inside policy limits, asks consent before anything irreversible.
 - **Mode 2 — Teammate copilot:** the same agent sits inside a support agent's desk / field sales executive's app — pre-fetched context, a drafted resolution, one-click execute, next-best lending action.
 
-**Handoff protocol:** Chaukas never dumps a transcript. It hands over a structured brief — what was asked, what was verified, what it already did, what it refused to do and why, its confidence, and the one decision the human must make.
+**Handoff protocol:** Kaamezy never dumps a transcript. It hands over a structured brief — what was asked, what was verified, what it already did, what it refused to do and why, its confidence, and the one decision the human must make.
 
 ---
 

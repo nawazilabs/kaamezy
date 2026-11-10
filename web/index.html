@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Nawazi Labs · Chaukas</title>
+<title>Nawazi Labs · Kaamezy</title>
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2300b9f1'/%3E%3Cpath d='M9 16l5 5 9-10' stroke='%23fff' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -226,7 +226,7 @@ body{overflow:hidden}
 .auth-back{display:inline-flex;align-items:center;gap:.35rem;margin:0 0 1.25rem -.15rem}
 .auth-back svg{width:1rem;height:1rem}
 
-/* ===== Chaukas landing, chat and insights screens (modelled on a claims-assistant flow) ===== */
+/* ===== Kaamezy landing, chat and insights screens (modelled on a claims-assistant flow) ===== */
 .tile-live{border:0;background:none;font:inherit;color:inherit;cursor:pointer;padding:0}
 .tile-live .service-badge{background:var(--p-soft);color:var(--p-blue)}
 .cz,.chs,.ins{flex:1;min-height:0;display:flex;flex-direction:column;position:relative;background:#f3f6fb;color:var(--ink)}
@@ -453,17 +453,17 @@ body{overflow:hidden}
       <div class="service-item"><span class="service-icon"><i data-lucide="wallet"></i></span><span>Paytm<br>Postpaid</span></div>
       <div class="service-item"><span class="service-icon"><i data-lucide="trending-up"></i></span><span>Stocks</span></div>
       <div class="service-item"><span class="service-icon"><i data-lucide="credit-card"></i></span><span>Get Credit Card</span></div>
-      <button class="service-item tile-live" id="open-chaukas"><span class="service-badge">Ask</span><span class="service-icon"><i data-lucide="shield-check"></i></span><span>Chaukas<br>Teammate</span></button>
+      <button class="service-item tile-live" id="open-chaukas"><span class="service-badge">Ask</span><span class="service-icon"><i data-lucide="shield-check"></i></span><span>Kaamezy<br>Teammate</span></button>
     </div>
   </section>
 </main>
-<button class="mic-fab" id="mic-fab" hidden aria-label="Speak to Chaukas" title="Speak to Chaukas"><i data-lucide="mic"></i></button>
+<button class="mic-fab" id="mic-fab" hidden aria-label="Speak to Kaamezy" title="Speak to Kaamezy"><i data-lucide="mic"></i></button>
 
-<!-- ===== Chaukas landing (the one live tile in the wallet opens this) ===== -->
+<!-- ===== Kaamezy landing (the one live tile in the wallet opens this) ===== -->
 <section class="cz" id="cz" hidden>
   <header class="czbar">
     <button class="picon" id="cz-back" aria-label="Back to wallet"><i data-lucide="arrow-left"></i></button>
-    <div class="czlogo"><b>chaukas</b><small>चौकस · AI teammate</small></div>
+    <div class="czlogo"><b>chaukas</b><small>कामईज़ी · AI teammate</small></div>
     <button class="plink czhelp" id="cz-help">Help</button>
   </header>
   <div class="czbody">
@@ -493,17 +493,17 @@ body{overflow:hidden}
       <button class="czrow" id="row-scene"><span class="rico"><i data-lucide="activity"></i></span><span class="rtxt"><b>Behind the scenes</b><span>Trace, red-team and scorecard</span></span><i data-lucide="chevron-right"></i></button>
     </div>
 
-    <p class="czfoot">Nawazi Labs · Chaukas prototype (demo). Paytm payout, ticketing and the lender are mocks; the agents, guardrail, audit log and eval are real. Designed to align with RBI's FREE-AI framework, RBI Digital Lending Directions and the DPDP Act 2023.</p>
+    <p class="czfoot">Nawazi Labs · Kaamezy prototype (demo). Paytm payout, ticketing and the lender are mocks; the agents, guardrail, audit log and eval are real. Designed to align with RBI's FREE-AI framework, RBI Digital Lending Directions and the DPDP Act 2023.</p>
     <div class="czstat"><span class="chip" id="srv">checking…</span><span class="spin" id="spin"></span><button class="plink" id="cfg" title="Change backend URL">⚙ API</button></div>
   </div>
-  <button class="askfab" id="ask" aria-label="Ask Chaukas"><span class="avatar-b"><i data-lucide="shield-check"></i></span><b>Ask</b></button>
+  <button class="askfab" id="ask" aria-label="Ask Kaamezy"><span class="avatar-b"><i data-lucide="shield-check"></i></span><b>Ask</b></button>
 </section>
 
-<!-- ===== Chaukas assistant (chat) ===== -->
-<section class="chs" id="chs" hidden aria-label="Chaukas assistant">
+<!-- ===== Kaamezy assistant (chat) ===== -->
+<section class="chs" id="chs" hidden aria-label="Kaamezy assistant">
   <header class="chhead">
     <span class="avatar-b"><i data-lucide="shield-check"></i></span>
-    <div class="chtitle"><strong>Chaukas assistant</strong><small>Replies in your language · knows your business</small></div>
+    <div class="chtitle"><strong>Kaamezy assistant</strong><small>Replies in your language · knows your business</small></div>
     <button class="picon" id="start" aria-label="Start a new conversation" title="New conversation"><i data-lucide="trash-2"></i></button>
     <button class="picon" id="ch-close" aria-label="Close"><i data-lucide="x"></i></button>
   </header>
@@ -540,7 +540,7 @@ body{overflow:hidden}
 <div class="sheetbg" id="sheetbg" hidden></div>
 <div class="sheet" id="sheet-link" hidden role="dialog" aria-label="Link my business">
   <h3>Link my business</h3>
-  <p>Pick the merchant account Chaukas should work on. These are demo merchants, each with a different situation.</p>
+  <p>Pick the merchant account Kaamezy should work on. These are demo merchants, each with a different situation.</p>
   <label for="merchant">Merchant</label>
   <select id="merchant"></select>
   <button class="czbtn" id="link-ok">Link this business</button>
@@ -602,7 +602,7 @@ function scroll(){ const c=$("chat"); c.scrollTop=c.scrollHeight; }
 function sys(t){ $("chat").append(el("div",{class:"sys",text:t})); scroll(); }
 function me(t){ $("chat").append(el("div",{class:"msg me",text:t})); scroll(); }
 function agent(text, opts={}){
-  const who = el("div",{class:"who"}, opts.proactive?"🔔 Chaukas ne dekha":"Chaukas", el("b",{text:"AI"}));
+  const who = el("div",{class:"who"}, opts.proactive?"🔔 Kaamezy ne dekha":"Kaamezy", el("b",{text:"AI"}));
   const m = el("div",{class:"msg agent"+(opts.proactive?" proactive":"")}, who, el("div",{text:text}), el("button",{class:"listen",type:"button",onclick:()=>speak(text),text:"🔊 Listen"}));
   $("chat").append(m); scroll(); return m;
 }
@@ -611,7 +611,7 @@ async function startSession(){
   const r = await api("POST","/api/sessions",{merchant_id:mid,channel:"chat",mode:"autonomous"});
   if(!r.ok){ toast("Could not start session: "+errText(r)); return null; }
   st.sid=r.data.session_id; st.merchant=mid; st.turns=0; $("chat").replaceChildren(); setLinked(mid);
-  agent(r.data.disclosure||"Main Chaukas hoon, Paytm ka AI assistant.");
+  agent(r.data.disclosure||"Main Kaamezy hoon, Paytm ka AI assistant.");
   loadHints(mid); loadTraceEmpty(); return st.sid;
 }
 async function loadHints(mid){
@@ -624,7 +624,7 @@ async function send(text){
   text=(text||"").trim(); if(!text) return;
   if(!st.sid || st.merchant!==$("merchant").value){ if(!(await startSession())) return; }
   me(text); $("text").value="";
-  const ty = el("div",{class:"msg agent typing",text:"Chaukas is typing…"}); $("chat").append(ty); scroll();
+  const ty = el("div",{class:"msg agent typing",text:"Kaamezy is typing…"}); $("chat").append(ty); scroll();
   const r = await api("POST","/api/sessions/"+st.sid+"/messages",{text});
   ty.remove();
   if(!r.ok){ toast("Error: "+errText(r)); return; }
@@ -672,7 +672,7 @@ async function scanEvent(){
   const hit=(r.data||[])[0];
   if(!hit){ toast("Nothing to report: no failed settlement for "+mid+", or the merchant was already notified. Restart the server to reset."); return; }
   st.sid=hit.session_id; st.merchant=mid; setLinked(mid); $("chat").replaceChildren();
-  sys("Chaukas detected a failed settlement on its own — the merchant has not typed anything.");
+  sys("Kaamezy detected a failed settlement on its own — the merchant has not typed anything.");
   handleTurn(hit.turn,{proactive:true}); loadHints(mid);
 }
 

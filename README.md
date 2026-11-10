@@ -1,4 +1,4 @@
-# Chaukas (चौकस)
+# Kaamezy (कामईज़ी)
 
 An AI teammate for Paytm that does real work **safely**. It understands a person in their language, fixes the problem or completes the purchase, and runs every money step through a **deterministic guardrail** (plain code, no LLM) before anything executes through **mock** partners. When a human should decide, it hands them a brief.
 

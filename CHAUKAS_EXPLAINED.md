@@ -1,4 +1,4 @@
-# Chaukas — Poora Design, Aasaan Bhasha Mein
+# Kaamezy — Poora Design, Aasaan Bhasha Mein
 
 > Ye doc team discussion ke liye hai. Har section mein **kya hai** aur **kyun hai** dono likha hai.
 > Technical detail chahiye to: `CHAUKAS_SYSTEM_DESIGN.md` (design), `CONTRACTS.md` (exact models/APIs), `data/schema.sql` (DB).
@@ -8,11 +8,11 @@
 
 ---
 
-## 1. Chaukas ek line mein
+## 1. Kaamezy ek line mein
 
 **Merchant ki problem sunke, khud fix karta hai — lekin har paisa-wala action pehle ek deterministic guardrail se pass hota hai — aur jahan zaroori ho wahan insaan ko ek saaf "decision brief" deta hai.**
 
-Naam: चौकस = "vigilant", jo hamesha alert rehta hai. Hamara USP bhi yahi hai: *agent jo act karta hai, lekin safely.*
+Naam: कामईज़ी = "vigilant", jo hamesha alert rehta hai. Hamara USP bhi yahi hai: *agent jo act karta hai, lekin safely.*
 
 ---
 
@@ -61,7 +61,7 @@ Merchant ──► [1 Intent & Language] ──► [2 Context 360°] ──► O
 **5 agents hi kyun, 9 kyun nahi?** Har agent ek failure point hai. 5 typed contracts ke saath kaam ho jaata hai, aur har ek ko alag test kar sakte hain.
 
 **2 modes (human teams ke saath kaam):**
-- **Mode 1 — Merchant-facing:** merchant directly baat karta hai, policy ke andar Chaukas khud resolve karta hai.
+- **Mode 1 — Merchant-facing:** merchant directly baat karta hai, policy ke andar Kaamezy khud resolve karta hai.
 - **Mode 2 — Copilot:** Paytm ka support agent / field sales wala dashboard pe dekhta hai — context ready, brief ready, "one-click execute" (jo phir bhi guardrail se guzarta hai).
 
 ---
@@ -70,7 +70,7 @@ Merchant ──► [1 Intent & Language] ──► [2 Context 360°] ──► O
 
 Merchant (Sharma Kirana): *"पिछले हफ्ते का पैसा अभी तक नहीं आया।"*
 
-1. **Gateway:** session banta hai, message mein koi PII ho to mask. Pehla message: *"Main Chaukas hoon, ek AI assistant"* (AI disclosure — RBI rule).
+1. **Gateway:** session banta hai, message mein koi PII ho to mask. Pehla message: *"Main Kaamezy hoon, ek AI assistant"* (AI disclosure — RBI rule).
 2. **Intent agent:** `settlement_delay`, `hi-IN`, urgency `high`, confidence 0.93.
 3. **Context agent:** DB se **fresh** padhta hai → `SET-99213`, ₹18,400, **failed**, cause `IFSC_MISMATCH`, lekin merchant ne **kal bank details update** kar di thi → retrigger valid hai. Loan eligible ₹50,000.
 4. **Orchestrator plan:** `verify_ledger` → `retrigger_payout(₹18,400)` → `raise_ticket` → `check_eligibility` → `create_offer(₹50,000)`.
@@ -159,7 +159,7 @@ Same sawaal, lekin settlement **₹32,500** hai → guardrail: ₹32,500 > ₹25
 | `sessions` | Ek conversation = ek row; outcome; **`pending_step_json`** | Multi-turn: "haan bhejo" aaya to pata hona chahiye kis cheez ki haan hai |
 | `turns` | Har message (masked) | History, copilot view, handoff brief |
 
-### Write side (Chaukas jo banata hai)
+### Write side (Kaamezy jo banata hai)
 | Table | Kya hai | Kyun |
 |-------|---------|------|
 | `tickets` | Support tickets, **`settlement_id` ke saath** | Same settlement ka ticket pehle se khula hai (M002) to naya nahi, update karo |
@@ -210,7 +210,7 @@ Dates `days_ago` mein hain → seed script demo wale din ke hisaab se asli dates
 
 ## 9. Loan: Lender vs Guardrail — do alag faisle
 
-> **Lender decide karta hai *kitna*. Chaukas guardrail decide karta hai *kab aur kya offer karna hai*.**
+> **Lender decide karta hai *kitna*. Kaamezy guardrail decide karta hai *kab aur kya offer karna hai*.**
 
 - Asli duniya mein loan dena ya na dena **regulated lender** ka faisla hai (RBI digital lending guidelines). Hum apna formula bana ke loan amount decide nahi kar sakte.
 - Prototype mein ek **"simulated lender"** hai: 4 rules (balance ≥ ₹20K, account ≥ 11 mahine, inflow steady, ≥ 25 din active) → `{eligible, max_amount, reason_codes}`. Amount = inflow ka 30% (5,000 ke multiple mein, max ₹2L).
@@ -270,7 +270,7 @@ Dates `days_ago` mein hain → seed script demo wale din ke hisaab se asli dates
 - ~80% metrics **plain code se check** (koi LLM nahi) — kyunki core deterministic hai. Ye bhi ek pitch point hai.
 - **Red-team suite:** over-limit, split, injection, debit attack, ineligible offer... **ek bhi ALLOW = test fail.**
 - **PII leak test:** saari logs/trace mein nakli PII values grep karo — mili to fail.
-- Judges ke liye: live scorecard, red-team table, aur side-by-side "naive LLM agent injection maan leta hai vs Chaukas BLOCK karta hai".
+- Judges ke liye: live scorecard, red-team table, aur side-by-side "naive LLM agent injection maan leta hai vs Kaamezy BLOCK karta hai".
 - **Honest framing:** 20–50 test cases pe 99% statistically bada claim nahi hai — "golden set pe" bolo.
 
 ---
@@ -349,7 +349,7 @@ Dates `days_ago` mein hain → seed script demo wale din ke hisaab se asli dates
 
 ### 16.1 Kya hai
 
-Paytm jaisi app mein (`web/`): sign in → home → teen live tiles: **Health Insurance**, **Loan**, **Chaukas Teammate** (purana merchant chat).
+Paytm jaisi app mein (`web/`): sign in → home → teen live tiles: **Health Insurance**, **Loan**, **Kaamezy Teammate** (purana merchant chat).
 
 | Flow | Kya hota hai |
 |------|--------------|

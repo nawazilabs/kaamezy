@@ -3,7 +3,7 @@
 recommend()      deterministic rules over fresh DB facts (business category, sales, device, past support tickets) and
                  config/insurance_sim.yaml. No LLM. The guardrail calls the SAME function (check 7), so the offer the
                  agent makes and the offer the guardrail allows can never disagree.
-create_lead()    records "merchant said yes" (status interested). Chaukas never issues a policy and never charges a
+create_lead()    records "merchant said yes" (status interested). Kaamezy never issues a policy and never charges a
                  premium: the insurer partner follows up. Rolled back by withdraw_lead().
 record_declined() a "no": starts the cooling-off window, like a declined loan offer.
 

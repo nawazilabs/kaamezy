@@ -18,7 +18,7 @@
 When the merchant says **haan** to a loan offer and the offer is accepted, create a handoff so the loan team sees all the loan details on the agent desk. This works like the payment flow, with one difference: it is a **follow-up, not an approval gate**.
 
 - The offer is already accepted with `ALLOW CONFIRMED_BY_MERCHANT`. The guardrail, `policy.yaml` and the decision do not change.
-- Chaukas never moves loan money; the lender does.
+- Kaamezy never moves loan money; the lender does.
 - The agent reads the brief, follows up, and clicks **Mark followed up**.
 - **abhi nahi** (decline) creates **no** handoff.
 

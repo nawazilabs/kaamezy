@@ -212,8 +212,8 @@ def emit_span(span: dict) -> None:
 # disclosure (COMPLIANCE R1, D1)
 # --------------------------------------------------------------------------
 _DISCLOSURE_FALLBACK = {  # STUB text; real text lives in compliance/disclosure.py (Member 2)
-    "hi-IN": "नमस्ते! मैं चौकस हूँ, Paytm का AI असिस्टेंट। मैं AI हूँ, इंसान नहीं — जब चाहें हमारी टीम के किसी सदस्य से बात कर सकते हैं। आपकी जानकारी सिर्फ़ आपकी समस्या सुलझाने के लिए इस्तेमाल होगी।",
-    "en-IN": "Hello! I am Chaukas, Paytm's AI assistant. I am an AI, not a human — you can ask for a team member any time. Your data is used only to resolve your issue.",
+    "hi-IN": "नमस्ते! मैं कामईज़ी हूँ, Paytm का AI असिस्टेंट। मैं AI हूँ, इंसान नहीं — जब चाहें हमारी टीम के किसी सदस्य से बात कर सकते हैं। आपकी जानकारी सिर्फ़ आपकी समस्या सुलझाने के लिए इस्तेमाल होगी।",
+    "en-IN": "Hello! I am Kaamezy, Paytm's AI assistant. I am an AI, not a human — you can ask for a team member any time. Your data is used only to resolve your issue.",
 }
 
 

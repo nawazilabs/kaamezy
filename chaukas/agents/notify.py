@@ -1,4 +1,4 @@
-"""Proactive notification: the first message Chaukas sends when the watcher finds a failed settlement,
+"""Proactive notification: the first message Kaamezy sends when the watcher finds a failed settlement,
 and the reply when the merchant declines that payout.
 
 Deterministic template (prompts/proactive_notify.v1.txt), never an LLM: the amount and the settlement id

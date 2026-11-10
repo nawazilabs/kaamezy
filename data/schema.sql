@@ -1,5 +1,5 @@
 -- ============================================================
---  Chaukas — SQLite schema  (v3.3: + CONSENT_WITHDRAWN, consents DELETE trigger; v3.1: + consents, KFS on offers, ACTION_DISABLED;
+--  Kaamezy — SQLite schema  (v3.3: + CONSENT_WITHDRAWN, consents DELETE trigger; v3.1: + consents, KFS on offers, ACTION_DISABLED;
 --  v3: + turns / handoffs / executions,
 --  append-only audit, cause-aware settlements, daily limit support)
 --  Portable to Postgres later: AUTOINCREMENT -> IDENTITY/SERIAL,
@@ -54,7 +54,7 @@ CREATE TABLE merchants (
 -- LENDER integrations/lending.check_eligibility() -> {eligible, max_amount,
 -- reason_codes}, computed from cashflow_features with placeholder thresholds
 -- in config/lender_sim.yaml. In prod the regulated lender decides this;
--- Chaukas only consumes it. One source, no drift.
+-- Kaamezy only consumes it. One source, no drift.
 
 -- CASHFLOW FEATURE LAYER — pre-aggregated per merchant ("feature layer over
 -- transactions": we store features, NOT raw transactions).
@@ -202,7 +202,7 @@ CREATE INDEX idx_device_offers_merchant ON device_offers(merchant_id, status);
 -- Human-in-the-loop queue. Agent-desk (Mode 2) reads THIS table.
 -- A structured decision brief — never a transcript.
 -- Insurance interest = the "sales" outcome for shop insurance, next to loan offers.
--- Chaukas never issues a policy and never charges a premium: it records that the merchant said YES (consent) so the
+-- Kaamezy never issues a policy and never charges a premium: it records that the merchant said YES (consent) so the
 -- insurer partner can follow up. Declined rows start the cooling-off window, like declined loan offers.
 CREATE TABLE insurance_leads (
     id            TEXT PRIMARY KEY,                     -- "INS-12345"

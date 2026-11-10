@@ -1,4 +1,4 @@
-# Chaukas — Shared Contracts (v1)
+# Kaamezy — Shared Contracts (v1)
 
 > **Status:** IN USE. The three-person team treated v1 as frozen on 29-31 Oct 2026; one person maintains it now. Only **additive** changes (new optional field, new enum value, new endpoint). **C5b** (consumer API) was added on 7 Nov 2026 without touching C1-C5.
 > **Companion docs:** `CHAUKAS_PROBLEM_STATEMENT.md` (why), `CHAUKAS_SYSTEM_DESIGN.md` (how), `data/schema.sql` + `data/merchant_fixtures.json` (C0, done).
@@ -162,7 +162,7 @@ class HandoffBrief(BaseModel):      # agent-desk renders THIS; never a transcrip
     asked: str                      # what the merchant wanted, 1 line, masked
     verified: list[str]             # facts checked fresh, e.g. "SET-51002 failed, IFSC_MISMATCH"
     done: list[str]                 # actions already executed
-    refused: list[RefusedStep]      # what Chaukas would NOT do, and why
+    refused: list[RefusedStep]      # what Kaamezy would NOT do, and why
     reason_code: str                # ReasonCode or HandoffReason
     confidence: float               # 0..1
     decision_needed: str            # the ONE decision the human must make
@@ -379,7 +379,7 @@ All responses JSON. Errors: `{"error": {"code": "SESSION_NOT_FOUND", "message": 
 | Method & path | Body | Returns | Used by |
 |---------------|------|---------|---------|
 | `GET /api/merchants` | — | `[{merchant_id, name_masked, scenario, preferred_lang}]` | demo dropdown |
-| `POST /api/sessions` | `{merchant_id, channel, mode}` | `{session_id, disclosure}` — disclosure = "Main Chaukas hoon, ek AI assistant." | both UIs |
+| `POST /api/sessions` | `{merchant_id, channel, mode}` | `{session_id, disclosure}` — disclosure = "Main Kaamezy hoon, ek AI assistant." | both UIs |
 | `POST /api/sessions/{id}/messages` | `{text, lang?}` | `TurnResponse` | merchant chat |
 | `POST /api/sessions/{id}/confirm` | `{pending_audit_id, approve: bool, kind, otp?, actor, actor_id?}` | `TurnResponse` | consent / step-up button |
 | `GET /api/sessions/{id}` | — | `{session, turns[]}` | agent-desk |

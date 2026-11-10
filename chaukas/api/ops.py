@@ -89,7 +89,7 @@ class RedteamRequest(BaseModel):
     # Optional lender answer, so offer attacks (ineligible / cooling-off) can be tried. If omitted the
     # guardrail sees no eligibility and fails closed for create_offer.
     eligibility: LenderDecision | None = None
-    # "proactive" = check the step as if Chaukas reached out first (money then always needs a yes). Red-team
+    # "proactive" = check the step as if Kaamezy reached out first (money then always needs a yes). Red-team
     # endpoint only: real sessions get trigger_source from the event watcher, never from a request.
     trigger_source: Literal["merchant", "proactive"] = "merchant"
 

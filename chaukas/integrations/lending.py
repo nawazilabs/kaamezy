@@ -2,7 +2,7 @@
 (from cashflow_features + config/lender_sim.yaml), create_offer, withdraw_offer.
 Two products: `term_loan` (original) and `credit_line` (short-term, Postpaid-style; additive).
 
-In production the regulated lender decides this; Chaukas only consumes the result.
+In production the regulated lender decides this; Kaamezy only consumes the result.
 Owner: Member 1 · Contract: CONTRACTS C3 / design B4.1
 """
 from __future__ import annotations

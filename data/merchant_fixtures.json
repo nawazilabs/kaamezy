@@ -9,7 +9,7 @@
       "expected_loan_eligibility": "NOT a stored fact - the expected output of the simulated lender, used as test oracle"
     },
     "simulated_lender": {
-      "note": "MOCK of an external lender's underwriting model. In production the regulated lender decides eligibility and amount (RBI digital lending guidelines); Chaukas only consumes {eligible, max_amount, reason_codes}. All thresholds are PLACEHOLDERS, calibration pending with lender data.",
+      "note": "MOCK of an external lender's underwriting model. In production the regulated lender decides eligibility and amount (RBI digital lending guidelines); Kaamezy only consumes {eligible, max_amount, reason_codes}. All thresholds are PLACEHOLDERS, calibration pending with lender data.",
       "config": "config/lender_sim.yaml",
       "eligible_if": "avg_balance >= 20000 AND account_age_months >= 11 AND inflow_cv <= 0.45 AND active_days_30d >= 25",
       "max_amount": "min(floor(0.30 * inflow_30d to multiple of 5000), max_loan_cap)",
@@ -23,7 +23,7 @@
       "not_used": "withdrawals_30d and outflow_30d are context only, never eligibility signals"
     },
     "offer_gating": {
-      "owner": "Chaukas guardrail (not the lender) - decides WHETHER and WHEN to offer",
+      "owner": "Kaamezy guardrail (not the lender) - decides WHETHER and WHEN to offer",
       "rules": [
         "lender eligible else BLOCK OFFER_NOT_ELIGIBLE",
         "support issue of this session resolved or actioned (retriggered counts) else BLOCK ISSUE_UNRESOLVED",

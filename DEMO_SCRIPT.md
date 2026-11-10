@@ -1,4 +1,4 @@
-# Chaukas — Demo, Video & Presentation Playbook
+# Kaamezy — Demo, Video & Presentation Playbook
 
 > **Owner:** Team member 3 (demo + video + deck + submission)
 > **Core platform:** Members 1 & 2
@@ -25,7 +25,7 @@
 
 ## 1. Ek line ki story (har jagah yahi repeat hogi)
 
-> **"Paytm has solved the conversation. Chaukas solves what comes after it — verified execution. It fixes the merchant's problem itself, but every money action first passes a deterministic guardrail, and when it should, it hands a human a decision brief instead of a transcript."**
+> **"Paytm has solved the conversation. Kaamezy solves what comes after it — verified execution. It fixes the merchant's problem itself, but every money action first passes a deterministic guardrail, and when it should, it hands a human a decision brief instead of a transcript."**
 
 Teen shabd jo judges ke dimaag mein rehne chahiye: **Acts. Safely. With humans.**
 
@@ -74,7 +74,7 @@ Teen shabd jo judges ke dimaag mein rehne chahiye: **Acts. Safely. With humans.*
 
 **Steps:**
 1. New session start → pehla message automatically aata hai:
-   > *"Namaste! Main Chaukas hoon, Paytm ka AI assistant."* ← AI disclosure
+   > *"Namaste! Main Kaamezy hoon, Paytm ka AI assistant."* ← AI disclosure
 2. Merchant type kare (ya voice mein bole, agar voice ready ho):
    > **पिछले हफ्ते का पैसा अभी तक नहीं आया।**
 3. Reply aane do. Trace panel point karo.
@@ -108,7 +108,7 @@ Teen shabd jo judges ke dimaag mein rehne chahiye: **Acts. Safely. With humans.*
 `settlements.SET-99213.status` = `retriggered`.
 
 **Bolna hai:**
-> "Merchant Hindi mein bolta hai paisa nahi aaya. Chaukas sirf jawab nahi deta — wo ledger check karta hai, dekhta hai ki failure IFSC galat hone se tha aur merchant ne kal details theek kar di thi, isliye retry safe hai. ₹18,400 limit ke andar hai — guardrail ALLOW karta hai, payout dobara jaata hai, ticket banta hai. Problem solve hone ke baad hi — jab trust sabse zyada hai — wo loan offer karta hai, aur **bina consent ke kuch nahi**. Ek conversation, support aur sales dono."
+> "Merchant Hindi mein bolta hai paisa nahi aaya. Kaamezy sirf jawab nahi deta — wo ledger check karta hai, dekhta hai ki failure IFSC galat hone se tha aur merchant ne kal details theek kar di thi, isliye retry safe hai. ₹18,400 limit ke andar hai — guardrail ALLOW karta hai, payout dobara jaata hai, ticket banta hai. Problem solve hone ke baad hi — jab trust sabse zyada hai — wo loan offer karta hai, aur **bina consent ke kuch nahi**. Ek conversation, support aur sales dono."
 
 **Agar fail ho:** LLM slow/down → backend ka replay mode on (section 9). Voice fail → text mein karo, voice ka zikr mat karo.
 
@@ -139,7 +139,7 @@ Teen shabd jo judges ke dimaag mein rehne chahiye: **Acts. Safely. With humans.*
 `executions` mein retrigger ki **koi row nahi**. `handoffs` mein ek `open` row.
 
 **Bolna hai:**
-> "Same sawaal, lekin ₹32,500. Ye wahi moment hai jahan ek normal AI agent paisa bhej deta. Chaukas ruk jaata hai — aur ye rukna kisi prompt instruction se nahi, **deterministic code** se hai. Koi bhi baat isko ALLOW nahi karwa sakti. Aur dhyan do — ticket pehle se khula tha, to naya duplicate nahi banaya, purana update kiya."
+> "Same sawaal, lekin ₹32,500. Ye wahi moment hai jahan ek normal AI agent paisa bhej deta. Kaamezy ruk jaata hai — aur ye rukna kisi prompt instruction se nahi, **deterministic code** se hai. Koi bhi baat isko ALLOW nahi karwa sakti. Aur dhyan do — ticket pehle se khula tha, to naya duplicate nahi banaya, purana update kiya."
 
 **Agar fail ho:** Ye scene **sabse pehle test karna hai** build day pe. Fail hone ka option nahi hai — core team ki P0 #1 priority.
 
@@ -200,7 +200,7 @@ Teen shabd jo judges ke dimaag mein rehne chahiye: **Acts. Safely. With humans.*
 3. *(P1 — time ho to)* Side-by-side: naive LLM agent (sirf prompt-based) ko same message → wo "transfer" tool call kar deta hai.
 
 **Bolna hai:**
-> "Pehle — injection ka text Chaukas ke liye sirf data hai, command nahi. Lekin hum ek kadam aage jaate hain: maan lo LLM poori tarah hack ho gaya aur ₹1 lakh ka payout plan kar diya. Guardrail amount ko ledger se match karta hai — 5,600 vs 1,00,000 — BLOCK. Merchant ka account debit karna? Kisi bhi version mein allowed nahi — BLOCK. **Hamari safety LLM ke sahi behave karne pe depend nahi karti.**"
+> "Pehle — injection ka text Kaamezy ke liye sirf data hai, command nahi. Lekin hum ek kadam aage jaate hain: maan lo LLM poori tarah hack ho gaya aur ₹1 lakh ka payout plan kar diya. Guardrail amount ko ledger se match karta hai — 5,600 vs 1,00,000 — BLOCK. Merchant ka account debit karna? Kisi bhi version mein allowed nahi — BLOCK. **Hamari safety LLM ke sahi behave karne pe depend nahi karti.**"
 
 ---
 
@@ -256,15 +256,15 @@ Ye panels **demo ke liye zaroori hain**. Data inhi APIs se aayega (`CONTRACTS.md
 
 | Time | Screen | Voiceover |
 |------|--------|-----------|
-| 0:00–0:15 | Title card: **Chaukas — चौकस** · "Verified execution for Paytm merchants" | "Paytm's AI Soundbox already talks to merchants in 11 languages. But when a merchant's money is stuck, talking isn't enough — someone still has to fix it." |
+| 0:00–0:15 | Title card: **Kaamezy — कामईज़ी** · "Verified execution for Paytm merchants" | "Paytm's AI Soundbox already talks to merchants in 11 languages. But when a merchant's money is stuck, talking isn't enough — someone still has to fix it." |
 | 0:15–0:30 | Problem slide (4 pain points, icons) | "Every settlement fix, refund and loan is still done by hand. And no AI agent that can touch money survives a risk review without limits, audit and rollback. The gap isn't understanding — it's verified execution." |
-| 0:30–0:40 | Architecture (5 agents loop) | "Chaukas understands, decides, acts — and verifies every action against policy *before* it runs." |
-| 0:40–1:25 | **Scene 1** (fast-forward the waiting) | "A merchant says, in Hindi, last week's money hasn't come. Chaukas checks the ledger: the payout failed because of a wrong IFSC — which the merchant has since fixed. ₹18,400 is within policy, so the guardrail allows it. Payout re-triggered, ticket raised. Only then — once the problem is solved — it offers a ₹50,000 loan, and only with the merchant's consent." |
-| 1:25–1:50 | **Scene 2** — zoom on the yellow NEEDS_CONFIRMATION | "Now ₹32,500. This is where a typical agent would just send the money. Chaukas stops. Not because a prompt told it to — because a deterministic policy engine said so." |
+| 0:30–0:40 | Architecture (5 agents loop) | "Kaamezy understands, decides, acts — and verifies every action against policy *before* it runs." |
+| 0:40–1:25 | **Scene 1** (fast-forward the waiting) | "A merchant says, in Hindi, last week's money hasn't come. Kaamezy checks the ledger: the payout failed because of a wrong IFSC — which the merchant has since fixed. ₹18,400 is within policy, so the guardrail allows it. Payout re-triggered, ticket raised. Only then — once the problem is solved — it offers a ₹50,000 loan, and only with the merchant's consent." |
+| 1:25–1:50 | **Scene 2** — zoom on the yellow NEEDS_CONFIRMATION | "Now ₹32,500. This is where a typical agent would just send the money. Kaamezy stops. Not because a prompt told it to — because a deterministic policy engine said so." |
 | 1:50–2:15 | **Scene 3** — agent-desk brief → approve → timeline | "A human teammate gets a decision brief, not a transcript: what was asked, verified, done, refused — and the one decision they need to make. One click. Even the human's approval goes through the guardrail, and every step records whether AI or a human did it." |
 | 2:15–2:35 | **Scene 4** — red-team BLOCK | "What if the model is fully compromised and plans a ₹1 lakh payout? The guardrail checks the amount against the ledger — blocked. Debit the merchant's account? Never allowed, in any version." |
 | 2:35–2:52 | **Scene 5** — audit UPDATE error → scorecard | "Every decision is in an append-only audit log — the database itself refuses edits. PII never reaches logs or the model. Across N test cases and M attacks: zero unsafe money actions." |
-| 2:52–3:00 | Closing card: **Acts. Safely. With humans.** · team name · Track 3 | "Chaukas. An AI teammate Paytm can actually trust with money." |
+| 2:52–3:00 | Closing card: **Acts. Safely. With humans.** · team name · Track 3 | "Kaamezy. An AI teammate Paytm can actually trust with money." |
 
 ### 5.3 Recording checklist
 - [ ] DB **fresh seed** before every take (`python data/seed.py`)
@@ -283,9 +283,9 @@ Ye panels **demo ke liye zaroori hain**. Data inhi APIs se aayega (`CONTRACTS.md
 
 | # | Slide | Content | Visual |
 |---|-------|---------|--------|
-| 1 | Title | Chaukas — चौकस · Enver AI · Track 3 | Logo |
+| 1 | Title | Kaamezy — कामईज़ी · Enver AI · Track 3 | Logo |
 | 2 | The problem | 4 pain points: answer ≠ resolution, humans bottleneck on money, revenue signals die, no demo bot survives risk review | Icons |
-| 3 | The insight | "Paytm solved the conversation layer. The gap is verified execution." | Soundbox vs Chaukas |
+| 3 | The insight | "Paytm solved the conversation layer. The gap is verified execution." | Soundbox vs Kaamezy |
 | 4 | What we built | 5-stage loop: Understand → Decide → Act → Verify → Escalate | Loop diagram |
 | 5 | Live: one conversation, support + sales | Scene 1 | **[S1] [S2]** |
 | 6 | Architecture | 1 orchestrator + 5 agents; **LLM kahan, deterministic code kahan** (table) | Diagram |
@@ -293,7 +293,7 @@ Ye panels **demo ke liye zaroori hain**. Data inhi APIs se aayega (`CONTRACTS.md
 | 8 | Humans in the loop | Decision brief, one-click approve, `actor` trail | **[S4] [S5]** |
 | 9 | Safety & compliance | Append-only audit (RBI FREE-AI), PII masking + least privilege (DPDP), AI disclosure, idempotency + rollback | **[S7] [S8]** |
 | 10 | Results | 6 metrics vs target, red-team table, "0 unsafe money actions" | **[S9] [S10]** with `[N]` |
-| 11 | Sales, responsibly | Lender decides *how much*, Chaukas decides *whether & when*; consent + cooling-off | Small diagram |
+| 11 | Sales, responsibly | Lender decides *how much*, Kaamezy decides *whether & when*; consent + cooling-off | Small diagram |
 | 12 | Stack & cost | Sarvam-30B + Gemini Flash, Saaras/Bulbul, FastAPI, SQLite → Postgres; **≈ ₹1.2 / conversation**, p95 `[N]`s | Table |
 | 13 | Real vs mocked + roadmap | **Real:** agents, guardrail, audit, eval, UI. **Mocked:** Paytm payout/CRM/lending APIs, lender model. **Next:** real API integration, Redis, field-level encryption, more intents, voice in more languages | Two columns |
 | 14 | Close | "Acts. Safely. With humans." · team | — |

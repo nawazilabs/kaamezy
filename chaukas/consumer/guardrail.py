@@ -78,7 +78,7 @@ def check_policy_purchase(*, proposal: InsuranceProposal, stored_quote: dict, in
                 "Premium matches rule engine", "No duplicate active policy", "Medical review not required",
                 f"Premium within auto limit {inr(g['auto_limit_inr'])}"])
     f = run.step(kyc_verified, _block("KYC_PENDING", "Identity is not verified yet. Verify with DigiLocker first; "
-                                                    "Chaukas never asks for your Aadhaar number."))
+                                                    "Kaamezy never asks for your Aadhaar number."))
     if f: return run.out(f)
     f = run.step(consent, _block("CONSENT_MISSING", "No consent to share health details with the insurer. "
                                                     "Nothing can be bought without it."))
@@ -128,7 +128,7 @@ def check_loan_accept(*, application: LoanApplication, stored_quote: dict, pan: 
                 "Offer matches lender decision", "No duplicate loan, within loan limit",
                 "Income review not required", f"Amount within auto limit {inr(g['auto_limit_inr'])}"])
     f = run.step(kyc_verified, _block("KYC_PENDING", "Identity is not verified yet. Verify with DigiLocker first; "
-                                                    "Chaukas never asks for your Aadhaar number."))
+                                                    "Kaamezy never asks for your Aadhaar number."))
     if f: return run.out(f)
     f = run.step(kfs_shown, _block("KFS_NOT_SHOWN", "The Key Facts Statement must be shown before you can accept."))
     if f: return run.out(f)
@@ -155,7 +155,7 @@ def check_loan_accept(*, application: LoanApplication, stored_quote: dict, pan: 
         fail = _block("DUPLICATE_LOAN", f"A loan for the same amount and tenure was created in the last "
                                         f"{g['duplicate_window_hours']} hours ({dup['id']}).")
     else:
-        fail = _block("TOO_MANY_LOANS", f"You already have {g['max_active_loans']} active loans through Chaukas, "
+        fail = _block("TOO_MANY_LOANS", f"You already have {g['max_active_loans']} active loans through Kaamezy, "
                                         "which is the limit.")
     f = run.step(not dup and not too_many, fail)
     if f: return run.out(f)

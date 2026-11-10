@@ -31,7 +31,7 @@ def test_every_language_discloses_that_it_is_an_ai(lang):
 
 def test_demo_scene_1_first_message_is_the_exact_line():
     d = disclosure.get_disclosure_details("hi-Latn")
-    assert d.ai_disclosure == "Namaste! Main Chaukas hoon, Paytm ka AI assistant."
+    assert d.ai_disclosure == "Namaste! Main Kaamezy hoon, Paytm ka AI assistant."
     assert d.message.startswith(d.ai_disclosure)
 
 
@@ -87,7 +87,7 @@ def test_pitch_rule_no_compliant_or_certified_claims_in_user_facing_text():
 def test_gateway_shape_is_text_and_version_tuple():
     """Member 1's m2_shim does: text, notice_version = get_disclosure(lang)."""
     text, version = disclosure.get_disclosure("hi-Latn")
-    assert text.startswith("Namaste! Main Chaukas hoon") and version == disclosure.notice_version()
+    assert text.startswith("Namaste! Main Kaamezy hoon") and version == disclosure.notice_version()
     assert isinstance(text, str) and isinstance(version, str)
 
 

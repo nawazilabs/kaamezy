@@ -38,7 +38,7 @@ consent_required:
   - offer_insurance
   - any_irreversible
 
-# PROACTIVE sessions (Chaukas reached out first; the merchant asked for nothing): these actions NEVER auto-execute,
+# PROACTIVE sessions (Kaamezy reached out first; the merchant asked for nothing): these actions NEVER auto-execute,
 # even under the limit. They need the merchant's explicit yes (check 10). See docs/archive/PROACTIVE_FEATURE_CHANGES.md.
 proactive_consent_required:
   - retrigger_payout

@@ -183,7 +183,7 @@ def handle_confirm(session_id: str, pending_audit_id: int | None, approve: bool,
 
 
 def handle_event(merchant_id: str, settlement_id: str) -> TurnResponse:
-    """Proactive entry point (event watcher): Chaukas speaks first about a failed settlement.
+    """Proactive entry point (event watcher): Kaamezy speaks first about a failed settlement.
 
     Same house, second door: context, plan templates, guardrail and action are the reactive ones. Only the
     start differs: the watcher creates the session (trigger_source='proactive'), the intent is known, and the
@@ -553,7 +553,7 @@ def _resume(turn: _Turn, pending: tuple[PlannedStep, dict, int | None], *, appro
 
 def _loan_brief(s: ConversationState, step: PlannedStep, decision: Decision) -> HandoffBrief | None:
     """Deterministic follow-up brief for the loan team (no LLM). Every value comes from the offers row and the
-    guardrail decision, never from the merchant's message. Chaukas never moves loan money; the lender does."""
+    guardrail decision, never from the merchant's message. Kaamezy never moves loan money; the lender does."""
     done = next((a for a in s.completed if a.step_no == step.step_no and a.status == "success"), None)
     offer = lending.get_offer(done.ref_id) if done and done.ref_id else None
     if offer is None:
@@ -602,7 +602,7 @@ def _device_brief(s: ConversationState, step: PlannedStep, decision: Decision) -
     return brief, req["ticket_id"]
 def _insurance_brief(s: ConversationState, step: PlannedStep, decision: Decision) -> HandoffBrief | None:
     """Deterministic follow-up brief for the insurer partner (no LLM). Every value comes from the insurance_leads
-    row and the guardrail decision. Chaukas issues no policy and charges no premium: the insurer follows up."""
+    row and the guardrail decision. Kaamezy issues no policy and charges no premium: the insurer follows up."""
     done = next((a for a in s.completed if a.step_no == step.step_no and a.status == "success"), None)
     lead = insurance.get_lead(done.ref_id) if done and done.ref_id else None
     if lead is None:
@@ -704,7 +704,7 @@ def _finish(turn: _Turn) -> TurnResponse:
         turn.span("handoff", f"reason {s.handoff.reason_code}",
                   f"{s.handoff_id}: {s.handoff.decision_needed}", t)
 
-    if not turn.is_event:  # an event turn has no merchant message: Chaukas speaks first
+    if not turn.is_event:  # an event turn has no merchant message: Kaamezy speaks first
         gw.record_turn(s.session_id, s.turn_no, s.trace_id, "merchant", s.message_masked, s.lang,
                        s.intent.value if s.intent else None)
     gw.record_turn(s.session_id, s.turn_no + 1, s.trace_id, "agent", text, s.lang)
