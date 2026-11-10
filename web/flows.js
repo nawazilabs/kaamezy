@@ -73,7 +73,12 @@
     const bw = binarize(canvas), seen = [];
     try {
       let doc = null;
-      for (const [cv, psm] of [[canvas, "3"], [canvas, "11"], [bw, "6"]]) {
+      /* Passes 4 and 5 are made only if the date is still missing: the lower part of the card (father's name, date of
+         birth, in small print) is cut out and enlarged, normal and black-and-white. */
+      const lower = () => lowerPart(canvas);
+      const passes = [[() => canvas, "3"], [() => canvas, "11"], [() => bw, "6"], [lower, "6"], [() => binarize(lower()), "6"], [lower, "11"]];
+      for (const [make, psm] of passes) {
+        const cv = make();
         await worker.setParameters({ tessedit_pageseg_mode: psm });
         const text = (await worker.recognize(cv)).data.text; seen.push(maskForDisplay(text));
         const d = window.ChaukasDoc.parse(text);
@@ -89,6 +94,13 @@
       return doc;
     }
     finally { await worker.terminate(); canvas.width = canvas.height = 0; bw.width = bw.height = 0; }
+  }
+  /* the lower ~65% of the card, enlarged (small print needs big letters); a fresh canvas each call */
+  function lowerPart(src) {
+    const y0 = Math.round(src.height * 0.35), h = src.height - y0, sc = Math.min(2, 2400 / src.width);
+    const c = document.createElement("canvas"); c.width = Math.round(src.width * sc); c.height = Math.round(h * sc);
+    c.getContext("2d").drawImage(src, 0, y0, src.width, h, 0, 0, c.width, c.height);
+    return c;
   }
   /* black-and-white copy (Otsu threshold): helps on cards with a coloured or patterned background */
   function binarize(src) {
