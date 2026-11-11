@@ -1,4 +1,4 @@
-"""Consumer assistant agent: answers health-insurance and loan questions in the person's language.
+"""Consumer assistant agent: answers insurance, loan, payment and bill questions in the person's language.
 
 Where the LLM is used, and where it is not (same split as the merchant side, CHAUKAS_EXPLAINED §3):
   LLM   understands the message (topic + language) and words a short reply, using ONLY the facts in
@@ -6,7 +6,9 @@ Where the LLM is used, and where it is not (same split as the merchant side, CHA
   CODE  everything else: masks PII before the prompt, spots prompt injection before any model call, checks the reply
         (no number or promise that is not in the knowledge base, no personal data, right language), maps the topic to
         the on-screen action (the model never chooses an action), and writes the audit row.
-  The assistant cannot buy, issue, approve or send anything. Money steps stay on the screens, behind the guardrail.
+  The assistant cannot buy, issue, approve, pay, refund or send anything. Money steps stay on the screens, behind the guardrail.
+  Payments: a message about a bill or recharge can only PRE-SELECT a biller and plan on the screen (billpay.py); the person
+  types the account number and taps Pay, and the guardrail decides.
 
 If the model is down, unsure, or its reply fails a check, the knowledge-base text is sent as it is (`source` says which).
 
@@ -22,7 +24,7 @@ from pydantic import BaseModel, Field, field_validator
 from chaukas.agents.intent import _keyword_lang, injection_signals
 from chaukas.agents.reply import _right_language
 from chaukas.agents.schemas import normalize_lang
-from chaukas.consumer import prefill, store
+from chaukas.consumer import billpay, prefill, store
 from chaukas.core import m2_shim
 from chaukas.integrations._common import load_config
 from chaukas.llm.client import LLMUnavailable
@@ -116,7 +118,9 @@ _NUM = re.compile(r"\d[\d,]*(?:\.\d+)?")
 _PROMISE = re.compile(
     r"(you\s+are\s+(?:now\s+)?covered|polic(?:y|ies)\s+(?:has\s+been\s+|have\s+been\s+|is\s+|was\s+)?(?:issued|activated|bought)"
     r"|loan\s+(?:has\s+been\s+|is\s+|was\s+)?(?:approved|sanctioned|disbursed|credited)"
-    r"|\bi\s+(?:have\s+|'ve\s+)?(?:approved|issued|disbursed|sent|bought)\b|guarantee"
+    r"|payment\s+(?:has\s+been\s+|have\s+been\s+|is\s+|was\s+)?(?:done|successful|completed|made|processed)"
+    r"|(?:refund|money)\s+(?:has\s+been\s+|have\s+been\s+|is\s+|was\s+)?(?:issued|refunded|credited|returned|sent)"
+    r"|\bi\s+(?:have\s+|'ve\s+)?(?:approved|issued|disbursed|sent|bought|paid|refunded)\b|guarantee"
     r"|पॉलिसी\s*(?:जारी|एक्टिवेट)|लोन\s*(?:मंज़ूर|मंजूर|पास)|मंज़ूर\s*कर\s*दिया|jaari\s*kar\s*di|manzoor\s*kar\s*diya)", re.I)
 _ASKS_SECRET = re.compile(r"\b(?:share|send|enter|give|tell|type|bhejiye|bataiye|batao)\b.{0,30}\b(?:otp|pin|password|aadhaar number|pan number|card number|account number)\b", re.I)
 
@@ -227,6 +231,10 @@ def answer(conn, user_id: str, session_id: str, text: str, screen: str = "home",
     elif chosen and source == "guard":
         reply, lang = _translated("topic." + topic, chosen) or reply, chosen
 
+    payment = None
+    if topic in ("pay_bill", "pay_recharge") and source != "guard":  # a biller / plan to PRE-SELECT on the screen, never a payment
+        payment = billpay.extract_payment(text)
+
     action = topics()[topic].get("action")
     store.add_turn(conn, session_id, user_id, "user", masked, topic, None)
     store.add_turn(conn, session_id, user_id, "assistant", m2_shim.scrub(reply), topic, source)
@@ -239,10 +247,15 @@ def answer(conn, user_id: str, session_id: str, text: str, screen: str = "home",
                          f"dropped={','.join(suggestion['dropped']) or '-'}; via={suggestion['via']}; no quote, no credit check")
         if s_llm:
             llm = s_llm if not llm else llm.model_copy(update={"cost_inr": llm.cost_inr + s_llm.cost_inr, "latency_ms": llm.latency_ms + s_llm.latency_ms})
+    if payment:  # field NAMES only; the account number is never taken from the message
+        store.audit(conn, user_id, "agent", "prefill_payment_form", "ALLOW", "FORM_PREFILL_ONLY",
+                    note=f"fields={','.join(payment['fields'])}; missing={','.join(payment['missing'])}; "
+                         f"dropped={','.join(payment['dropped']) or '-'}; nothing paid, no payment request created")
     if action == "handoff_human":
         store.audit(conn, user_id, "agent", "request_human", "ALLOW", "HUMAN_REQUESTED", note="person asked for a human advisor")
     conn.commit()
     return {"session_id": session_id, "reply": reply, "topic": topic, "lang": lang, "source": source, "action": action,
             "confidence": conf, "latency_ms": llm.latency_ms if llm else 0, "cost_inr": llm.cost_inr if llm else 0.0,
             "model": llm.model if llm else None,
-            **({"prefill": {"fields": suggestion["fields"], "missing": suggestion["missing"], "dropped": suggestion["dropped"]}} if suggestion else {})}
+            **({"prefill": {"fields": suggestion["fields"], "missing": suggestion["missing"], "dropped": suggestion["dropped"]}} if suggestion else {}),
+            **({"payment_prefill": payment} if payment else {})}

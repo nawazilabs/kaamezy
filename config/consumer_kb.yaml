@@ -7,13 +7,13 @@
 
 # first message of a chat: the AI disclosure line comes from config/disclosure.yaml, this is the "what I can do" line
 session_intro:
-  en: "I can help with health insurance and loans: cover, claims, EMI, charges, or a quote."
-  hi: "मैं हेल्थ इंश्योरेंस और लोन में मदद कर सकता हूँ: कवर, क्लेम, EMI, खर्च, या कोट।"
-  hl: "Main health insurance aur loan mein madad kar sakta hoon: cover, claim, EMI, kharcha, ya quote."
+  en: "I can help with insurance, loans, payments and bills: cover, claims, EMI, charges, a failed payment, a bill, or a quote."
+  hi: "मैं इंश्योरेंस, लोन, पेमेंट और बिल में मदद कर सकता हूँ: कवर, क्लेम, EMI, खर्च, फ़ेल हुआ पेमेंट, बिल, या कोट।"
+  hl: "Main insurance, loan, payment aur bill mein madad kar sakta hoon: cover, claim, EMI, kharcha, fail hua payment, bill, ya quote."
 
 # keyword fallback (deterministic, used when the model is unavailable or unsure): first matching topic wins
 order: [human_request, privacy, medical_bridge, loan_emi, loan_charges, loan_cooling_off,
-        loan_documents, own_figures, loan_apply, insurance_quote, claim_help, waiting_period, copay, pre_existing, cashless, renewal,
+        loan_documents, own_figures, payment_failed, pay_bill, pay_recharge, spend_summary, settlement_status, loan_apply, insurance_quote, claim_help, waiting_period, copay, pre_existing, cashless, renewal,
         thanks, greet]
 
 # what the screen may offer after an answer. The model never chooses an action: code maps the topic to one of these.
@@ -66,6 +66,38 @@ topics:
     en: "Renewals: open My policies to see your dates. When a policy is near its end I can prepare the renewal, and the guardrail checks it before anything is charged."
     hi: "रिन्यूअल: तारीख़ें देखने के लिए My policies खोलें। पॉलिसी ख़त्म होने के पास मैं रिन्यूअल तैयार कर सकता हूँ, और चार्ज से पहले गार्डरेल उसे जाँचेगा।"
     hl: "Renewal: dates dekhne ke liye My policies kholiye. Policy khatam hone ke paas main renewal taiyar kar sakta hoon, aur charge se pehle guardrail use jaanchega."
+  # Fintech topics. The sentences state NO figure, date or refund promise: the screen shows the real status from the API.
+  # Each action only opens a screen (or preselects a biller); nothing is paid, refunded or disputed from here.
+  payment_failed:
+    action: open_payment_help
+    keywords: ['payment.{0,25}(fail|nahi hua|nahin hua|stuck)', 'paisa (kat|cut)', 'paise (kat|cut)', '(deduct|debit)(ed)?', '\brefund', 'पैसा कट', 'पेमेंट.{0,15}फ़?ेल', 'रिफंड', 'transaction.{0,15}fail']
+    en: "I am sorry that happened. Open Payment help to see where your money is and what to do next."
+    hi: "यह जानकर दुख हुआ। आपका पैसा कहाँ है और आगे क्या करना है, यह देखने के लिए Payment help खोलें।"
+    hl: "Yeh sunkar afsos hua. Aapka paisa kahan hai aur aage kya karna hai, yeh dekhne ke liye Payment help kholiye."
+  pay_bill:
+    action: open_bill_pay
+    keywords: ['(bijli|electricity|light|water|gas|dth|mobile|phone|broadband|wifi|tv)\s*(ka\s*)?bill', '\bbill\s*(pay|bhar|bharo|bharna|payment|ka payment)', '\bpay\b.{0,20}\bbill', '\bbijli\b', '\bdth\b', 'बिजली', 'बिल\s*(भर|पे)']
+    en: "I can get your bill ready to pay. Open Bills and recharge, pick the biller and check the details. Nothing is paid until you tap Pay."
+    hi: "मैं आपका बिल भरने के लिए तैयार कर सकता हूँ। Bills and recharge खोलें, बिलर चुनें और जानकारी जाँचें। जब तक आप Pay नहीं दबाते, कुछ भी नहीं भरा जाता।"
+    hl: "Main aapka bill bharne ke liye taiyar kar sakta hoon. Bills and recharge kholiye, biller chuniye aur jaankari jaanchiye. Jab tak aap Pay nahi dabate, kuch bhi nahi bharta."
+  pay_recharge:
+    action: open_bill_pay
+    keywords: ['recharge', 'रिचार्ज', '\bjio\b', '\bairtel\b', '\btop.?up\b']
+    en: "I can set up a recharge. Open Bills and recharge, choose the plan and check the details. Nothing is paid until you tap Pay."
+    hi: "मैं रिचार्ज तैयार कर सकता हूँ। Bills and recharge खोलें, प्लान चुनें और जानकारी जाँचें। जब तक आप Pay नहीं दबाते, कुछ भी नहीं भरा जाता।"
+    hl: "Main recharge taiyar kar sakta hoon. Bills and recharge kholiye, plan chuniye aur jaankari jaanchiye. Jab tak aap Pay nahi dabate, kuch bhi nahi bharta."
+  spend_summary:
+    action: open_spends
+    keywords: ['\bkharch', '\bspend', '\bexpenses?\b', 'खर्च', 'कहाँ.{0,10}पैसा']
+    en: "Open Spends to see where your money went this month, by category. It is only a summary, and I cannot change anything there."
+    hi: "इस महीने आपका पैसा कहाँ गया, श्रेणी के हिसाब से देखने के लिए Spends खोलें। यह सिर्फ़ एक सारांश है, और मैं वहाँ कुछ बदल नहीं सकता।"
+    hl: "Is mahine aapka paisa kahan gaya, category ke hisaab se dekhne ke liye Spends kholiye. Yeh sirf ek saaransh hai, aur main wahan kuch badal nahi sakta."
+  settlement_status:
+    action: open_settlements
+    keywords: ['settlement', 'payout.{0,20}(nahi|not|late|kab|delay)', 'सेटलमेंट']
+    en: "Open Settlements to see the status of your payouts and the reason if one is on hold. If something looks wrong, I can connect you to a human."
+    hi: "अपने पेआउट की स्थिति और रुके होने का कारण देखने के लिए Settlements खोलें। कुछ गड़बड़ लगे तो मैं आपको इंसान से जोड़ सकता हूँ।"
+    hl: "Apne payout ki sthiti aur ruke hone ka kaaran dekhne ke liye Settlements kholiye. Kuch gadbad lage to main aapko insaan se jod sakta hoon."
   insurance_quote:
     action: start_insurance_quote
     keywords: ['\bquote', '\bpremium', '\bbuy\b', '\bkhareed', '\bkharid', 'policy chahiye', 'कोट', 'खरीद', 'प्रीमियम']
@@ -86,7 +118,7 @@ topics:
     hl: "EMI woh tay rakam hai jo aap har mahine bharte hain. Yeh loan ki rakam, byaaj dar (APR) aur mahinon par nirbhar karti hai. Zyada samay mein EMI ghatti hai lekin kul byaaj badhta hai."
   loan_charges:
     action: null
-    keywords: ['\bapr\b', 'interest', 'charges?', '\bfee\b', '\bbyaj', 'ब्याज', '\bkfs\b']
+    keywords: ['\bapr\b', 'interest', '\bcharges?\b', '\bfee\b', '\bbyaj', 'ब्याज', '\bkfs\b']
     en: "Every cost is in the Key Facts Statement before you agree: the APR, a processing fee plus GST, the EMI, the total you repay and the amount you actually receive. No insurance is required to get the loan."
     hi: "आपके हाँ कहने से पहले Key Facts Statement में हर खर्च दिखता है: APR, प्रोसेसिंग फ़ीस और GST, EMI, कुल चुकाने की रकम और असल में मिलने वाली रकम। लोन के लिए कोई बीमा ज़रूरी नहीं है।"
     hl: "Aapke haan kehne se pehle Key Facts Statement mein har kharcha dikhta hai: APR, processing fee aur GST, EMI, kul chukane ki rakam aur asal mein milne wali rakam. Loan ke liye koi insurance zaroori nahi hai."
@@ -137,12 +169,12 @@ topics:
   unknown:
     action: null
     keywords: []
-    en: "I did not quite catch that. You can ask how to claim, what a waiting period is, about co-pay or cashless, how a loan or EMI works, or ask for a quote."
-    hi: "मैं यह ठीक से समझ नहीं पाया। आप पूछ सकते हैं: क्लेम कैसे करें, वेटिंग पीरियड क्या है, को-पे या कैशलेस, लोन या EMI कैसे काम करता है, या कोट माँगें।"
-    hl: "Main yeh theek se samajh nahi paya. Aap pooch sakte hain: claim kaise karein, waiting period kya hai, co-pay ya cashless, loan ya EMI kaise kaam karta hai, ya quote maangein."
+    en: "I did not quite catch that. You can ask how to claim, what a waiting period is, how a loan or EMI works, about a failed payment, a bill or recharge, or ask for a quote."
+    hi: "मैं यह ठीक से समझ नहीं पाया। आप पूछ सकते हैं: क्लेम कैसे करें, वेटिंग पीरियड क्या है, लोन या EMI कैसे काम करता है, फ़ेल हुआ पेमेंट, बिल या रिचार्ज, या कोट माँगें।"
+    hl: "Main yeh theek se samajh nahi paya. Aap pooch sakte hain: claim kaise karein, waiting period kya hai, loan ya EMI kaise kaam karta hai, fail hua payment, bill ya recharge, ya quote maangein."
   injection_refusal:
     action: null
     keywords: []
-    en: "I can only help with health insurance and loan questions, and I can't change how I work. What would you like to know about those?"
-    hi: "मैं सिर्फ़ हेल्थ इंश्योरेंस और लोन के सवालों में मदद कर सकता हूँ, और अपने काम के नियम नहीं बदल सकता। इनके बारे में आप क्या जानना चाहेंगे?"
-    hl: "Main sirf health insurance aur loan ke sawaalon mein madad kar sakta hoon, aur apne kaam ke niyam nahi badal sakta. Inke baare mein aap kya jaanna chahenge?"
+    en: "I can only help with insurance, loan, payment and bill questions, and I can't change how I work. What would you like to know about those?"
+    hi: "मैं सिर्फ़ इंश्योरेंस, लोन, पेमेंट और बिल के सवालों में मदद कर सकता हूँ, और अपने काम के नियम नहीं बदल सकता। इनके बारे में आप क्या जानना चाहेंगे?"
+    hl: "Main sirf insurance, loan, payment aur bill ke sawaalon mein madad kar sakta hoon, aur apne kaam ke niyam nahi badal sakta. Inke baare mein aap kya jaanna chahenge?"

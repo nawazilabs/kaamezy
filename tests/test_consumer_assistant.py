@@ -260,7 +260,7 @@ def test_every_knowledge_text_passes_its_own_checks():
     assert set(kb["order"]) <= set(kb["topics"]) and "unknown" in kb["topics"] and "injection_refusal" in kb["topics"]
     for name, t in kb["topics"].items():
         assert {"en", "hi", "hl"} <= set(t), name
-        assert t.get("action") in (None, "start_insurance_quote", "open_loan_check", "open_bridge_loan", "open_policies", "handoff_human", "prefill_loan"), name
+        assert t.get("action") in (None, "start_insurance_quote", "open_loan_check", "open_bridge_loan", "open_policies", "handoff_human", "prefill_loan", "open_payment_help", "open_bill_pay", "open_spends", "open_settlements"), name
         for lang in ("en-IN", "hi-IN", "hi-Latn"):
             assert assistant.reply_problem(assistant.kb_text(name, lang), lang) is None, (name, lang, assistant.reply_problem(assistant.kb_text(name, lang), lang))
 
