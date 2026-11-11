@@ -221,3 +221,55 @@ def check_bridge_accept(*, claim: dict | None, stored_quote: dict, pan: str | No
                                                     "so a one-time code is required. Typing 'yes' is not enough."))
     if f: return run.out(f)
     return run.allow()
+
+
+# ------------------------------------------------------------------ pay a bill or recharge (the user tapped Pay on a prepared intent)
+_MASKED_RE = re.compile(r"^••••[0-9]{4}$")
+
+
+def check_bill_payment(*, intent: dict | None, user_id: str, kyc_verified: bool, wallet_balance: int, recent_payments: list[dict],
+                       otp_ok: bool, now: datetime | None = None) -> dict:
+    """Facts come from the DB and config (the stored intent, the wallet, earlier payments), never from the request body.
+    First failure decides. BLOCK is final: a correct OTP does not change it."""
+    from chaukas.consumer import fintech  # local import: fintech imports store/engine, keep this module light
+
+    g = fintech.cfg()["payment_guardrail"]
+    now = now or datetime.now(timezone.utc)
+    run = _Run(["Identity verified (DigiLocker)", "Payment request is yours and still valid",
+                "Biller allowed and account format valid", "Amount matches the biller's bill or plan",
+                "Wallet balance is enough", "Not a duplicate payment", f"Within daily limit {inr(g['daily_limit_inr'])}",
+                f"Amount within auto limit {inr(g['auto_limit_inr'])}"])
+    f = run.step(kyc_verified, _block("KYC_PENDING", "Identity is not verified yet. Verify with DigiLocker first; "
+                                                    "Kaamezy never asks for your Aadhaar number."))
+    if f: return run.out(f)
+    valid = bool(intent) and intent["user_id"] == user_id and not fintech.intent_expired(intent, now)
+    f = run.step(valid, _block("INTENT_INVALID", "This payment request is missing, not yours, or has expired. Prepare it again."))
+    if f: return run.out(f)
+    b = fintech.biller(intent["biller_id"])
+    f = run.step(b is not None and b["kind"] == intent["kind"] and bool(_MASKED_RE.match(intent["account_masked"])),
+                 _block("BILLER_NOT_ALLOWED", "That biller or account is not allowed for this payment."))
+    if f: return run.out(f)
+    want = fintech.expected_amount(b, intent["amount_inr"])
+    same_hash = intent["params_hash"] == fintech.intent_hash(intent["kind"], intent["biller_id"], intent["account_masked"], intent["amount_inr"])
+    f = run.step(want is not None and want == intent["amount_inr"] and same_hash,
+                 _block("AMOUNT_MISMATCH", "The amount does not match the biller's bill or plan, so it was refused."))
+    if f: return run.out(f)
+    f = run.step(wallet_balance >= intent["amount_inr"],
+                 _block("INSUFFICIENT_BALANCE", f"Your balance is {inr(wallet_balance)}, which is not enough for {inr(intent['amount_inr'])}."))
+    if f: return run.out(f)
+    cutoff = now - timedelta(minutes=g["duplicate_window_minutes"])
+    dup = next((p for p in recent_payments if p["biller_id"] == intent["biller_id"] and p["account_masked"] == intent["account_masked"]
+                and p["amount_inr"] == intent["amount_inr"] and datetime.fromisoformat(p["created_at"].replace("Z", "+00:00")) > cutoff), None)
+    f = run.step(dup is None, _block("DUPLICATE_PAYMENT", f"The same payment was made in the last {g['duplicate_window_minutes']} minutes "
+                                                          "(" + (dup["id"] if dup else "") + "). Wait before paying it again."))
+    if f: return run.out(f)
+    day = now - timedelta(hours=24)
+    spent = sum(p["amount_inr"] for p in recent_payments if datetime.fromisoformat(p["created_at"].replace("Z", "+00:00")) > day)
+    f = run.step(spent + intent["amount_inr"] <= g["daily_limit_inr"],
+                 _block("DAILY_LIMIT_EXCEEDED", f"This would take today's bill and recharge payments above {inr(g['daily_limit_inr'])}."))
+    if f: return run.out(f)
+    f = run.step(intent["amount_inr"] <= g["auto_limit_inr"] or otp_ok,
+                 _confirm("otp", "OVER_AUTO_LIMIT", f"The payment is above the {inr(g['auto_limit_inr'])} automatic limit, "
+                                                    "so a one-time code is required. Typing 'yes' is not enough."))
+    if f: return run.out(f)
+    return run.allow()

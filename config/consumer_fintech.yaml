@@ -1,0 +1,76 @@
+# Fintech journeys (payment help, bills and recharge, spend summary, settlements).
+# SIMULATED partners (bank, UPI network, billers, settlement bank). All numbers are ILLUSTRATIVE placeholders.
+# Nothing here is a real rate, plan, biller or SLA.
+demo_seed: true               # seed a demo history for a user with no transactions. Off => no rows are ever invented.
+wallet_start_inr: 25000
+categories: [food, shopping, bills, travel, health, recharge, transfers, other]
+
+refund:                       # F1: refund state is computed from the age of the transaction, on every call
+  sla_business_days: {upi: 5, card: 7, bill: 5, recharge: 5, wallet_topup: 5}
+  causes:                     # fail_cause -> plain-language line shown on screen
+    bank_timeout: "The bank did not answer in time."
+    upi_server_down: "The UPI network was down for a moment."
+    insufficient_balance: "The balance was too low, so nothing should have been debited."
+  default_cause: "The payment did not complete."
+  stages:                     # state by age in hours since the transaction (first match wins)
+    - {upto_hours: 24, state: debit_under_review}
+    - {upto_hours: 72, state: refund_initiated}
+    - {upto_hours: 100000, state: refund_overdue}   # beyond this the person can ask for a human
+  state_text:
+    debit_under_review: "The bank is checking the debit. It is usually reversed automatically."
+    refund_initiated: "A refund has been started with the bank. It is on its way to your account."
+    refund_overdue: "This is taking longer than the usual time. You can raise a dispute or talk to a human."
+
+billers:                      # F2
+  - {id: bescom, name: "Electricity (BESCOM)", kind: bill, category: bills, mock_bill_inr: 1840, account: consumer_no, keywords: ["bijli", "electricity", "light bill", "बिजली"]}
+  - {id: airtel_dth, name: "DTH (Airtel)", kind: bill, category: bills, mock_bill_inr: 520, account: consumer_no, keywords: ["\\bdth\\b", "tv recharge", "डीटीएच"]}
+  - {id: jio, name: "Jio Prepaid", kind: recharge, category: recharge, account: mobile, keywords: ["\\bjio\\b", "जियो"]}
+  - {id: airtel, name: "Airtel Prepaid", kind: recharge, category: recharge, account: mobile, keywords: ["\\bairtel\\b", "एयरटेल"]}
+recharge_plans:               # the ONLY recharge amounts allowed, per operator
+  jio:
+    - {amount_inr: 199, label: "28 days, 1.5 GB/day"}
+    - {amount_inr: 299, label: "28 days, 2 GB/day"}
+    - {amount_inr: 666, label: "84 days, 1.5 GB/day"}
+  airtel:
+    - {amount_inr: 199, label: "28 days, 1 GB/day"}
+    - {amount_inr: 349, label: "28 days, 2 GB/day"}
+    - {amount_inr: 719, label: "84 days, 1.5 GB/day"}
+account_formats:              # how the typed account is checked before it is masked
+  consumer_no: '^[0-9]{8,14}$'
+  mobile: '^[6-9][0-9]{9}$'
+
+payment_guardrail:            # F2 limits
+  auto_limit_inr: 2000        # above this a one-time code is required (mock OTP)
+  daily_limit_inr: 10000
+  duplicate_window_minutes: 10
+  intent_ttl_minutes: 10
+
+# F4: which merchant account a signed-in user may see. Looked up here, never taken from the request.
+settlement_links: {demo-user: M001}
+settlement_causes:            # cause codes are the ones in data/schema.sql
+  BANK_DOWN: "The bank was down. The payout is held and goes out when it is back."
+  IFSC_MISMATCH: "The bank details on file do not match. Updating them fixes it."
+  KYC_PENDING: "The identity check for this account is not finished yet."
+settlement_status_text:
+  success: "Paid"
+  pending: "Pending"
+  failed: "Failed"
+  retriggered: "Sent again"
+
+# Demo transaction history. Offsets are relative to now, so it always looks recent.
+demo_history:
+  - {days_ago: 1, hours_ago: 6, kind: upi,     category: shopping, payee: "Fresh Basket",       amount_inr: 1299, status: failed,  debited: 1, fail_cause: bank_timeout,   ref: "4821"}
+  - {days_ago: 6, kind: upi,      category: food,     payee: "Spice Garden",       amount_inr: 640,  status: failed,  debited: 1, fail_cause: upi_server_down, ref: "7730"}
+  - {days_ago: 2, kind: bill,     category: bills,    payee: "Electricity (BESCOM)", amount_inr: 1760, status: success, debited: 1, ref: "1102"}
+  - {days_ago: 11, kind: bill,    category: bills,    payee: "DTH (Airtel)",       amount_inr: 520,  status: success, debited: 1, ref: "2210"}
+  - {days_ago: 3, kind: upi,      category: food,     payee: "Cafe Chai Point",    amount_inr: 240,  status: success, debited: 1, ref: "3391"}
+  - {days_ago: 5, kind: upi,      category: travel,   payee: "City Metro",         amount_inr: 150,  status: success, debited: 1, ref: "5512"}
+  - {days_ago: 9, kind: upi,      category: food,     payee: "Spice Garden",       amount_inr: 880,  status: success, debited: 1, ref: "6620"}
+  - {days_ago: 4, kind: recharge, category: recharge, payee: "Jio Prepaid",        amount_inr: 299,  status: success, debited: 1, ref: "8841"}
+  - {days_ago: 7, kind: card,     category: shopping, payee: "Style Street",       amount_inr: 2499, status: success, debited: 1, ref: "9021"}
+  - {days_ago: 13, kind: card,    category: health,   payee: "City Pharmacy",      amount_inr: 720,  status: success, debited: 1, ref: "1187"}
+  - {days_ago: 15, kind: card,    category: travel,   payee: "Quick Cabs",         amount_inr: 410,  status: success, debited: 1, ref: "4403"}
+  - {days_ago: 20, kind: card,    category: shopping, payee: "Style Street",       amount_inr: 1800, status: success, debited: 1, ref: "9050"}
+  - {days_ago: 24, kind: upi,     category: food,     payee: "Cafe Chai Point",    amount_inr: 310,  status: success, debited: 1, ref: "3402"}
+  - {days_ago: 40, kind: card,    category: shopping, payee: "Style Street",       amount_inr: 3200, status: success, debited: 1, ref: "9090"}
+  - {days_ago: 45, kind: upi,     category: food,     payee: "Spice Garden",       amount_inr: 500,  status: success, debited: 1, ref: "6655"}

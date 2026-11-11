@@ -102,3 +102,19 @@ class VoiceSpeak(BaseModel):
     session_id: str
     text: str = Field(min_length=1, max_length=450)
     lang: str = Field(max_length=10, pattern=r"^[A-Za-z]{2,3}(-[A-Za-z]{2,4})?$")
+
+
+# ------------------------------------------------------------------ fintech journeys (bodies only; amounts are never in them)
+class DisputeCreate(BaseModel):
+    txn_id: str = Field(min_length=1, max_length=20)
+
+
+class PayIntentCreate(BaseModel):
+    biller_id: str = Field(min_length=1, max_length=30)
+    account: str = Field(default="", max_length=20)      # validated, then masked at once; the full value is never stored
+    plan_amount_inr: int | None = Field(default=None, ge=1, le=100_000)  # a recharge plan; must equal a plan in config
+
+
+class PayConfirm(BaseModel):
+    intent_id: str = Field(min_length=1, max_length=20)
+    otp: str | None = Field(default=None, max_length=12)

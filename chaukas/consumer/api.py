@@ -17,15 +17,16 @@ import hashlib
 import json
 import os
 import secrets
+import sqlite3
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from starlette.concurrency import run_in_threadpool
 
 from chaukas import db
-from chaukas.consumer import assistant, engine, guardrail, store, voice
+from chaukas.consumer import assistant, engine, fintech, guardrail, store, voice
 from chaukas.consumer.auth import current_user
-from chaukas.consumer.models import AssistantMessage, BridgeAccept, BridgeDecide, ClaimFile, HandoffResolve, InsuranceProposal, LoanAccept, LoanApplication, PolicyPurchase, VoiceSpeak
+from chaukas.consumer.models import AssistantMessage, BridgeAccept, BridgeDecide, ClaimFile, DisputeCreate, HandoffResolve, InsuranceProposal, LoanAccept, LoanApplication, PayConfirm, PayIntentCreate, PolicyPurchase, VoiceSpeak
 from chaukas.policy.engine import load_mock_otp
 from chaukas.core import m2_shim
 from chaukas.privacy.pii import mask
@@ -377,6 +378,148 @@ def bridge_accept(body: BridgeAccept, user: str = Depends(current_user)) -> dict
         loan = _loan_view(dict(conn.execute("SELECT * FROM consumer_loans WHERE id=?", (lid,)).fetchone()))
     conn.commit()
     return {"decision": _public_decision(d), "audit_id": audit_id, "loan": loan}
+
+
+# ------------------------------------------------------------------ fintech: payment help, spends, settlements, bills and recharge
+# Every partner here is SIMULATED. Voice and chat can only PREPARE a payment (/pay/intent); paying needs the user's tap on
+# /pay/confirm, which the guardrail decides on the server.
+@router.get("/transactions")
+def list_transactions(limit: int = 30, user: str = Depends(current_user)) -> list[dict]:
+    return fintech.list_transactions(store.connect(), user, max(1, min(limit, 100)))
+
+
+@router.get("/transactions/{txn_id}/status")
+def transaction_status(txn_id: str, user: str = Depends(current_user)) -> dict:
+    conn = store.connect()
+    out = fintech.txn_status(conn, user, txn_id)
+    if not out:
+        raise _err(404, "TXN_NOT_FOUND", "That transaction does not exist.")
+    store.audit(conn, user, "agent", "view_payment_status", guardrail.ALLOW, "READ_ONLY", note=txn_id)
+    conn.commit()
+    return out
+
+
+@router.post("/disputes")
+def create_dispute(body: DisputeCreate, user: str = Depends(current_user)) -> dict:
+    conn = store.connect()
+    t = fintech.get_transaction(conn, user, body.txn_id)
+    if not t:
+        raise _err(404, "TXN_NOT_FOUND", "That transaction does not exist.")
+    if fintech.refund_view(t) is None:
+        raise _err(422, "NOT_DISPUTABLE", "Only a failed payment where money was debited can be disputed.")
+    d, created = fintech.raise_dispute(conn, user, t["id"])
+    if created:
+        store.audit(conn, user, "user", "raise_dispute", guardrail.ALLOW, "DISPUTE_RAISED", amount=t["amount_inr"], note=f"{d['id']} for {t['id']}")
+    conn.commit()
+    return {**d, "created": created}
+
+
+@router.post("/disputes/{dispute_id}/escalate")
+def escalate_dispute(dispute_id: str, user: str = Depends(current_user)) -> dict:
+    conn = store.connect()
+    row = conn.execute("SELECT * FROM consumer_disputes WHERE id=? AND user_id=?", (dispute_id, user)).fetchone()
+    if not row:
+        raise _err(404, "DISPUTE_NOT_FOUND", "That dispute does not exist.")
+    if row["status"] == "escalated":
+        return fintech.dispute_view(dict(row))  # a retry replays
+    t = fintech.get_transaction(conn, user, row["txn_id"])
+    refund = fintech.refund_view(t) if t else None
+    if not refund or not refund["overdue"]:
+        store.audit(conn, user, "guardrail", "escalate_dispute", guardrail.BLOCK, "NOT_OVERDUE", note=dispute_id)
+        conn.commit()
+        raise _err(409, "NOT_OVERDUE", "The refund is still within the usual time. A human can be asked once it is overdue.")
+    d = fintech.escalate_dispute(conn, user, dispute_id)
+    store.audit(conn, user, "agent", "escalate_dispute", guardrail.ALLOW, "HUMAN_REQUESTED", amount=t["amount_inr"], note=f"{dispute_id}; a human will look at it")
+    conn.commit()
+    return d
+
+
+@router.get("/spends")
+def spends(days: int = 30, user: str = Depends(current_user)) -> dict:
+    conn = store.connect()
+    out = fintech.spend_summary(conn, user, max(1, min(days, 90)))
+    store.audit(conn, user, "agent", "view_spend_summary", guardrail.ALLOW, "READ_ONLY", note=f"days={out['days']}")
+    conn.commit()
+    return out
+
+
+@router.get("/settlements")
+def list_settlements(limit: int = 10, user: str = Depends(current_user)) -> dict:
+    conn = store.connect()
+    out = fintech.settlements(conn, user, max(1, min(limit, 50)))
+    store.audit(conn, user, "agent", "view_settlements", guardrail.ALLOW, "READ_ONLY", note="linked" if out["linked"] else "no merchant linked")
+    conn.commit()
+    return out
+
+
+@router.get("/billers")
+def list_billers() -> list[dict]:
+    return fintech.public_billers()
+
+
+@router.get("/wallet")
+def wallet(user: str = Depends(current_user)) -> dict:
+    return {"balance_inr": fintech.wallet_balance(store.connect(), user)}
+
+
+@router.post("/pay/intent")
+def pay_intent(body: PayIntentCreate, user: str = Depends(current_user)) -> dict:
+    """PREPARE a payment. Nothing is paid. The amount is set here from the mock bill or the plan table, never by the caller."""
+    b = fintech.biller(body.biller_id)
+    if not b:
+        raise _err(422, "UNKNOWN_BILLER", "That biller is not available.")
+    conn = store.connect()
+    try:
+        view = fintech.create_intent(conn, user, b, body.account.strip(), body.plan_amount_inr)
+    except ValueError as e:
+        if str(e) == "BAD_PLAN":
+            raise _err(422, "BAD_PLAN", "Choose one of the listed plans.")
+        raise _err(422, "BAD_ACCOUNT", "That number is not in the right format for this biller.")
+    store.audit(conn, user, "agent", "prepare_payment", guardrail.ALLOW, "INTENT_ONLY", amount=view["amount_inr"],
+                note=f"{view['intent_id']} {b['id']}; nothing paid yet")
+    conn.commit()
+    return view
+
+
+@router.post("/pay/confirm")
+def pay_confirm(body: PayConfirm, user: str = Depends(current_user)) -> dict:
+    conn = store.connect()
+    intent = fintech.get_intent(conn, user, body.intent_id)
+    if not intent:
+        raise _err(404, "INTENT_NOT_FOUND", "That payment request does not exist. Prepare it again.")
+    key = f"pay:{user}:{intent['id']}"
+    done = fintech.payment_by_key(conn, key)
+    if done:  # a retried tap replays the first result, nothing is charged twice
+        return {"decision": {"verdict": "ALLOW", "kind": None, "reason_code": "WITHIN_POLICY", "reason": "This payment already went through.", "checks": []},
+                "audit_id": done["audit_id"],
+                "payment": {"payment_id": done["id"], "amount_inr": done["amount_inr"],
+                            "biller_name": fintech.intent_view(intent)["biller_name"], "account": intent["account_masked"]},
+                "balance_inr": fintech.wallet_balance(conn, user), "replayed": True}
+    if fintech.intent_expired(intent):
+        raise _err(410, "INTENT_EXPIRED", "That payment request has expired. Prepare it again.")
+    now = datetime.now(timezone.utc)
+    d = guardrail.check_bill_payment(
+        intent=intent, user_id=user, kyc_verified=store.get_kyc(conn, user) is not None,
+        wallet_balance=fintech.wallet_balance(conn, user),
+        recent_payments=fintech.recent_payments(conn, user, now - timedelta(hours=24)),
+        otp_ok=_otp_ok(body.otp), now=now)
+    action = "pay_bill" if intent["kind"] == "bill" else "pay_recharge"
+    note = "otp rejected" if (body.otp and d["reason_code"] == "OVER_AUTO_LIMIT") else None
+    audit_id = store.audit(conn, user, "guardrail", action, d["verdict"], d["reason_code"], amount=intent["amount_inr"], note=note)
+    payment = None
+    if d["verdict"] == guardrail.ALLOW:
+        try:
+            payment = fintech.record_payment(conn, user, intent, audit_id, key)
+        except sqlite3.IntegrityError:  # the wallet CHECK caught a race: undo everything, then record the refusal
+            conn.rollback()
+            d = {**guardrail._block("INSUFFICIENT_BALANCE", "Your balance is not enough for this payment."), "checks": d["checks"]}
+            store.audit(conn, user, "guardrail", action, guardrail.BLOCK, "INSUFFICIENT_BALANCE", amount=intent["amount_inr"])
+            conn.commit()
+            return {"decision": _public_decision(d), "audit_id": None, "payment": None, "balance_inr": fintech.wallet_balance(conn, user)}
+        store.audit(conn, user, "agent", action, guardrail.ALLOW, d["reason_code"], amount=intent["amount_inr"],
+                    note=payment["payment_id"] + " (mock payment)")
+    conn.commit()
+    return {"decision": _public_decision(d), "audit_id": audit_id, "payment": payment, "balance_inr": fintech.wallet_balance(conn, user)}
 
 
 # ------------------------------------------------------------------ human review + activity

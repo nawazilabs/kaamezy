@@ -158,3 +158,71 @@ CREATE TABLE IF NOT EXISTS consumer_turns (
   ts           TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_cturns_session ON consumer_turns(session_id, id);
+
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- Fintech journeys (payment help, bills and recharge, spend summary). ADDITIVE. All partners are SIMULATED.
+-- Account numbers are never stored in full: only the last 4 digits (account_masked / ref_masked).
+-- ---------------------------------------------------------------------------------------------------------------------
+
+-- Mock transaction history. Seeded for the demo user from config/consumer_fintech.yaml (demo_seed: true).
+CREATE TABLE IF NOT EXISTS consumer_transactions (
+  id            TEXT PRIMARY KEY,                 -- TXN-xxxxxxxx
+  user_id       TEXT NOT NULL,
+  ts            TEXT NOT NULL,
+  kind          TEXT NOT NULL CHECK (kind IN ('upi','card','bill','recharge','wallet_topup')),
+  category      TEXT NOT NULL,
+  payee_label   TEXT NOT NULL,                    -- merchant or biller NAME only
+  amount_inr    INTEGER NOT NULL CHECK (amount_inr > 0),
+  status        TEXT NOT NULL CHECK (status IN ('success','failed','pending')),
+  debited       INTEGER NOT NULL DEFAULT 0 CHECK (debited IN (0,1)),   -- 1 = money left the account
+  fail_cause    TEXT,
+  ref_masked    TEXT                              -- last 4 of the reference only
+);
+CREATE INDEX IF NOT EXISTS idx_ctxn_user ON consumer_transactions(user_id, ts);
+
+-- One dispute per transaction: a retry replays, never duplicates. The status moves (open -> escalated); the audit log is the history.
+CREATE TABLE IF NOT EXISTS consumer_disputes (
+  id           TEXT PRIMARY KEY,                  -- DSP-xxxxxxxx
+  user_id      TEXT NOT NULL,
+  txn_id       TEXT NOT NULL REFERENCES consumer_transactions(id),
+  reason_code  TEXT NOT NULL,
+  status       TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','escalated','resolved')),
+  created_at   TEXT NOT NULL,
+  escalated_at TEXT,
+  UNIQUE (user_id, txn_id)
+);
+
+-- What voice / chat / the screen PREPARED. Nothing is paid until the user taps Pay and the guardrail says ALLOW.
+CREATE TABLE IF NOT EXISTS consumer_pay_intents (
+  id             TEXT PRIMARY KEY,                -- INT-xxxxxxxx
+  user_id        TEXT NOT NULL,
+  kind           TEXT NOT NULL CHECK (kind IN ('bill','recharge')),
+  biller_id      TEXT NOT NULL,
+  account_masked TEXT NOT NULL,
+  amount_inr     INTEGER NOT NULL,                -- set by the server from the mock bill or the plan table
+  params_hash    TEXT NOT NULL,
+  created_at     TEXT NOT NULL,
+  expires_at     TEXT NOT NULL
+);
+
+-- Executed payments. Like consumer_executions, a row needs an ALLOW audit row (DB trigger).
+CREATE TABLE IF NOT EXISTS consumer_payments (
+  id               TEXT PRIMARY KEY,              -- PAY-xxxxxxxx
+  user_id          TEXT NOT NULL,
+  intent_id        TEXT NOT NULL,
+  audit_id         INTEGER NOT NULL REFERENCES consumer_audit(id),
+  idempotency_key  TEXT NOT NULL UNIQUE,          -- a retried request replays the old result
+  amount_inr       INTEGER NOT NULL,
+  status           TEXT NOT NULL DEFAULT 'success' CHECK (status IN ('success','failed')),
+  created_at       TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS consumer_pay_require_allow BEFORE INSERT ON consumer_payments
+WHEN (SELECT verdict FROM consumer_audit WHERE id = NEW.audit_id) IS NOT 'ALLOW'
+BEGIN SELECT RAISE(ABORT, 'a payment requires an ALLOW decision in consumer_audit'); END;
+
+-- Mock wallet balance (simulated). Reduced in the same DB transaction as the payment row.
+CREATE TABLE IF NOT EXISTS consumer_wallet (
+  user_id      TEXT PRIMARY KEY,
+  balance_inr  INTEGER NOT NULL CHECK (balance_inr >= 0)
+);
