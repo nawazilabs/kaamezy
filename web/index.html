@@ -315,6 +315,20 @@ body{overflow:hidden}
 .sheet select{width:100%;height:3rem;margin-bottom:1rem;padding:0 .8rem;border-radius:.8rem}
 .sheet .plink{display:block;margin:.6rem auto 0}
 .kv{grid-template-columns:110px 1fr}
+.mic-hint{margin:.6rem .2rem 0;font-size:.78rem;color:#5b6b82;line-height:1.35}
+.fx-sim{font-size:.78rem;margin:.1rem 0 .7rem}
+.fx-alert{margin:.2rem 0 .8rem;padding:.7rem .85rem;border-radius:.8rem;background:#fff4e5;color:#7a4300;font-size:.88rem}
+.fx-txn{align-items:center}
+.fx-amt{display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;text-align:right}
+.fx-steps{list-style:none;margin:.7rem 0;padding:0;display:grid;gap:.45rem}
+.fx-steps li{padding:.5rem .7rem;border-radius:.6rem;background:#eef2f7;color:#5b6b82;font-size:.9rem}
+.fx-steps li.done{background:#e3f6ea;color:#176b3a}
+.fx-steps li.now{background:#e0f3fd;color:#00508a;font-weight:700}
+.fx-steps li.late{background:#fff4e5;color:#7a4300;font-weight:700}
+.fx-bal{display:flex;justify-content:space-between;align-items:center;margin:.2rem 0 .8rem;padding:.7rem .85rem;border-radius:.8rem;background:#eef6fc}
+.fx-total{font-size:2rem;font-weight:800;color:#002e6e;margin:.1rem 0}
+.fx-bar{margin:.55rem 0}.fx-bl{display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:.25rem}
+.fx-track{height:.6rem;border-radius:.4rem;background:#e6edf5;overflow:hidden}.fx-track i{display:block;height:100%;border-radius:.4rem;background:linear-gradient(90deg,#00b9f1,#002e6e)}
 </style>
 <link rel="stylesheet" href="flows.css">
 </head>
@@ -418,6 +432,17 @@ body{overflow:hidden}
       <div class="service-item"><span class="service-icon"><i data-lucide="calendar-days"></i></span><span>Loan EMI<br>Payment</span></div>
     </div>
     <div class="pager-dots" aria-hidden="true"><span></span><i></i></div>
+  </section>
+
+  <section class="service-panel finance-panel">
+    <div class="section-heading"><h2>Payments &amp; Money</h2></div>
+    <div class="service-grid finance-grid">
+      <button class="service-item tile-live" id="open-pm"><span class="service-badge">Help</span><span class="service-icon"><i data-lucide="life-buoy"></i></span><span>Payment<br>Help</span></button>
+      <button class="service-item tile-live" id="open-bp"><span class="service-icon"><i data-lucide="zap"></i></span><span>Bills &amp;<br>Recharge</span></button>
+      <button class="service-item tile-live" id="open-sp"><span class="service-icon"><i data-lucide="pie-chart"></i></span><span>Spends</span></button>
+      <button class="service-item tile-live" id="open-st"><span class="service-icon"><i data-lucide="landmark"></i></span><span>Settlements</span></button>
+    </div>
+    <p class="mic-hint">Tap the mic and try: “mera payment fail ho gaya”, “bijli bill bhar do”, “is mahine kahan zyada kharcha hua”.</p>
   </section>
 
   <div class="exclusive-strip">
@@ -804,7 +829,7 @@ let sb = null;
 try{ sb = window.supabase.createClient(SB_URL, SB_KEY); }catch(e){ sb = null; }
 
 let cur = null, user = null, recovering = false;
-const SCREENS = ["auth-page","home","cz","chs","ins","hi","hiw","hip","clm","hia","ich","ln","lnw","lnl","acct"];
+const SCREENS = ["auth-page","home","cz","chs","ins","hi","hiw","hip","clm","hia","ich","ln","lnw","lnl","acct","pm","bp","sp","st"];
 function icons(){ try{ window.lucide && lucide.createIcons(); }catch(e){} }
 function showScreen(id){
   cur = id; SCREENS.forEach(s => { const n = $(s); if(n) n.hidden = s !== id; }); closeSheets();

@@ -173,7 +173,7 @@
 
 <section class="flow" id="ich" hidden aria-label="Kaamezy insurance assistant">
   <header class="chhead"><span class="avatar-b"><i data-lucide="shield-check"></i></span>
-    <div class="chtitle"><strong>Kaamezy assistant</strong><small id="ic-sub">Insurance and loan help</small></div>
+    <div class="chtitle"><strong>Kaamezy assistant</strong><small id="ic-sub">Insurance, loan and payment help</small></div>
     <button class="picon" id="ic-new" aria-label="Clear chat" title="Clear chat"><i data-lucide="trash-2"></i></button>
     <button class="picon" id="ic-close" aria-label="Close"><i data-lucide="x"></i></button></header>
   <div class="ichat" id="ic-chat" aria-live="polite"></div>
@@ -240,7 +240,27 @@
     <li><b>Agent compares insurers.</b> A rule engine prices each plan, then the agent explains the pick.</li>
     <li><b>Guardrail checks, then policy issues.</b> Big or risky cases go to an OTP or a human underwriter.</li></ol>
   <button class="czbtn" data-close>Got it</button>
-</div>`;
+</div>
+
+<section class="flow" id="pm" hidden aria-label="Payment help">
+  ${bar("home", "Payment help", "where your money is")}
+  <div class="czbody" id="pm-body"></div>
+</section>
+
+<section class="flow" id="bp" hidden aria-label="Bills and recharge">
+  ${bar("home", "Bills and recharge", "pay with a tap, checked by the guardrail")}
+  <div class="czbody" id="bp-body"></div>
+</section>
+
+<section class="flow" id="sp" hidden aria-label="Spends">
+  ${bar("home", "Spends", "last 30 days, read only")}
+  <div class="czbody" id="sp-body"></div>
+</section>
+
+<section class="flow" id="st" hidden aria-label="Settlements">
+  ${bar("home", "Settlements", "your payouts, read only")}
+  <div class="czbody" id="st-body"></div>
+</section>`;
 
   /* ---------------- wizard ---------------- */
   const blank = () => ({ members: [{ rel: "Self", age: 32, gender: "M", ht: 170, wt: 70 }], pincode: "", city: "metro", proposer: { name: "", mobile: "" }, nominee: { name: "", rel: "Spouse" }, conds: [], smoker: false, surgery: false, cover: 1000000 });
@@ -793,6 +813,176 @@
   }
   function startWizard(w) { W = w; PICK = null; CONSENT = false; QID = null; HANDOFF = null; PAN = w.proposer.name === "Demo Sharma" ? "ABCDE1234F" : ""; showScreen("hiw"); step1(); }
 
+  /* ================= PAYMENTS: payment help, bills and recharge, spends, settlements =================
+     Banks, billers, the UPI network and the settlement bank are SIMULATED. Every figure on these screens comes from the
+     server (the mock bill, the plan table, the ledger). Voice and chat can only open a screen and pre-select a biller;
+     paying takes the person's tap on "Pay", and the server's guardrail decides (a one-time code above the auto limit). */
+  const SIM = "Demo: banks, billers and the UPI network are simulated.";
+  const simNote = () => el("p", { class: "s fx-sim", text: SIM });
+  const fxEmpty = text => el("div", { class: "empty2", text });
+  const fxRow = (a, b) => el("div", { class: "prow2" }, el("span", { text: a }), el("code", { text: b }));
+  const REFUND_STEPS = ["Debit under review", "Refund initiated", "Refunded"];
+  const REFUND_AT = { debit_under_review: 0, refund_initiated: 1, refund_overdue: 1 };
+
+  /* ---- Payment help (F1) ---- */
+  async function openPaymentHelp(focusStuck) {
+    showScreen("pm"); const b = $("pm-body"); b.replaceChildren(fxEmpty("Loading…"));
+    const r = await capi("GET", "/transactions?limit=30"); b.replaceChildren();
+    if (!r.ok) { b.append(fxEmpty(errMsg(r))); return; }
+    const stuck = r.data.find(t => t.money_stuck);
+    if (focusStuck && stuck) { openTxn(stuck.id); return; }
+    b.append(simNote());
+    if (stuck) b.append(el("div", { class: "fx-alert", text: "A payment failed but the money left your account. Tap it to see where it is." }));
+    if (!r.data.length) b.append(fxEmpty("No payments yet."));
+    r.data.forEach(t => b.append(el("button", { type: "button", class: "czrow fx-txn", onclick: () => openTxn(t.id) },
+      el("span", { class: "rtxt" }, el("b", { text: t.payee }),
+        el("span", { text: when(t.ts) + " · " + t.kind.toUpperCase() + (t.ref ? " · " + t.ref : "") })),
+      el("span", { class: "fx-amt" }, el("b", { text: inr(t.amount_inr) }),
+        t.money_stuck ? el("span", { class: "v BLOCK", text: "Money debited, payment failed" })
+          : el("span", { class: "v " + (t.status === "success" ? "ALLOW" : "NEEDS_CONFIRMATION"), text: t.status === "success" ? "Paid" : t.status === "failed" ? "Failed" : "Pending" })))));
+    refresh();
+  }
+  async function openTxn(id) {
+    showScreen("pm"); const b = $("pm-body"); b.replaceChildren(fxEmpty("Loading…"));
+    const r = await capi("GET", "/transactions/" + encodeURIComponent(id) + "/status"); b.replaceChildren();
+    if (!r.ok) { b.append(fxEmpty(errMsg(r))); return; }
+    const { txn, refund, dispute } = r.data;
+    b.append(simNote(), el("button", { type: "button", class: "plink", text: "← All payments", onclick: () => openPaymentHelp(false) }),
+      el("div", { class: "polcard" }, el("div", { class: "h" }, el("span", { text: txn.payee }), el("span", { text: inr(txn.amount_inr) })),
+        el("div", { class: "m", text: when(txn.ts) + " · " + txn.kind.toUpperCase() + (txn.ref ? " · " + txn.ref : "") })));
+    if (!refund) { b.append(fxEmpty(txn.status === "success" ? "This payment went through. There is nothing to fix." : "This payment did not go through and no money was taken.")); refresh(); return; }
+    const at = REFUND_AT[refund.state];
+    b.append(el("div", { class: "czcard" }, el("h2", { text: "What happened" }), el("p", { class: "s", text: refund.cause_text }),
+      el("ol", { class: "fx-steps" }, ...REFUND_STEPS.map((s, i) => el("li", { class: i < at ? "done" : i === at ? (refund.overdue ? "late" : "now") : "", text: s }))),
+      el("p", { class: "s", text: refund.state_text }), el("p", { class: "s", text: refund.eta_text })));
+    const act = el("div", { class: "czcard" });
+    const draw = d => {
+      act.replaceChildren(el("h2", { text: "What you can do" }));
+      if (!d) act.append(el("p", { class: "s", text: "If the money does not come back, raise a dispute. It is recorded and cannot be lost." }),
+        el("button", { type: "button", class: "czbtn", text: "Raise a dispute", onclick: async e => { e.target.disabled = true; const x = await ensureDispute(txn.id); if (x) { toast("Dispute " + x.id + " raised."); draw(x); } else e.target.disabled = false; } }));
+      else act.append(el("div", { class: "prow2" }, el("span", { text: "Dispute " + d.id }), el("span", { class: "v " + (d.status === "open" ? "NEEDS_CONFIRMATION" : "ALLOW"), text: d.status })));
+      if (refund.overdue && (!d || d.status === "open")) act.append(el("p", { class: "s", text: "This is past the usual time, so a person can look at it." }),
+        el("button", { type: "button", class: "czbtn soft", text: "Talk to a human", onclick: async e => {
+          e.target.disabled = true; const x = d || await ensureDispute(txn.id); if (!x) { e.target.disabled = false; return; }
+          const z = await capi("POST", "/disputes/" + encodeURIComponent(x.id) + "/escalate");
+          if (!z.ok) { toast(errMsg(z)); e.target.disabled = false; return; }
+          toast("Sent to a human advisor."); draw(z.data); } }));
+      else if (d && d.status === "escalated") act.append(el("p", { class: "s", text: "A human advisor has this. You do not need to repeat anything." }));
+      refresh();
+    };
+    draw(dispute); b.append(act); refresh();
+  }
+  async function ensureDispute(txnId) {
+    const r = await capi("POST", "/disputes", { txn_id: txnId });
+    if (!r.ok) { toast(errMsg(r)); return null; }
+    return r.data;
+  }
+
+  /* ---- Bills and recharge (F2) ---- */
+  let BP = { billers: null, biller: null, plan: null, account: "", intent: null };
+  async function openBillPay(pf) {
+    showScreen("bp"); const b = $("bp-body"); b.replaceChildren(fxEmpty("Loading…"));
+    if (!BP.billers) { const r = await capi("GET", "/billers"); if (!r.ok) { b.replaceChildren(fxEmpty(errMsg(r))); return; } BP.billers = r.data; }
+    BP.intent = null; BP.account = "";
+    BP.biller = pf && pf.biller_id ? BP.billers.find(x => x.id === pf.biller_id) || null : null;   /* a suggestion only: the person still reviews and taps Pay */
+    BP.plan = pf && BP.biller && pf.plan_amount_inr && BP.biller.plans.some(p => p.amount_inr === pf.plan_amount_inr) ? pf.plan_amount_inr : null;
+    drawBillForm(!!BP.biller);
+  }
+  async function drawBillForm(fromAssistant) {
+    const b = $("bp-body"); b.replaceChildren(simNote());
+    const bal = el("b", { text: "…" }); b.append(el("div", { class: "fx-bal" }, el("span", { text: "Wallet balance" }), bal));
+    capi("GET", "/wallet").then(w => { if (w.ok) bal.textContent = inr(w.data.balance_inr); });
+    if (fromAssistant) b.append(el("p", { class: "s", text: "Kaamezy picked this biller from what you said. Check it, type the number, and review. Nothing is paid yet." }));
+    b.append(el("span", { class: "lbl", text: "Choose a biller" }));
+    const chips = el("div", { class: "chips" });
+    BP.billers.forEach(x => chips.append(chip(x.name, BP.biller && BP.biller.id === x.id, () => { BP.biller = x; BP.plan = null; drawBillForm(false); })));
+    b.append(chips);
+    if (!BP.biller) { refresh(); return; }
+    const x = BP.biller;
+    b.append(field(x.account === "mobile" ? "Mobile number to recharge" : "Consumer number", {
+      inputmode: "numeric", autocomplete: "off", maxlength: "14", value: BP.account, placeholder: x.account === "mobile" ? "10 digits" : "8 to 14 digits",
+      oninput: e => { BP.account = e.target.value.replace(/\D/g, ""); } }));
+    if (x.kind === "recharge") {
+      b.append(el("span", { class: "lbl", text: "Choose a plan" }));
+      const pl = el("div", { class: "chips" });
+      x.plans.forEach(p => pl.append(chip(inr(p.amount_inr) + " · " + p.label, BP.plan === p.amount_inr, () => { BP.plan = p.amount_inr; drawBillForm(false); })));
+      b.append(pl);
+    } else b.append(el("p", { class: "s", text: "The amount is the bill the biller returns. You cannot type or change it." }));
+    b.append(el("button", { type: "button", class: "czbtn", style: "margin-top:.9rem", text: "Review", onclick: reviewPayment }), el("div", { id: "bp-res" }));
+    refresh();
+  }
+  async function reviewPayment() {
+    const x = BP.biller; if (!x) return;
+    if (x.kind === "recharge" && !BP.plan) { toast("Choose a plan."); return; }
+    const r = await capi("POST", "/pay/intent", { biller_id: x.id, account: BP.account, plan_amount_inr: x.kind === "recharge" ? BP.plan : null });
+    if (!r.ok) { toast(errMsg(r)); return; }
+    BP.intent = r.data; drawReview();
+  }
+  function drawReview() {
+    const i = BP.intent, b = $("bp-body"); b.replaceChildren(simNote());
+    const d = (k, v) => [el("dt", { text: k }), el("dd", { text: v })];
+    b.append(el("h2", { class: "t", text: "Review and pay" }), el("p", { class: "s", text: "The amount below was set by the server. It cannot be changed here." }),
+      el("dl", { class: "sum" }, ...d("Biller", i.biller_name), ...d(i.kind === "recharge" ? "Mobile" : "Consumer number", i.account), ...(i.plan_label ? d("Plan", i.plan_label) : []), ...d("Amount", inr(i.amount_inr))),
+      el("span", { class: "lbl", text: "Identity (KYC)" }), kycCard());
+    const res = el("div", { id: "bp-res" });
+    const pay = async extra => {
+      extra = extra || {};
+      const r = await capi("POST", "/pay/confirm", { intent_id: i.intent_id, otp: extra.otp || null });
+      if (!r.ok) { toast(errMsg(r)); if (r.status === 410 || r.status === 404) drawBillForm(false); return; }
+      const g = r.data.decision;
+      if (g.verdict === "ALLOW" && r.data.payment) {
+        res.replaceChildren(el("div", { class: "gr ALLOW" }, el("span", { class: "v ALLOW", text: "PAID (demo)" }), el("h3", { text: inr(r.data.payment.amount_inr) + " paid to " + r.data.payment.biller_name }),
+          el("div", { class: "why2", text: "Reference " + r.data.payment.payment_id + " · wallet balance now " + inr(r.data.balance_inr) }),
+          el("ul", {}, ...g.checks.map(c => el("li", { class: "ok", text: c.name }))),
+          el("button", { type: "button", class: "czbtn soft", style: "margin-top:.7rem", text: "Done", onclick: () => showScreen("home") })));
+        pb.disabled = true; refresh(); return;
+      }
+      if (extra.otp && g.reason_code === "OVER_AUTO_LIMIT") toast("That code is not right.");
+      renderDecision(g, { mount: res, humanTitle: "", who: "", retry: pay, back: () => drawBillForm(false) });
+    };
+    const pb = el("button", { type: "button", class: "czbtn", text: "Pay " + inr(i.amount_inr), onclick: () => pay({}) });
+    b.append(el("div", { class: "navrow" }, el("button", { type: "button", class: "czbtn soft", text: "Back", onclick: () => drawBillForm(false) }), pb), res);
+    refresh();
+  }
+
+  /* ---- Spends (F3) ---- */
+  async function openSpends() {
+    showScreen("sp"); const b = $("sp-body"); b.replaceChildren(fxEmpty("Loading…"));
+    const r = await capi("GET", "/spends?days=30"); b.replaceChildren();
+    if (!r.ok) { b.append(fxEmpty(errMsg(r))); return; }
+    const s = r.data, dlt = s.vs_previous.delta_inr;
+    b.append(simNote(), el("div", { class: "czcard" }, el("span", { class: "lbl", text: "You spent in the last 30 days" }), el("div", { class: "fx-total", text: inr(s.total_inr) }),
+      el("p", { class: "s", text: dlt === 0 ? "The same as the 30 days before." : (dlt > 0 ? inr(dlt) + " more than" : inr(-dlt) + " less than") + (dlt === 0 ? "" : " the 30 days before (" + inr(s.vs_previous.previous_total_inr) + ").") })));
+    if (!s.by_category.length) { b.append(fxEmpty("No spends in this period.")); return; }
+    const max = Math.max(...s.by_category.map(c => c.amount_inr));
+    b.append(el("div", { class: "czcard" }, el("h2", { text: "By category" }), ...s.by_category.map(c => el("div", { class: "fx-bar" },
+      el("div", { class: "fx-bl" }, el("span", { text: c.category.charAt(0).toUpperCase() + c.category.slice(1) }), el("b", { text: inr(c.amount_inr) + " · " + c.share_pct + "%" })),
+      el("div", { class: "fx-track" }, el("i", { style: "width:" + Math.max(3, Math.round(100 * c.amount_inr / max)) + "%" }))))));
+    if (s.top_payees.length) b.append(el("div", { class: "czcard" }, el("h2", { text: "Where most of it went" }), ...s.top_payees.map(p => fxRow(p.payee, inr(p.amount_inr)))));
+    b.append(el("p", { class: "s", text: "Added up by the server from your successful payments. The AI never sees or sums these." }));
+    refresh();
+  }
+
+  /* ---- Settlements (F4) ---- */
+  const ST_V = { success: "ALLOW", retriggered: "ALLOW", pending: "NEEDS_CONFIRMATION", failed: "BLOCK" };
+  async function openSettlements() {
+    showScreen("st"); const b = $("st-body"); b.replaceChildren(fxEmpty("Loading…"));
+    const r = await capi("GET", "/settlements?limit=10"); b.replaceChildren();
+    if (!r.ok) { b.append(fxEmpty(errMsg(r))); return; }
+    b.append(simNote());
+    if (!r.data.linked) { b.append(fxEmpty(r.data.message)); return; }
+    if (r.data.next_expected_text) b.append(el("div", { class: "fx-alert", text: r.data.next_expected_text }));
+    if (!r.data.settlements.length) b.append(fxEmpty("No settlements yet."));
+    let anyFailed = false;
+    r.data.settlements.forEach(s => {
+      if (s.status === "failed") anyFailed = true;
+      b.append(el("div", { class: "polcard" }, el("div", { class: "h" }, el("span", { text: inr(s.amount_inr) }), el("span", { class: "v " + (ST_V[s.status] || "NEEDS_CONFIRMATION"), text: s.status_text })),
+        el("div", { class: "m", text: s.id + " · due " + day(s.settlement_date) }), s.cause_text ? el("div", { class: "m", text: s.cause_text }) : null));
+    });
+    if (anyFailed) b.append(el("button", { type: "button", class: "czbtn soft", text: "Talk to a human", onclick: () => openChat("insaan se baat karao", "home") }));
+    refresh();
+  }
+
   /* ---------------- assistant: the backend LLM agent (POST /assistant/*) ----------------
      The server understands the message (topic + language), words a short reply from its knowledge base, checks the reply
      in code, and falls back to the knowledge-base text if the model is down. The model never chooses an action: the
@@ -802,6 +992,10 @@
     open_loan_check: ["Check my loan offer", () => startLoan(blankLoan())],
     open_bridge_loan: ["Open My claims", () => bridgeLoan()],
     open_policies: ["Open My policies", () => openPolicies()],
+    open_payment_help: ["Open Payment help", () => openPaymentHelp(true)],
+    open_bill_pay: ["Open Bills and recharge", d => openBillPay(d && d.payment_prefill)],
+    open_spends: ["Open Spends", () => openSpends()],
+    open_settlements: ["Open Settlements", () => openSettlements()],
   };
   let ASESS = null, AINTRO = null, chatFrom = "hi";
   const scrollChat = () => { $("ic-chat").scrollTop = $("ic-chat").scrollHeight; };
@@ -834,23 +1028,23 @@
     if (!r.ok) { bubble("agent", "I couldn't reach the assistant just now. Please try again in a moment."); return; }
     const d = r.data, act = ACTIONS[d.action];
     const extra = d.action === "prefill_loan" && d.prefill ? prefillCard(d.prefill)
-      : act ? el("div", { class: "acts" }, el("button", { class: "mini-cta", type: "button", text: act[0], onclick: act[1] })) : null;
+      : act ? el("div", { class: "acts" }, el("button", { class: "mini-cta", type: "button", text: act[0], onclick: () => act[1](d) })) : null;
     const m = bubble("agent", d.reply, extra);
     if (canSpeak(d.lang)) m.append(el("button", { class: "spk", type: "button", "aria-label": "Listen to this reply", text: "🔊", onclick: () => playReply(d.reply, d.lang) }));
     if (voiceTurn) {   /* spoken request: say the answer, then do exactly what a tap on the button would have done (open a screen / fill the form) */
       playReply(d.reply, d.lang);
       if (d.action === "prefill_loan" && d.prefill) { toast(d.reply); prefillLoan(d.prefill); return; }
-      if (act) { toast(d.reply); act[1](); return; }
+      if (act) { toast(d.reply); act[1](d); return; }
       showScreen("ich");
     }
-    $("ic-sub").textContent = d.source === "keyword" ? "Backup helper (the AI model is unavailable)" : "Live AI model · insurance and loan help";
+    $("ic-sub").textContent = d.source === "keyword" ? "Backup helper (the AI model is unavailable)" : "Live AI model · insurance, loan and payment help";
   }
   async function ensureIntro() {
     if ($("ic-chat").children.length) return;
     await ensureSession();
-    bubble("agent", AINTRO || "Main Kaamezy hoon, ek AI assistant. I can help with health insurance and loans.");
+    bubble("agent", AINTRO || "Main Kaamezy hoon, ek AI assistant. I can help with insurance, loans, payments and bills.");
     const h = $("ic-hints"); h.replaceChildren();
-    ["How do I claim?", "I want a quote", "I need a loan", "Is my Aadhaar safe?"].forEach(t => h.append(el("button", { type: "button", text: t, onclick: () => chatSay(t) })));
+    ["How do I claim?", "I want a quote", "I need a loan", "My payment failed", "Pay my electricity bill", "Is my Aadhaar safe?"].forEach(t => h.append(el("button", { type: "button", text: t, onclick: () => chatSay(t) })));
   }
   async function openChat(prefill, from) {
     if (from) chatFrom = from;
@@ -997,6 +1191,8 @@
     });
     document.querySelectorAll("[data-back]").forEach(b => b.addEventListener("click", () => showScreen(b.dataset.back)));
     document.querySelectorAll("#sheet-hihelp [data-close], #sheet-lnhelp [data-close]").forEach(b => b.addEventListener("click", closeSheets));
+    const tiles = { "open-pm": () => openPaymentHelp(false), "open-bp": () => openBillPay(null), "open-sp": openSpends, "open-st": openSettlements };
+    Object.entries(tiles).forEach(([id, fn]) => { const t = $(id); if (t) t.onclick = fn; });
     const lt = $("open-hi"), ln = $("open-ln");
     if (lt) lt.onclick = () => { showScreen("hi"); refreshLanding(); };
     if (ln) ln.onclick = () => { showScreen("ln"); refreshLoanLanding(); };
