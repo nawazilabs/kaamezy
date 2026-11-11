@@ -127,6 +127,20 @@ CREATE TRIGGER IF NOT EXISTS consumer_exec_require_allow BEFORE INSERT ON consum
 WHEN (SELECT verdict FROM consumer_audit WHERE id = NEW.audit_id) IS NOT 'ALLOW'
 BEGIN SELECT RAISE(ABORT, 'an execution requires an ALLOW decision in consumer_audit'); END;
 
+-- Health claims (simulated insurer). approved_inr is decided by the rule engine when the claim is filed; the claim state
+-- (under review / approved, payout pending / paid) is computed from created_at on every read, never stored.
+-- bridge_loan_id is set once, when a claim-backed advance is made: a claim can back at most one advance.
+CREATE TABLE IF NOT EXISTS consumer_claims (
+  id              TEXT PRIMARY KEY,     -- CLM-12345678
+  user_id         TEXT NOT NULL,
+  policy_id       TEXT NOT NULL REFERENCES consumer_policies(id),
+  claimed_inr     INTEGER NOT NULL CHECK (claimed_inr > 0),
+  approved_inr    INTEGER NOT NULL CHECK (approved_inr >= 0),
+  bridge_loan_id  TEXT,
+  created_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_cclaims_user ON consumer_claims(user_id, created_at);
+
 -- Assistant chat. Only MASKED text is stored (no raw PII in turns). The model never sees anything else either.
 CREATE TABLE IF NOT EXISTS consumer_chat_sessions (
   id          TEXT PRIMARY KEY,

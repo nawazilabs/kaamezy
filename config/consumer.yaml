@@ -73,3 +73,26 @@ personal_loan:
     self_employed_review_above_inr: 100000      # self-employed above this needs a human to check income proof
     duplicate_window_hours: 24
     quote_ttl_minutes: 60
+
+# Health claims and the claim-backed bridge advance. SIMULATED insurer and lender; every number is ILLUSTRATIVE.
+# The claim only sizes a short advance that is repaid from the claim payout. It never changes the personal loan
+# above, and no insurance is ever required to get a loan.
+claims:
+  min_claim_inr: 5000
+  approve_pct: 90                               # share of the claimed amount the (simulated) insurer approves, never above the cover
+  review_minutes: 0                             # demo: the claim is approved at once; set a real wait here to show 'under review'
+  payout_days: 10                               # the insurer pays this many days after the claim is filed
+bridge:
+  lender_name: "Demo NBFC Partner (simulated)"
+  share_pct: 80                                 # advance is at most this share of the approved claim
+  cap_inr: 200000
+  min_inr: 10000
+  round_to_inr: 5000
+  apr_pct: 18                                   # simple interest for the days until the payout
+  fee_pct: 1
+  gst: 0.18
+  cooling_off_days: 3
+  grievance_contact: "grievance@demo-lender.example (mock)"
+  auto_limit_inr: 100000                        # an advance above this needs a one-time code
+  max_active_loans: 2
+  quote_ttl_minutes: 60

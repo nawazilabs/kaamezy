@@ -66,6 +66,26 @@ class LoanAccept(BaseModel):
     handoff_id: str | None = None
 
 
+class ClaimFile(BaseModel):
+    policy_id: str
+    claimed_inr: int = Field(ge=1, le=100_000_000)
+
+
+class BridgeDecide(BaseModel):
+    claim_id: str
+
+
+class BridgeAccept(BaseModel):
+    quote_id: str
+    consent_offer: bool = False          # accept this advance and repay it from the claim payout
+    consent_claim_share: bool = False    # share the claim details with the lender, for this advance only
+    pan: str | None = None
+    mobile: str = ""
+    holder_name: str = ""
+    pincode: str = ""
+    otp: str | None = None
+
+
 class HandoffResolve(BaseModel):
     decision: Literal["approved", "rejected"]
     staff_id: str = Field(min_length=1, max_length=40)

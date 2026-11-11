@@ -170,3 +170,54 @@ def check_loan_accept(*, application: LoanApplication, stored_quote: dict, pan: 
                                                     "so a one-time code is required. Typing 'yes' is not enough."))
     if f: return run.out(f)
     return run.allow()
+
+
+# ------------------------------------------------------------------ accept a claim-backed bridge advance
+def check_bridge_accept(*, claim: dict | None, stored_quote: dict, pan: str | None, mobile: str, holder_name: str,
+                        pincode: str, consent_offer: bool, consent_claim: bool, kyc_verified: bool, kfs_shown: bool,
+                        active_loans: list[dict], otp_ok: bool, now: datetime | None = None) -> dict:
+    """Same ladder as a personal loan, but the facts are the claim and the advance rule, never income. BLOCK is final."""
+    g = engine.cfg()["bridge"]
+    now = now or datetime.now(timezone.utc)
+    stored = stored_quote["decision"]
+    run = _Run(["Identity verified (DigiLocker)", "Key Facts shown before consent",
+                "Consent recorded (advance and claim details)", "Identity details valid",
+                "Claim is approved and the payout is pending", "No earlier advance on this claim, within loan limit",
+                "Advance matches the lender's rule", f"Amount within auto limit {inr(g['auto_limit_inr'])}"])
+    f = run.step(kyc_verified, _block("KYC_PENDING", "Identity is not verified yet. Verify with DigiLocker first; "
+                                                    "Kaamezy never asks for your Aadhaar number."))
+    if f: return run.out(f)
+    f = run.step(kfs_shown, _block("KFS_NOT_SHOWN", "The Key Facts Statement must be shown before you can accept."))
+    if f: return run.out(f)
+    f = run.step(consent_offer and consent_claim,
+                 _block("CONSENT_MISSING", "Both consents are needed: accepting this advance (repaid from your claim payout), "
+                                           "and sharing the claim details with the lender for this advance only."))
+    if f: return run.out(f)
+    id_ok = bool(pan and PAN_RE.match(pan) and MOBILE_RE.match(mobile or "") and PIN_RE.match(pincode or "")
+                 and len((holder_name or "").strip()) >= 2)
+    f = run.step(id_ok, _block("IDENTITY_DETAILS_INVALID",
+                               "PAN, mobile, pincode or name is missing or in the wrong format."))
+    if f: return run.out(f)
+    fresh = engine.bridge_decide({**claim, "bridge_loan_id": None}, now) if claim else {"eligible": False}
+    state = engine.claim_state(claim, now)["state"] if claim else None
+    f = run.step(bool(claim) and state == "approved_payout_pending",
+                 _block("CLAIM_NOT_PAYABLE", "This claim is not in the 'approved, payout pending' state, so nothing can be "
+                                             "advanced against it."))
+    if f: return run.out(f)
+    too_many = len(active_loans) >= g["max_active_loans"]
+    if claim.get("bridge_loan_id"):
+        fail = _block("DUPLICATE_ADVANCE", f"This claim already backs an advance ({claim['bridge_loan_id']}). "
+                                           "A claim can back only one.")
+    else:
+        fail = _block("TOO_MANY_LOANS", f"You already have {g['max_active_loans']} active loans through Kaamezy, "
+                                        "which is the limit.")
+    f = run.step(not claim.get("bridge_loan_id") and not too_many, fail)
+    if f: return run.out(f)
+    same = fresh.get("eligible") and stored.get("eligible") and all(fresh[k] == stored[k] for k in ("amount_inr", "apr_pct"))
+    f = run.step(same, _block("AMOUNT_MISMATCH", "The advance does not match the lender's own figures, so it was refused."))
+    if f: return run.out(f)
+    f = run.step(stored["amount_inr"] <= g["auto_limit_inr"] or otp_ok,
+                 _confirm("otp", "OVER_AUTO_LIMIT", f"The advance is above the {inr(g['auto_limit_inr'])} automatic limit, "
+                                                    "so a one-time code is required. Typing 'yes' is not enough."))
+    if f: return run.out(f)
+    return run.allow()

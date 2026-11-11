@@ -25,7 +25,7 @@ from starlette.concurrency import run_in_threadpool
 from chaukas import db
 from chaukas.consumer import assistant, engine, guardrail, store, voice
 from chaukas.consumer.auth import current_user
-from chaukas.consumer.models import AssistantMessage, HandoffResolve, InsuranceProposal, LoanAccept, LoanApplication, PolicyPurchase, VoiceSpeak
+from chaukas.consumer.models import AssistantMessage, BridgeAccept, BridgeDecide, ClaimFile, HandoffResolve, InsuranceProposal, LoanAccept, LoanApplication, PolicyPurchase, VoiceSpeak
 from chaukas.policy.engine import load_mock_otp
 from chaukas.core import m2_shim
 from chaukas.privacy.pii import mask
@@ -214,6 +214,8 @@ def loan_accept(body: LoanAccept, user: str = Depends(current_user)) -> dict:
         raise _err(404, "QUOTE_NOT_FOUND", "That offer does not exist. Check your offer again.")
     if store.quote_expired(q, g["quote_ttl_minutes"]):
         raise _err(410, "QUOTE_EXPIRED", "That offer has expired. Check your offer again.")
+    if q["params"].get("bridge"):
+        raise _err(409, "WRONG_OFFER_TYPE", "That offer is a claim-backed advance. Accept it from My claims.")
     stored = q["result"]["decision"]
     if not stored.get("eligible"):
         raise _err(409, "NOT_ELIGIBLE", "The lender did not make an offer on this quote.")
@@ -270,6 +272,111 @@ def loan_accept(body: LoanAccept, user: str = Depends(current_user)) -> dict:
 @router.get("/loans")
 def list_loans(user: str = Depends(current_user)) -> list[dict]:
     return [_loan_view(x) for x in store.active_loans(store.connect(), user)]
+
+
+# ------------------------------------------------------------------ health claims and the claim-backed bridge advance
+def _claim_view(c: dict) -> dict:
+    """What the screen shows. The state is computed now; 'bridge_up_to_inr' is the rule engine's figure, not a promise."""
+    st = engine.claim_state(c)
+    offer = engine.bridge_decide(c)
+    return {"id": c["id"], "policy_id": c["policy_id"], "claimed_inr": c["claimed_inr"], "approved_inr": c["approved_inr"],
+            "state": st["state"], "payout_due": st["payout_due"], "created_at": c["created_at"], "bridge_loan_id": c["bridge_loan_id"],
+            "bridge_up_to_inr": offer["amount_inr"] if offer["eligible"] else None,
+            "bridge_blocked": None if offer["eligible"] else offer["reasons"][0]}
+
+
+@router.post("/claims")
+def file_claim(body: ClaimFile, user: str = Depends(current_user)) -> dict:
+    """File a claim with the SIMULATED insurer. No money moves: this only records the claim and the insurer's decision."""
+    conn = store.connect()
+    pol = next((p for p in store.active_policies(conn, user) if p["id"] == body.policy_id), None)
+    if not pol:
+        raise _err(404, "POLICY_NOT_FOUND", "That policy does not exist, or it is not active.")
+    try:
+        d = engine.decide_claim(body.claimed_inr, pol["cover_inr"])
+    except ValueError as e:
+        raise _err(422, "BAD_CLAIM", str(e))
+    c = store.create_claim(conn, user, pol["id"], body.claimed_inr, d["approved_inr"])
+    store.audit(conn, user, "user", "file_claim", guardrail.ALLOW, "CLAIM_FILED", amount=body.claimed_inr,
+                note=f"{c['id']} (simulated insurer; no money moves)")
+    conn.commit()
+    return _claim_view(c)
+
+
+@router.get("/claims")
+def list_claims(user: str = Depends(current_user)) -> list[dict]:
+    return [_claim_view(c) for c in store.list_claims(store.connect(), user)]
+
+
+@router.post("/bridge/decide")
+def bridge_decide(body: BridgeDecide, user: str = Depends(current_user)) -> dict:
+    conn = store.connect()
+    c = store.get_claim(conn, user, body.claim_id)
+    if not c:
+        raise _err(404, "CLAIM_NOT_FOUND", "That claim does not exist.")
+    d = engine.bridge_decide(c)
+    kfs = engine.build_bridge_kfs(d) if d["eligible"] else None
+    params = {"claim_id": c["id"], "bridge": True}
+    qid = store.save_quote(conn, user, "loan", params, {"decision": d, "kfs": kfs, "bridge": True}, engine.params_hash(params))
+    store.audit(conn, user, "lender", "bridge_decision", guardrail.ALLOW if d["eligible"] else guardrail.BLOCK,
+                "ELIGIBLE" if d["eligible"] else d["reasons"][0], amount=d.get("amount_inr"),
+                note="sized from the approved claim only, not income", quote_id=qid)
+    conn.commit()
+    return {"quote_id": qid, "decision": d, "kfs": kfs}
+
+
+@router.post("/bridge/accept")
+def bridge_accept(body: BridgeAccept, user: str = Depends(current_user)) -> dict:
+    g = engine.cfg()["bridge"]
+    conn = store.connect()
+    q = store.get_quote(conn, user, body.quote_id, "loan")
+    if not q or not q["params"].get("bridge"):
+        raise _err(404, "QUOTE_NOT_FOUND", "That advance offer does not exist. Check the offer again.")
+    if store.quote_expired(q, g["quote_ttl_minutes"]):
+        raise _err(410, "QUOTE_EXPIRED", "That offer has expired. Check the offer again.")
+    stored = q["result"]["decision"]
+    if not stored.get("eligible"):
+        raise _err(409, "NOT_ELIGIBLE", "The lender did not make an offer on this claim.")
+    claim = store.get_claim(conn, user, q["params"]["claim_id"])
+
+    key = f"bridge:{user}:{q['id']}"
+    done = store.execution_by_key(conn, key)
+    if done:
+        ln = next(x for x in store.active_loans(conn, user) if x["id"] == done["ref_id"])
+        return {"decision": {"verdict": "ALLOW", "kind": None, "reason_code": "WITHIN_POLICY",
+                             "reason": "This advance was already created.", "checks": []},
+                "audit_id": done["audit_id"], "loan": _loan_view(ln), "replayed": True}
+
+    d = guardrail.check_bridge_accept(
+        claim=claim, stored_quote=q["result"], pan=body.pan, mobile=body.mobile, holder_name=body.holder_name,
+        pincode=body.pincode, consent_offer=body.consent_offer, consent_claim=body.consent_claim_share,
+        kyc_verified=store.get_kyc(conn, user) is not None, kfs_shown=q["kfs_shown_at"] is not None,
+        active_loans=store.active_loans(conn, user), otp_ok=_otp_ok(body.otp))
+    note = "otp rejected" if (body.otp and d["reason_code"] == "OVER_AUTO_LIMIT") else None
+    audit_id = store.audit(conn, user, "guardrail", "disburse_bridge", d["verdict"], d["reason_code"],
+                           amount=stored["amount_inr"], note=note, quote_id=q["id"])
+    loan = None
+    if d["verdict"] == guardrail.ALLOW:
+        lid = store.new_loan_id()
+        today = datetime.now(timezone.utc).date()
+        now = db.now_iso()
+        kfs = q["result"]["kfs"]
+        conn.execute("INSERT INTO consumer_loans(id,user_id,quote_id,lender_name,amount_inr,tenure_months,apr_pct,emi_inr,total_inr,fee_inr,"
+                     "fee_gst_inr,net_inr,purpose,employment,pan_masked,kfs_shown_at,consent_at,first_emi_date,cooling_off_end,created_at) "
+                     "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                     (lid, user, q["id"], kfs["lender_name"], stored["amount_inr"], max(1, -(-stored["days"] // 30)), stored["apr_pct"],
+                      stored["total_inr"], stored["total_inr"], stored["fee_inr"], stored["fee_gst_inr"], stored["net_inr"],
+                      f"Medical bridge (claim {claim['id']})", "claim_backed", mask(body.pan or "", "pan"), q["kfs_shown_at"], now,
+                      stored["repay_by"], (today + timedelta(days=g["cooling_off_days"])).isoformat(), now))
+        store.record_execution(conn, user, "disburse_loan", lid, audit_id, key)
+        store.set_claim_bridge(conn, claim["id"], lid)
+        store.consent(conn, user, "bridge_offer", q["id"])
+        store.consent(conn, user, "claim_share", q["id"])
+        store.audit(conn, user, "agent", "disburse_bridge", guardrail.ALLOW, d["reason_code"], amount=stored["amount_inr"],
+                    note=lid + " (mock disbursal, repaid from the claim payout)", quote_id=q["id"])
+        loan = _loan_view(dict(conn.execute("SELECT * FROM consumer_loans WHERE id=?", (lid,)).fetchone()))
+    conn.commit()
+    return {"decision": _public_decision(d), "audit_id": audit_id, "loan": loan}
 
 
 # ------------------------------------------------------------------ human review + activity

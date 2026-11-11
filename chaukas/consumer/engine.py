@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from datetime import datetime, timedelta, timezone
 
 from chaukas.consumer.models import InsuranceProposal, LoanApplication
 from chaukas.integrations._common import load_config
@@ -139,6 +140,71 @@ def lender_decide(a: LoanApplication) -> dict:
     return {"eligible": True, "reasons": [], "amount_inr": amount, "requested_inr": a.amount_inr, "max_inr": max_amount,
             "apr_pct": apr, "tenure_months": a.tenure_months, "emi_inr": emi, "total_inr": total,
             "interest_inr": total - amount, "fee_inr": fee, "fee_gst_inr": fee_gst, "net_inr": amount - fee - fee_gst}
+
+
+# ------------------------------------------------------------------ health claims and the claim-backed bridge advance
+def _when(iso: str) -> datetime:
+    return datetime.fromisoformat(iso.replace("Z", "+00:00"))
+
+
+def decide_claim(claimed_inr: int, cover_inr: int) -> dict:
+    """The simulated insurer's decision, made once when the claim is filed. Money is int rupees."""
+    c = cfg()["claims"]
+    if claimed_inr < c["min_claim_inr"]:
+        raise ValueError("a claim must be at least ₹%d" % c["min_claim_inr"])
+    if claimed_inr > cover_inr:
+        raise ValueError("a claim cannot be above the cover of the policy")
+    return {"approved_inr": rnd(min(claimed_inr, cover_inr) * c["approve_pct"] / 100)}
+
+
+def claim_state(claim: dict, now: datetime | None = None) -> dict:
+    """{state, payout_due}. Computed from the filing time on every call: a state is never stored or cached."""
+    c = cfg()["claims"]
+    now = now or datetime.now(timezone.utc)
+    made = _when(claim["created_at"])
+    due = made + timedelta(days=c["payout_days"])
+    if now < made + timedelta(minutes=c["review_minutes"]):
+        state = "under_review"
+    elif now < due:
+        state = "approved_payout_pending"
+    else:
+        state = "paid"
+    return {"state": state, "payout_due": due.date().isoformat(), "_due": due}
+
+
+def bridge_decide(claim: dict, now: datetime | None = None) -> dict:
+    """How much can be advanced against this claim. Uses ONLY the approved claim amount and the days to the payout:
+    never the person's name, gender, location or language, and never the personal-loan rules."""
+    B = cfg()["bridge"]
+    now = now or datetime.now(timezone.utc)
+    st = claim_state(claim, now)
+    if st["state"] == "under_review":
+        return {"eligible": False, "reasons": ["CLAIM_NOT_APPROVED_YET"]}
+    if st["state"] == "paid":
+        return {"eligible": False, "reasons": ["CLAIM_ALREADY_PAID"]}
+    if claim.get("bridge_loan_id"):
+        return {"eligible": False, "reasons": ["ADVANCE_ALREADY_TAKEN"]}
+    amount = min(B["cap_inr"], math.floor(claim["approved_inr"] * B["share_pct"] / 100)) // B["round_to_inr"] * B["round_to_inr"]
+    if amount < B["min_inr"]:
+        return {"eligible": False, "reasons": ["AMOUNT_TOO_LOW"]}
+    days = max(1, math.ceil((st["_due"] - now).total_seconds() / 86400))
+    interest = rnd(amount * B["apr_pct"] / 100 * days / 365)
+    fee = rnd(amount * B["fee_pct"] / 100)
+    fee_gst = rnd(fee * B["gst"])
+    return {"eligible": True, "reasons": [], "claim_id": claim["id"], "approved_inr": claim["approved_inr"],
+            "share_pct": B["share_pct"], "amount_inr": amount, "apr_pct": B["apr_pct"], "days": days,
+            "repay_by": st["payout_due"], "interest_inr": interest, "fee_inr": fee, "fee_gst_inr": fee_gst,
+            "net_inr": amount - fee - fee_gst, "total_inr": amount + interest}
+
+
+def build_bridge_kfs(d: dict) -> dict:
+    """Key Facts Statement for the advance: every cost, who repays and from what, cooling-off and grievance contact."""
+    B = cfg()["bridge"]
+    return {"lender_name": B["lender_name"], "amount_inr": d["amount_inr"], "apr_pct": d["apr_pct"], "days": d["days"],
+            "repay_by": d["repay_by"], "interest_inr": d["interest_inr"], "processing_fee_inr": d["fee_inr"],
+            "processing_fee_gst_inr": d["fee_gst_inr"], "net_disbursal_inr": d["net_inr"], "total_repayable_inr": d["total_inr"],
+            "repaid_from": "your insurance claim payout", "cooling_off_days": B["cooling_off_days"],
+            "grievance_contact": B["grievance_contact"], "insurance_required": False}
 
 
 def build_kfs(d: dict) -> dict:

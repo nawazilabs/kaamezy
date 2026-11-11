@@ -147,6 +147,29 @@ def record_execution(conn, user_id: str, kind: str, ref_id: str, audit_id: int, 
                  (user_id, kind, ref_id, audit_id, key, db.now_iso()))
 
 
+def new_claim_id() -> str:
+    return _id("CLM")
+
+
+def create_claim(conn, user_id: str, policy_id: str, claimed_inr: int, approved_inr: int) -> dict:
+    cid = new_claim_id()
+    conn.execute("INSERT INTO consumer_claims(id,user_id,policy_id,claimed_inr,approved_inr,created_at) VALUES(?,?,?,?,?,?)",
+                 (cid, user_id, policy_id, claimed_inr, approved_inr, db.now_iso()))
+    return get_claim(conn, user_id, cid)
+
+
+def get_claim(conn, user_id: str, claim_id: str) -> dict | None:
+    return _row(conn.execute("SELECT * FROM consumer_claims WHERE id=? AND user_id=?", (claim_id, user_id)).fetchone())
+
+
+def list_claims(conn, user_id: str) -> list[dict]:
+    return [dict(r) for r in conn.execute("SELECT * FROM consumer_claims WHERE user_id=? ORDER BY created_at, id", (user_id,))]
+
+
+def set_claim_bridge(conn, claim_id: str, loan_id: str) -> None:
+    conn.execute("UPDATE consumer_claims SET bridge_loan_id=? WHERE id=? AND bridge_loan_id IS NULL", (loan_id, claim_id))
+
+
 def new_policy_id() -> str:
     return _id("PHI")
 
