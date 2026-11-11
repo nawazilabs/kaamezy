@@ -357,7 +357,7 @@ Paytm jaisi app mein (`web/`): sign in → home → teen live tiles: **Health In
 | **Personal loan** | Amount, tenure, income, EMI → simulated lender decide karta hai → Key Facts Statement (har kharcha) → do consents → guardrail → disbursal (mock) |
 | **Document autofill** | PAN/Aadhaar card ki photo **browser ke andar** padhi jaati hai (OCR), naam, DOB, gender, PAN nikalte hain, user confirm karta hai. Photo upload nahi hoti. |
 | **Assistant** | Claim, waiting period, EMI, charges, privacy ke sawaal Hindi / Hinglish / English mein. LLM topic aur bhasha samajhta hai aur chhota jawab likhta hai; code jawab ko check karta hai |
-| **Bridge loan** | Policy wale user ko "claim pending hai, paisa chahiye" purpose milta hai. Policy sirf wajah hai: approval, amount, rate nahi badalti |
+| **Claim se bridge loan** | Policy wala user claim file karta hai (simulated insurer approve karta hai). Claim approved hai par payout pending, to us claim ke against chhota advance milta hai: amount sirf approved claim aur payout tak ke dino se tay hota hai (rule engine), income se nahi. Payout aane par usi se chukta hai. Key Facts, KYC, do consent, OTP (limit ke upar) wahi hain. Personal loan policy ko kabhi nahi dekhta, aur loan ke liye insurance zaroori nahi |
 
 ### 16.2 "Agent" kahan hai (sach-sach)
 

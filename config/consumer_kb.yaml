@@ -118,10 +118,10 @@ topics:
     hl: "Aapne jo bataya, usse maine loan form bhar diya hai. Har jaankari jaanchiye, jo chhoota hai woh jodiye, aur Check my offer dabaiye. Rakam lender tay karta hai, main nahi."
   medical_bridge:
     action: open_bridge_loan
-    keywords: ['\bbridge', 'ब्रिज']
-    en: "If you are in hospital and a claim is pending, you can ask for a medical bridge loan. Your policy only tells us why you need the money; it does not change approval or the rate."
-    hi: "अगर आप अस्पताल में हैं और क्लेम पेंडिंग है, तो मेडिकल ब्रिज लोन माँग सकते हैं। पॉलिसी सिर्फ़ वजह बताती है; मंज़ूरी या दर नहीं बदलती।"
-    hl: "Agar aap aspataal mein hain aur claim pending hai, to medical bridge loan maang sakte hain. Policy sirf wajah batati hai; manzoori ya dar nahi badalti."
+    keywords: ['\bbridge', 'ब्रिज', 'claim.{0,25}(atka|pending|stuck|approved|payout)', '\badvance\b']
+    en: "If you are in hospital and your claim is approved but not paid yet, you can ask for a short advance against it. Open My claims to see what is possible. It is repaid from the claim payout, and no insurance is needed to get a loan."
+    hi: "अगर आप अस्पताल में हैं और आपका क्लेम मंज़ूर हो चुका है पर पैसा अभी नहीं आया, तो उसके बदले छोटा एडवांस माँग सकते हैं। क्या संभव है, यह देखने के लिए My claims खोलें। यह क्लेम के भुगतान से चुकता होता है, और लोन के लिए बीमा ज़रूरी नहीं है।"
+    hl: "Agar aap aspataal mein hain aur aapka claim manzoor ho chuka hai par paisa abhi nahi aaya, to uske badle chhota advance maang sakte hain. Kya mumkin hai yeh dekhne ke liye My claims kholiye. Yeh claim ke payout se chukta hai, aur loan ke liye insurance zaroori nahi hai."
   privacy:
     action: null
     keywords: ['aadhaar', 'aadhar', '\bpan\b', 'privacy', '\bsecure', '\bsafe', '\bdata\b', 'आधार', 'डेटा']

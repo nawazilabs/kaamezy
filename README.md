@@ -11,7 +11,7 @@ Built for the Paytm Build for India hackathon.
 | Area | What a user can do | Where |
 |------|--------------------|-------|
 | **Consumer: health insurance** | Describe the family, autofill from a PAN/Aadhaar photo (read **on the device**), compare 3 insurers priced by a rule engine, buy through the guardrail (KYC, consent, premium check, OTP over ₹30,000, human underwriter for risky cases) | `chaukas/consumer/`, `web/` |
-| **Consumer: personal loan** | Check an offer from a simulated lender (age, income, EMIs only), read the Key Facts Statement, give two consents, get a guardrail-checked mock disbursal. A policy holder can pick "medical bridge" as the purpose; it never changes approval or rate | `chaukas/consumer/`, `web/` |
+| **Consumer: personal loan** | Check an offer from a simulated lender (age, income, EMIs only), read the Key Facts Statement, give two consents, get a guardrail-checked mock disbursal. A policy holder can file a (simulated) claim and, once it is approved and its payout is pending, take a short advance against it (My claims); the personal loan never looks at the policy | `chaukas/consumer/`, `web/` |
 | **AI assistant** | Ask about claims, waiting periods, EMI, charges, privacy in Hindi, Hinglish or English. The model picks a topic and words a reply from a knowledge base; code checks the reply and chooses any on-screen action | `chaukas/consumer/assistant.py` |
 | **Merchant: support + sales** | Settlement problems, loan offers, shop insurance, device upgrades, proactive outreach on a failed settlement, agent-desk handoff | `chaukas/agents/`, `chaukas/core/`, `chaukas/policy/` |
 

@@ -141,6 +141,7 @@
     <div class="czcard menu">
       ${row("hi-r-new", "plus", false, "Get a new quote", "Compare plans for your family")}
       ${row("hi-r-pol", "file-text", false, "My policies", "Add a policy to see it here")}
+      ${row("hi-r-claims", "heart-pulse", false, "My claims", "File a claim, get cash before the payout")}
       ${row("hi-r-claim", "briefcase-medical", true, "How do I claim?", "Ask the assistant, in your language")}
       ${row("hi-r-act", "lock", false, "Privacy &amp; AI activity", "Consents and everything the AI did")}
     </div>
@@ -158,6 +159,11 @@
 <section class="flow" id="hip" hidden>
   ${bar("hi", "My policies", "issued through Kaamezy")}
   <div class="czbody" id="hip-body"></div>
+</section>
+
+<section class="flow" id="clm" hidden>
+  ${bar("hi", "My claims", "simulated insurer and lender")}
+  <div class="czbody" id="clm-body"></div>
 </section>
 
 <section class="flow" id="hia" hidden>
@@ -194,8 +200,8 @@
       <button class="czbtn" id="ln-new"><i data-lucide="plus"></i> Check my offer</button>
       <button class="czbtn soft" id="ln-sample"><i data-lucide="circle-play"></i> Try with a sample borrower</button></div>
     <div class="czcard" id="ln-bridge" hidden><h2>Need cash while a claim is pending?</h2>
-      <p><span id="ln-bridge-s"></span> You can ask for a medical bridge loan. Your policy does not change whether you are approved or the rate; it only tells us why you need the money.</p>
-      <button class="czbtn soft" id="ln-bridge-btn"><i data-lucide="heart-pulse"></i> Medical bridge loan</button></div>
+      <p><span id="ln-bridge-s"></span> Once your claim is approved you can ask for a short advance against it. It is repaid from the claim payout, and your policy never changes a personal loan.</p>
+      <button class="czbtn soft" id="ln-bridge-btn"><i data-lucide="heart-pulse"></i> My claims and advance</button></div>
     <div class="czcard menu">
       ${row("ln-r-new", "plus", false, "Check a new offer", "See what you can borrow")}
       ${row("ln-r-loans", "file-text", false, "My loans", "Your loans will show up here")}
@@ -474,7 +480,6 @@
   /* ================= LOAN ================= */
   const TENURES = [6, 12, 18, 24, 36];
   const PURPOSES = ["Medical", "Education", "Home", "Business", "Other"];
-  const BRIDGE = "Medical bridge (claim pending)";
   const LOAN_AMOUNTS = [25000, 50000, 100000, 200000, 500000];
   const PLAIN = {
     AGE_OUT_OF_RANGE: "The lender lends to people aged 21 to 60.",
@@ -518,9 +523,8 @@
     const am = el("div", { class: "chips", style: "margin-top:.5rem" }); LOAN_AMOUNTS.forEach(a => am.append(chip(inr(a), L.amount === a, () => { L.amount = a; lstep1(); }))); b.append(am);
     b.append(el("span", { class: "lbl", text: "Repay over" })); const tn = el("div", { class: "chips" }); TENURES.forEach(n => tn.append(chip(n + " months", L.tenure === n, () => { L.tenure = n; lstep1(); }))); b.append(tn);
     b.append(el("span", { class: "lbl", text: "What is it for?" })); const pu = el("div", { class: "chips" });
-    const purposes = PURPOSES.slice(); if (pols.length) purposes.unshift(BRIDGE);
-    purposes.forEach(p => pu.append(chip(p, L.purpose === p, () => { L.purpose = p; L.policy = p === BRIDGE ? pols[pols.length - 1].id : null; lstep1(); }))); b.append(pu);
-    if (L.purpose === BRIDGE) b.append(el("div", { class: "why", text: "Your policy " + (L.policy || "") + " only tells us why you need the money. It does not change whether you are approved, the amount, or the rate. The lender never sees it unless you share it." }));
+    const purposes = PURPOSES.slice();
+    purposes.forEach(p => pu.append(chip(p, L.purpose === p, () => { L.purpose = p; lstep1(); }))); b.append(pu);
     b.append(el("span", { class: "lbl", text: "How do you earn?" }), el("div", { class: "chips" }, chip("Salaried", L.employment === "salaried", () => { L.employment = "salaried"; lstep1(); }), chip("Self-employed", L.employment === "self", () => { L.employment = "self"; lstep1(); })));
     b.append(lnum("Monthly income (₹)", "income", "e.g. 50000", "1000"), lnum("Existing EMIs per month (₹, 0 if none)", "emi", "0", "500"));
     b.append(el("span", { class: "lbl", text: "About you" }), ltxt("Full name", "name", { attrs: { autocomplete: "name" } }), lnum("Age", "age", "e.g. 32"),
@@ -616,7 +620,10 @@
     if (!r.ok) { b.append(el("div", { class: "empty2", text: errMsg(r) })); return; }
     if (!r.data.length) b.append(el("div", { class: "empty2", text: "No loans yet. Check your offer to start." }), el("button", { class: "czbtn", text: "Check my offer", onclick: () => startLoan(blankLoan()) }));
     r.data.slice().reverse().forEach(x => b.append(el("div", { class: "polcard" }, el("div", { class: "h" }, el("span", { text: inr(x.amount_inr) + " · " + x.purpose }), el("span", { class: "v ALLOW", text: x.status })),
-      el("div", { class: "m" }, x.lender_name + " · " + x.id, el("br"), "EMI " + inr(x.emi_inr) + " × " + x.tenure_months + " at " + x.apr_pct + "% APR", el("br"), "Next EMI " + day(x.first_emi_date) + " · Cooling-off until " + day(x.cooling_off_end)), emiSchedule(x))));
+      x.purpose.indexOf("Medical bridge") === 0
+        ? el("div", { class: "m" }, x.lender_name + " · " + x.id, el("br"), "One repayment of " + inr(x.total_inr) + " from your claim payout by " + day(x.first_emi_date), el("br"), "Cooling-off until " + day(x.cooling_off_end))
+        : el("div", { class: "m" }, x.lender_name + " · " + x.id, el("br"), "EMI " + inr(x.emi_inr) + " × " + x.tenure_months + " at " + x.apr_pct + "% APR", el("br"), "Next EMI " + day(x.first_emi_date) + " · Cooling-off until " + day(x.cooling_off_end)),
+      x.purpose.indexOf("Medical bridge") === 0 ? null : emiSchedule(x))));
     refresh();
   }
   async function refreshLoanLanding() {
@@ -629,7 +636,6 @@
   function startLoan(l, policyId) {
     L = l; LD = null; LQ = null; LKFS = null; KFSP = null; LHANDOFF = null; LC1 = false; LC2 = false;
     if (l.name === "Demo Sharma" && !PAN) PAN = "ABCDE1234F";
-    if (policyId) { L.purpose = BRIDGE; L.policy = policyId; }
     showScreen("lnw"); lstep1();
   }
   /* The assistant read figures out of a chat message. The SERVER validated them (stated, in range); this only fills the form.
@@ -651,7 +657,108 @@
     return el("div", { class: "pf" }, ...rows, need.length ? el("div", { class: "pf-need", text: "Still needed from you: " + need.join(", ") }) : null,
       el("div", { class: "acts" }, el("button", { class: "mini-cta", type: "button", text: "Review the loan form", onclick: () => prefillLoan(pf) })));
   }
-  async function bridgeLoan() { const pols = await listPolicies(); startLoan(blankLoan(), pols.length ? pols[pols.length - 1].id : null); }
+  /* ================= CLAIMS + BRIDGE ADVANCE =================
+     A claim is filed with a SIMULATED insurer; its decision and the advance both come from rules on the server.
+     The advance goes through the same steps as a loan: Key Facts first, identity, consent, a one-time code above the limit. */
+  const CLAIM_STATE = { under_review: "Under review", approved_payout_pending: "Approved, payout pending", paid: "Paid" };
+  const CLAIM_AMOUNTS = [50000, 100000, 200000];
+  const BRIDGE_PLAIN = { CLAIM_NOT_APPROVED_YET: "The insurer has not approved this claim yet.", CLAIM_ALREADY_PAID: "The insurer has already paid this claim.",
+    AMOUNT_TOO_LOW: "The approved amount is too small for an advance.", ADVANCE_ALREADY_TAKEN: "An advance has already been taken against this claim." };
+  let BQ = null, BKFS = null, BKFSP = null, BC1 = false, BC2 = false, BID = { pan: "", name: "", mobile: "", pincode: "" };
+  const bfield = (label, key, attrs) => el("label", { class: "auth-field", style: "margin-top:.7rem" }, label,
+    el("input", Object.assign({ value: BID[key] || "", oninput: e => { BID[key] = key === "name" ? e.target.value : key === "pan" ? e.target.value.toUpperCase().trim() : e.target.value.replace(/\D/g, ""); } }, attrs)));
+
+  async function openClaims() {
+    showScreen("clm"); const b = $("clm-body"); b.replaceChildren(el("div", { class: "empty2", text: "Loading…" }));
+    const [cr, pols] = await Promise.all([capi("GET", "/claims"), listPolicies()]);
+    b.replaceChildren();
+    if (!cr.ok) { b.append(el("div", { class: "empty2", text: errMsg(cr) })); return; }
+    b.append(el("p", { class: "s", text: "Demo: the insurer and the lender are simulated. The insurer's decision and any advance come from rules in code, never from the AI." }));
+    if (!pols.length) b.append(el("div", { class: "empty2", text: "You need a health policy before you can file a claim." }), el("button", { class: "czbtn", text: "Get a quote", onclick: () => startWizard(blank()) }));
+    else b.append(claimForm(pols[pols.length - 1]));
+    if (!cr.data.length) b.append(el("div", { class: "empty2", text: "No claims yet." }));
+    cr.data.slice().reverse().forEach(c => b.append(claimCard(c)));
+    refresh();
+  }
+
+  function claimForm(pol) {
+    const inp = el("input", { type: "number", inputmode: "numeric", step: "1000", "aria-label": "Claim amount", value: "100000" });
+    const chips = el("div", { class: "chips", style: "margin-top:.5rem" }); CLAIM_AMOUNTS.forEach(a => chips.append(chip(inr(a), false, () => { inp.value = String(a); })));
+    return el("div", { class: "polcard" }, el("b", { text: "File a claim" }),
+      el("p", { class: "s", style: "margin:.3rem 0 .6rem;font-size:.85rem", text: "Policy " + pol.id + " · cover " + inr(pol.cover_inr) + ". Enter the hospital bill you are claiming." }),
+      el("label", { class: "auth-field" }, inp), chips,
+      el("button", { class: "czbtn", style: "margin-top:.7rem", text: "File claim (demo)", onclick: async e => {
+        const btn = e.currentTarget; btn.disabled = true;
+        try {
+          const r = await capi("POST", "/claims", { policy_id: pol.id, claimed_inr: Number(inp.value) });
+          if (!r.ok) { toast((r.data && r.data.detail && r.data.detail.message) || errMsg(r)); return; }
+          toast("Claim filed with the simulated insurer."); openClaims();
+        } finally { btn.disabled = false; }
+      } }));
+  }
+
+  function claimCard(c) {
+    const card = el("div", { class: "polcard" }, el("div", { class: "h" }, el("span", { text: inr(c.claimed_inr) + " claim" }), el("span", { class: "v " + (c.state === "paid" ? "BLOCK" : "ALLOW"), text: CLAIM_STATE[c.state] || c.state })),
+      el("div", { class: "m" }, "Claim " + c.id, el("br"), "Insurer approves " + inr(c.approved_inr), el("br"), (c.state === "paid" ? "Paid on " : "Payout expected by ") + day(c.payout_due)));
+    if (c.bridge_loan_id) card.append(el("p", { class: "s", style: "margin:.5rem 0 0;font-size:.85rem", text: "An advance " + c.bridge_loan_id + " was taken against this claim. It is repaid from the payout." }));
+    else if (c.bridge_up_to_inr) card.append(el("p", { class: "s", style: "margin:.6rem 0 .4rem;font-size:.85rem", text: "Need cash before the payout? You can ask for a short advance of up to " + inr(c.bridge_up_to_inr) + " against this claim. It is repaid from the claim payout, and you see every cost first." }),
+      el("button", { class: "czbtn soft", text: "See my advance offer", onclick: () => startBridge(c) }));
+    else if (c.bridge_blocked && BRIDGE_PLAIN[c.bridge_blocked]) card.append(el("p", { class: "s", style: "margin:.5rem 0 0;font-size:.85rem", text: BRIDGE_PLAIN[c.bridge_blocked] }));
+    return card;
+  }
+
+  async function startBridge(c) {
+    const r = await capi("POST", "/bridge/decide", { claim_id: c.id }); if (!r.ok) { toast(errMsg(r)); return; }
+    const d = r.data.decision;
+    if (!d.eligible) { toast(BRIDGE_PLAIN[d.reasons[0]] || "No advance is possible on this claim."); openClaims(); return; }
+    BQ = r.data.quote_id; BKFS = r.data.kfs; BKFSP = null; BC1 = false; BC2 = false;
+    BID = { pan: PAN || "", name: BID.name || W.proposer.name || "", mobile: BID.mobile || W.proposer.mobile || "", pincode: BID.pincode || W.pincode || "" };
+    bridgeKfs();
+  }
+
+  function bridgeKfs() {
+    const b = $("clm-body"); b.replaceChildren(); const k = BKFS, dd = (a, v) => [el("dt", { text: a }), el("dd", { text: v })];
+    BKFSP = capi("POST", "/loan/quotes/" + BQ + "/kfs-shown");   /* the server records WHEN the Key Facts were on screen */
+    b.append(el("h2", { class: "t", text: "Key Facts Statement" }), el("p", { class: "s", text: "Every cost, before you agree. No insurance or other product is required to get this advance." }));
+    b.append(el("dl", { class: "sum kfs" }, ...dd("Lender", k.lender_name), ...dd("Advance amount", inr(k.amount_inr)), ...dd("Repaid from", k.repaid_from), ...dd("Repay by", day(k.repay_by) + " (" + k.days + " days)"),
+      ...dd("Interest rate (APR)", k.apr_pct + "% a year, only for those days"), ...dd("Interest", inr(k.interest_inr)), ...dd("Processing fee", inr(k.processing_fee_inr) + " + " + inr(k.processing_fee_gst_inr) + " GST"),
+      ...dd("You receive", inr(k.net_disbursal_inr)), ...dd("You repay in total", inr(k.total_repayable_inr)), ...dd("Cooling-off", k.cooling_off_days + " days: exit by repaying the principal and interest for the days used, no penalty (demo terms)"),
+      ...dd("Grievance contact", k.grievance_contact)));
+    b.append(el("span", { class: "lbl", text: "Identity (KYC)" }), kycCard(), bfield("PAN", "pan", { placeholder: "ABCDE1234F", maxlength: "10", autocapitalize: "characters" }),
+      bfield("Your name", "name"), bfield("Mobile number", "mobile", { inputmode: "numeric", maxlength: "10" }), bfield("Pincode", "pincode", { inputmode: "numeric", maxlength: "6" }));
+    const c1 = el("input", { type: "checkbox" }), c2 = el("input", { type: "checkbox" });
+    c1.checked = BC1; c2.checked = BC2; c1.onchange = () => { BC1 = c1.checked; }; c2.onchange = () => { BC2 = c2.checked; };
+    b.append(el("label", { class: "consent" }, c1, el("span", { text: "I have read the Key Facts Statement above. I accept this advance and agree that it is repaid from my insurance claim payout." })),
+      el("label", { class: "consent" }, c2, el("span", { text: "Share the details of this claim with " + k.lender_name + " for this advance only. I can withdraw this consent from Privacy & AI activity." })));
+    b.append(el("p", { class: "s", style: "margin-top:.8rem;font-size:.82rem", text: "Money goes to your Paytm-linked bank account ••••4321 (demo)." }));
+    b.append(el("div", { class: "navrow" }, el("button", { class: "czbtn soft", text: "Back", onclick: () => openClaims() }), el("button", { class: "czbtn", id: "clm-accept", text: "Accept and get money", onclick: () => attemptBridge({}) })), el("div", { id: "clm-res" }));
+    refresh();
+  }
+
+  async function attemptBridge(extra) {
+    extra = extra || {}; const btn = $("clm-accept"); if (btn) btn.disabled = true;
+    try {
+      if (BKFSP) await BKFSP;
+      const r = await capi("POST", "/bridge/accept", { quote_id: BQ, consent_offer: BC1, consent_claim_share: BC2, pan: BID.pan || null, mobile: BID.mobile,
+        holder_name: BID.name, pincode: BID.pincode, otp: extra.otp || null });
+      if (!r.ok) { toast((r.data && r.data.detail && r.data.detail.message) || errMsg(r)); return; }
+      const d = r.data.decision;
+      if (extra.otp && d.reason_code === "OVER_AUTO_LIMIT") toast("That code is not right.");
+      if (d.verdict !== "ALLOW") { renderDecision(d, { mount: $("clm-res"), humanTitle: "", who: "", handoff: null, retry: attemptBridge, back: () => openClaims() }); return; }
+      showBridgeDone(r.data.loan);
+    } finally { if (btn) btn.disabled = false; }
+  }
+
+  function showBridgeDone(ln) {
+    refreshLoanLanding(); const b = $("clm-body"); b.replaceChildren();
+    b.append(el("div", { class: "done-mark", text: "✓" }), el("h2", { class: "t", style: "text-align:center", text: "Advance approved" }), el("p", { class: "s", style: "text-align:center", text: ln.lender_name + " · " + ln.id }),
+      el("dl", { class: "sum" }, el("dt", { text: "Credited to ••••4321" }), el("dd", { text: inr(ln.net_inr) }), el("dt", { text: "Repaid from your claim payout" }), el("dd", { text: inr(ln.total_inr) + " by " + day(ln.first_emi_date) }),
+        el("dt", { text: "Cooling-off until" }), el("dd", { text: day(ln.cooling_off_end) })),
+      el("p", { class: "s", text: "Demo only: no money moved and no real advance exists. The decision is saved in Privacy & AI activity." }),
+      el("div", { class: "navrow" }, el("button", { class: "czbtn soft", text: "My loans", onclick: () => openLoans() }), el("button", { class: "czbtn", text: "My claims", onclick: () => openClaims() })));
+    refresh();
+  }
+  const bridgeLoan = () => openClaims();
 
   /* ---------------- lists ---------------- */
   async function openPolicies() {
@@ -664,8 +771,8 @@
       el("div", { class: "m" }, "Policy " + p.id, el("br"), p.holder + " · PAN " + p.pan + " · Nominee " + p.nominee, el("br"), p.members.join(", "), el("br"), "Cover " + inr(p.cover_inr) + " · Premium " + inr(p.premium_inr) + " / year", el("br"),
         "Renews " + day(p.end_date) + " (" + Math.max(0, Math.ceil((new Date(p.end_date) - Date.now()) / 86400000)) + " days left)"))));
     if (pols.length) b.append(el("div", { class: "polcard" }, el("b", { text: "Need cash while a claim is pending?" }),
-      el("p", { class: "s", style: "margin:.3rem 0 .6rem;font-size:.85rem", text: "You can ask for a medical bridge loan. Your policy does not change approval or the rate." }),
-      el("button", { class: "czbtn soft", text: "Ask about a bridge loan", onclick: () => startLoan(blankLoan(), pols[pols.length - 1].id) })));
+      el("p", { class: "s", style: "margin:.3rem 0 .6rem;font-size:.85rem", text: "File a claim, and once it is approved you can ask for a short advance against the payout." }),
+      el("button", { class: "czbtn soft", text: "Open My claims", onclick: () => openClaims() })));
     refresh();
   }
   async function openActivity(from) {
@@ -693,7 +800,7 @@
   const ACTIONS = {
     start_insurance_quote: ["Start my quote", () => startWizard(blank())],
     open_loan_check: ["Check my loan offer", () => startLoan(blankLoan())],
-    open_bridge_loan: ["Start a bridge loan", () => bridgeLoan()],
+    open_bridge_loan: ["Open My claims", () => bridgeLoan()],
     open_policies: ["Open My policies", () => openPolicies()],
   };
   let ASESS = null, AINTRO = null, chatFrom = "hi";
@@ -904,7 +1011,7 @@
     $("hi-sample").onclick = () => startWizard(SAMPLE());
     $("hi-r-new").onclick = () => startWizard(blank()); $("ln-r-new").onclick = () => startLoan(blankLoan());
     document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheets(); });
-    $("hi-r-pol").onclick = openPolicies; $("hi-r-act").onclick = () => openActivity("hi");
+    $("hi-r-pol").onclick = openPolicies; $("hi-r-claims").onclick = openClaims; $("hi-r-act").onclick = () => openActivity("hi");
     $("hi-r-claim").onclick = () => openChat("How do I claim?", "hi"); $("hi-ask").onclick = () => openChat(undefined, "hi");
     $("ic-close").onclick = () => showScreen(chatFrom);
     $("ic-new").onclick = () => { $("ic-chat").replaceChildren(); ASESS = null; openChat(); };

@@ -804,7 +804,7 @@ let sb = null;
 try{ sb = window.supabase.createClient(SB_URL, SB_KEY); }catch(e){ sb = null; }
 
 let cur = null, user = null, recovering = false;
-const SCREENS = ["auth-page","home","cz","chs","ins","hi","hiw","hip","hia","ich","ln","lnw","lnl","acct"];
+const SCREENS = ["auth-page","home","cz","chs","ins","hi","hiw","hip","clm","hia","ich","ln","lnw","lnl","acct"];
 function icons(){ try{ window.lucide && lucide.createIcons(); }catch(e){} }
 function showScreen(id){
   cur = id; SCREENS.forEach(s => { const n = $(s); if(n) n.hidden = s !== id; }); closeSheets();

@@ -16,7 +16,7 @@ You answer questions only. You never buy, issue, approve, send or promise anythi
    - insurance_quote: the person wants to buy or price a health policy.
    - loan_apply: the person wants a loan or to know if they can get one.
    - own_figures: the person asks what THEIR premium, EMI, limit or approval chance will be.
-   - medical_bridge: a loan while a hospital claim is pending.
+   - medical_bridge: a short advance while an approved hospital claim is waiting to be paid.
    - human_request: the person asks for a human, an advisor, or wants to complain.
    - unknown: off-topic, unclear, or a question the KNOWLEDGE does not cover. Do not guess.
 2. Detect the language code of the message, exactly one of: hi-IN (Hindi in Devanagari), hi-Latn (Hindi or a Hindi-English mix in Latin letters), en-IN (English), gu-IN (Gujarati), mr-IN (Marathi). Any other language: en-IN. A very short message ("ok", "thanks"): use the language of the recent turns in <CONTEXT>.
