@@ -104,6 +104,7 @@ body{overflow:hidden}
 .auth-page,#home,.cz,.chs,.ins{animation:fadein .22s ease-out}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,185,241,.55)}70%{box-shadow:0 0 0 12px rgba(0,185,241,0)}100%{box-shadow:0 0 0 0 rgba(0,185,241,0)}}
 .tile-live .service-icon{border-radius:50%;width:2.4rem;height:2.4rem;margin-top:-.3rem;background:var(--p-soft);animation:pulse 2s infinite}
+body.no-auth #home-out,body.no-auth #ac-out,body.no-auth #ac-pw,body.no-auth #ac-pwform{display:none!important}
 @media(prefers-reduced-motion:reduce){.auth-page,#home,.cz,.chs,.ins,.tile-live .service-icon{animation:none}}
 .toast{position:absolute;bottom:76px}
 
@@ -828,6 +829,9 @@ const SB_KEY = "sb_publishable_aUj98w7B1_R8joa87GylhA_X20ChAm6";   /* publishabl
 let sb = null;
 try{ sb = window.supabase.createClient(SB_URL, SB_KEY); }catch(e){ sb = null; }
 
+/* DEMO MODE: no sign-in. Everyone is the single demo user, and the server must run with CHAUKAS_CONSUMER_AUTH=off.
+   Set NO_AUTH to false to bring the Supabase sign-in back (and run the server with CHAUKAS_CONSUMER_AUTH=supabase). */
+const NO_AUTH = true;
 let cur = null, user = null, recovering = false;
 const SCREENS = ["auth-page","home","cz","chs","ins","hi","hiw","hip","clm","hia","ich","ln","lnw","lnl","acct","pm","bp","sp","st"];
 function icons(){ try{ window.lucide && lucide.createIcons(); }catch(e){} }
@@ -987,6 +991,11 @@ function wireShell(){
 
 function startApp(){
   wireShell();
+  if(NO_AUTH){
+    document.body.classList.add("no-auth");
+    user = { id: "demo-user", email: "Demo user", user_metadata: { full_name: "Demo" } }; renderUser(); showScreen("home");
+    return;
+  }
   if(!sb){ showScreen("auth-page"); authMode("signin"); setMsg("Sign-in service could not load. Check your connection and refresh.", "error"); return; }
   sb.auth.onAuthStateChange((ev, session) => {      /* sync only: never await supabase calls in here */
     if(ev === "PASSWORD_RECOVERY"){ recovering = true; showScreen("auth-page"); authMode("recovery"); return; }
