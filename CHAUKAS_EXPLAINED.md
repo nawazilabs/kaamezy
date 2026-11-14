@@ -359,6 +359,35 @@ Paytm jaisi app mein (`web/`): sign in → home → teen live tiles: **Health In
 | **Assistant** | Claim, waiting period, EMI, charges, privacy ke sawaal Hindi / Hinglish / English mein. LLM topic aur bhasha samajhta hai aur chhota jawab likhta hai; code jawab ko check karta hai |
 | **Claim se bridge loan** | Policy wala user claim file karta hai (simulated insurer approve karta hai). Claim approved hai par payout pending, to us claim ke against chhota advance milta hai: amount sirf approved claim aur payout tak ke dino se tay hota hai (rule engine), income se nahi. Payout aane par usi se chukta hai. Key Facts, KYC, do consent, OTP (limit ke upar) wahi hain. Personal loan policy ko kabhi nahi dekhta, aur loan ke liye insurance zaroori nahi |
 
+### 16.1a Claim se bridge loan: kahani aur numbers
+
+**Kahani:** hospital ka bill abhi dena hai, lekin insurance claim ka payout 10 din door hai.
+
+| Scene | Kya hota hai |
+|-------|--------------|
+| 1 | Policy hai (health insurance flow se) |
+| 2 | User ₹1,00,000 ka claim file karta hai (*My claims*) |
+| 3 | Insurer (simulated) ₹90,000 approve karta hai (`claims.approve_pct: 90`), payout 10 din baad (`payout_days: 10`) |
+| 4 | "Need cash before the payout?" card dikhta hai |
+| 5 | Advance offer ₹70,000 tak: approved claim ka 80% (`bridge.share_pct: 80`), 5,000 ke multiple mein, min ₹10,000, cap ₹2,00,000. Amount sirf `engine.bridge_decide` se, income se nahi |
+| 6 | Key Facts Statement: har kharcha, "Repaid from your insurance claim payout", "No insurance required to get a loan" |
+| 7 | KYC (DigiLocker mock) aur do alag consents |
+| 8 | Guardrail `check_bridge_accept` → "Advance approved". ₹1,00,000 se upar ka advance ho to OTP (`bridge.auto_limit_inr`) |
+
+**Screen par highlight karne wale captions:** "Sized from the approved claim, not income" · "Every cost shown first" · "Insurer and lender are simulated in this demo".
+
+**Safety:** personal loan policy ko kabhi nahi dekhta. Ek claim par ek hi advance (idempotency + `max_active_loans`). Server quote ko dobara compute karke compare karta hai, client amount nahi bhejta.
+
+### 16.1b Voice (mic): kya kar sakta hai, kya nahi
+
+Home par mic button: user bolta hai → Sarvam Saaras text banata hai (do reading: bhasha mein `text`, aur English `understood`) → wahi text normal assistant path se jaata hai (PII mask, injection screen) → jawab Bulbul se sunaya jaata hai.
+
+- **Kar sakta hai:** assistant ka jawab sunana, loan form ke stated fields bharna (`prefill.py`), screen kholna (Bills, Payment help, Spends, Loan), biller chunna.
+- **Nahi kar sakta:** consent dena, OTP daalna, KYC verify karna, payment ya loan approve karna. Ye sab screen par tap hain aur server par check hote hain. Matlab bolne se loan ya recharge **ban nahi jaata**; form taiyar hota hai, user tap karta hai.
+- **Privacy:** audio disk, DB ya log mein kabhi nahi jaata. Transcript bhi log nahi hota. Audit row mein sirf bhasha aur length. Bill ka account number voice se kabhi nahi liya jaata.
+- `speak` sirf assistant ke apne recent replies padhta hai, free text-to-speech nahi.
+- Code: `chaukas/consumer/voice.py`, config: `config/consumer_voice.yaml`, endpoints: `/api/consumer/voice/{config,transcribe,speak}`.
+
 ### 16.2 "Agent" kahan hai (sach-sach)
 
 | Hissa | LLM? | Kaisa |
@@ -368,6 +397,10 @@ Paytm jaisi app mein (`web/`): sign in → home → teen live tiles: **Health In
 | Lender ka faisla | ❌ | Simulated lender, asli code, thresholds placeholder |
 | Guardrail (8 checks insurance, 8 checks loan) | ❌ **kabhi nahi** | Asli, deterministic |
 | Document padhna (`docparse.js`) | ❌ | OCR + plain code |
+| Claim ke kaagaz padhna (`docread.js`, `consumer/docs.py`) | ❌ (sirf ek optional helper policy ki clause lines dhundhta hai, wo faisla nahi karta) | Browser mein pdf.js / OCR, server par rules parser |
+| Claim estimate (`estimate.py`), kaagaz ki jaanch (`verify.py`) | ❌ | Asli code, integer maths, har deduction ke saath policy ki clause |
+| Risk signals (`risk.py`): rules + chhota ML model | ❌ (model chhota logistic regression, **synthetic** data par) | Sirf salah: insaan dekhe, paisa na de na roke |
+| Pipeline + agent log (`pipeline.py`) | ❌ | Plain Python, 6 stage, log append-only |
 | Policy issue / loan disbursal / DigiLocker / human | ❌ | **Mock** |
 
 ### 16.3 Safety: kya server par hai, kyun
@@ -392,6 +425,23 @@ LLM ko kabhi nahi jaata:
 4. Photo ka padhna browser mein hota hai (OCR engine code ki tarah download hota hai, photo nahi bhejti).
 5. Test hai jo saari consumer tables dump karke dekhta hai ki raw PAN, mobile, naam, pincode kahin nahi.
 
+### 16.4a Claim ke kaagaz se financing: sach-sach
+
+**Kahani:** hospital ka bill abhi dena hai, insurer ka paisa baad mein aayega. Hum do cheezein dete hain: (B) approved claim par chhota advance, (A) admission se pehle hospital ke deposit ke liye advance.
+
+**Raasta (ek hi pipeline, `consumer/pipeline.py`):** READ (kaagaz padho) → VERIFY (ek doosre se aur insurer ke record se milao) → ESTIMATE (policy kitna dega, andaza) → RISK (insaan dekhe?) → GATE (rules) → OFFER (sirf ek stored offer). Har stage agent log mein likha jaata hai (*What the agent did*): stage, status, ek line, codes aur rupee figures. Naam, document ka text, ya reference number log mein kabhi nahi.
+
+**Kaun kya decide karta hai:**
+- Kaagaz padhna: phone par (pdf.js, scan ke liye OCR). Sirf text server tak jaata hai, server dobara khud padhta hai, kuch store nahi hota.
+- "Letter badla hua to?": approval letter akeli kabhi nahi maani jaati. Uska claim reference aur amounts insurer ke (simulated) record se milte hain. Mel na khaye to koi advance nahi. Record na mile to bhi nahi: use "not confirmed" kehte hain, "fake" nahi.
+- Advance ka amount: insurer ke record se (B) ya estimate ke `conservative_inr` se (A). Letter, client ya AI se kabhi nahi.
+- Ek asli claim ya estimate par ek hi advance, chahe kisi ne bhi upload kiya ho (hash UNIQUE). Aur advance sirf us policy holder ko jiska naam kaagaz par hai.
+- Hospital advance hospital ko jaata hai (partner list se), aapko nahi. Paisa claim se pehle nikalta hai, isliye OTP hamesha.
+- Risk: rules (bahut jaldi claim, bill cover ke paas, bahut zyada kharcha per din...) aur ek chhota model. **Model synthetic data par trained hai**: wo hamari "unusual" ki soch seekhta hai, fraud nahi. Wo sirf "insaan dekhe" kehta hai, kisi ko fraud nahi kehta, na paisa deta hai na rokta hai.
+- Estimate kabhi approval nahi: har jagah likha hai ki insurer hi faisla karta hai.
+
+**Demo ke baare mein sach:** insurer ka record, partner hospital, lender, KYC aur disbursal sab mock hain. Naye in-app policy ka waiting period demo mein ek switch se dikhaya-par-lagaya-nahi jaata, aur screen par "DEMO MODE" likha aata hai.
+
 ### 16.5 Judge Q&A (consumer flows)
 
 1. **"Isme AI kahan hai? Sab rules hi to hain."**
@@ -408,3 +458,13 @@ LLM ko kabhi nahi jaata:
    → Mumkin nahi: dono server check karta hai, approval staff ki row hai jo exact quote se bandhi hai.
 7. **"Offline chalega?"**
    → Nahi, backend chahiye (Render free tier so jaata hai: demo se pehle jagao).
+8. **"Approval letter nakli ho to?"**
+   → Letter akeli nahi maani jaati. Claim reference aur amounts insurer ke record se milte hain; mel na khaye ya record na mile to advance nahi (aur kisi ko "fraud" nahi kehte, bas "confirm nahi hua"). Amount letter se nahi, insurer ke record se aata hai.
+9. **"Risk model asli claims par trained hai?"**
+   → Nahi, synthetic claims par, aur hum yehi kehte hain. Wo sirf insaan ko dekhne ko kehta hai, paisa ya amount nahi chhoota. Asli data milne par retrain karna hoga.
+10. **"Hospital advance galat jagah ja sakta hai?"**
+    → Payee sirf partner hospital registry se aata hai, customer type nahi karta. Aur OTP hamesha lagta hai.
+11. **"Ek hi claim par do jagah se advance?"**
+    → Claim ka hash saare users mein UNIQUE hai, aur advance ke baad claim dusre advance ko back nahi karta. Hospital advance aane wale claim se close hota hai.
+12. **"Agent ne kya kiya, kaise pata?"**
+    → *What the agent did*: har run ke chhe stage, append-only. Usme sirf codes aur rupee figures hain.

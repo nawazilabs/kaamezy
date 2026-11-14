@@ -1,0 +1,470 @@
+{
+  "note": "DEMO DATA. Every name, number and amount in these files is invented. The insurer's record is config/insurer_registry_sim.yaml.",
+  "cases": [
+    {
+      "id": "rahul_approved",
+      "title": "A claim approved: the clean story",
+      "story": "Rahul Sharma was operated on for appendicitis. The bill is Rs. 2,00,000, the insurer approved Rs. 1,32,500 and the payout is still pending. Every document agrees and the insurer's record confirms the letter.",
+      "workflow": "approved_claim",
+      "expect": {
+        "verdict": "consistent",
+        "estimate_inr": 129037
+      },
+      "files": [
+        {
+          "name": "policy.pdf",
+          "doc_type": "policy",
+          "kind": "text",
+          "pages": 2,
+          "text_sha256": "021507dd61d2bb1fa0a7399d9f1e34d52abfde59dabff007057bd8a38a6791a9"
+        },
+        {
+          "name": "bill.pdf",
+          "doc_type": "hospital_bill",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "345accc7e37facfa29b1a13dc7e52a082ff01b41409b2d9a430be98bcfcf0965"
+        },
+        {
+          "name": "discharge_summary.pdf",
+          "doc_type": "discharge_summary",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "20b94a34279a6ea1e3aeffde321a4265f4ede6beaf2ec38102d2501c1e0b5679"
+        },
+        {
+          "name": "claim_acknowledgement.pdf",
+          "doc_type": "claim_ack",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "cd0208b94fd053181c60e5d7c3913a0b5df1444a1fc6a7e115d7900a5168807f"
+        },
+        {
+          "name": "approval_letter.pdf",
+          "doc_type": "claim_approval",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "75238e4e319150562218bea8a875f14d1176e9bd5864b16d90d966cdcd33bd0c"
+        }
+      ]
+    },
+    {
+      "id": "anita_full_approval",
+      "title": "A renewed policy, approved in full",
+      "story": "Anita Verma's gall bladder was removed. Her policy is renewed (cover since 2022, so the waiting periods are over), the room is within its limit, and the insurer approved the whole Rs. 1,20,000.",
+      "workflow": "approved_claim",
+      "expect": {
+        "verdict": "consistent",
+        "estimate_inr": 120000
+      },
+      "files": [
+        {
+          "name": "policy.pdf",
+          "doc_type": "policy",
+          "kind": "text",
+          "pages": 2,
+          "text_sha256": "df8070805a70b27a424c13d89a2dbcbece2ad526c576b0ffd52672d0c8d5bf76"
+        },
+        {
+          "name": "bill.pdf",
+          "doc_type": "hospital_bill",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "bebdd9db4a98ac6ea7980e7fbb3150ffed185e9b0aef971ea4e5b75726129d87"
+        },
+        {
+          "name": "discharge_summary.pdf",
+          "doc_type": "discharge_summary",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "ac127e00385f168bac1993219db7f65e7354e78c434e2acd04548cd464ded677"
+        },
+        {
+          "name": "claim_acknowledgement.pdf",
+          "doc_type": "claim_ack",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "8625ad43afa1dbf261e4462ddde32e3015cd6529b5c54d4a60c3f8511f4ef07c"
+        },
+        {
+          "name": "approval_letter.pdf",
+          "doc_type": "claim_approval",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "3964a5908f5315b0725b7e4ff484c50c774ab70049aa7ea03b31682b4d3a450e"
+        }
+      ]
+    },
+    {
+      "id": "rahul_scanned",
+      "title": "The same claim, from scans and a photo",
+      "story": "The policy and the acknowledgement are PDFs, but the bill and the discharge summary are scanned pages and the approval letter is a tilted, slightly blurred photo. The reader has to OCR them; the story must still end the same way.",
+      "workflow": "approved_claim",
+      "expect": {
+        "verdict": "consistent",
+        "estimate_inr": 129037,
+        "ocr": true
+      },
+      "files": [
+        {
+          "name": "policy.pdf",
+          "doc_type": "policy",
+          "kind": "text",
+          "pages": 2,
+          "text_sha256": "021507dd61d2bb1fa0a7399d9f1e34d52abfde59dabff007057bd8a38a6791a9"
+        },
+        {
+          "name": "bill_scan.pdf",
+          "doc_type": "hospital_bill",
+          "kind": "scan",
+          "pages": 1,
+          "text_sha256": "345accc7e37facfa29b1a13dc7e52a082ff01b41409b2d9a430be98bcfcf0965"
+        },
+        {
+          "name": "discharge_summary_scan.pdf",
+          "doc_type": "discharge_summary",
+          "kind": "scan",
+          "pages": 1,
+          "text_sha256": "20b94a34279a6ea1e3aeffde321a4265f4ede6beaf2ec38102d2501c1e0b5679"
+        },
+        {
+          "name": "claim_acknowledgement.pdf",
+          "doc_type": "claim_ack",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "cd0208b94fd053181c60e5d7c3913a0b5df1444a1fc6a7e115d7900a5168807f"
+        },
+        {
+          "name": "approval_letter_photo.jpg",
+          "doc_type": "claim_approval",
+          "kind": "photo",
+          "pages": 1,
+          "text_sha256": "75238e4e319150562218bea8a875f14d1176e9bd5864b16d90d966cdcd33bd0c"
+        }
+      ]
+    },
+    {
+      "id": "tampered_amount",
+      "title": "An approval letter with the amount changed",
+      "story": "The letter says Rs. 1,90,000 was approved (and was edited so its own sums still add up), but the insurer's record says Rs. 1,32,500. The letter does not match the insurer, so no advance can follow.",
+      "workflow": "approved_claim",
+      "expect": {
+        "verdict": "inconsistent",
+        "failed": [
+          "INSURER_RECORD_DIFFERS"
+        ],
+        "warned": [
+          "APPROVAL_ABOVE_ESTIMATE"
+        ]
+      },
+      "files": [
+        {
+          "name": "policy.pdf",
+          "doc_type": "policy",
+          "kind": "text",
+          "pages": 2,
+          "text_sha256": "021507dd61d2bb1fa0a7399d9f1e34d52abfde59dabff007057bd8a38a6791a9"
+        },
+        {
+          "name": "bill.pdf",
+          "doc_type": "hospital_bill",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "345accc7e37facfa29b1a13dc7e52a082ff01b41409b2d9a430be98bcfcf0965"
+        },
+        {
+          "name": "discharge_summary.pdf",
+          "doc_type": "discharge_summary",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "20b94a34279a6ea1e3aeffde321a4265f4ede6beaf2ec38102d2501c1e0b5679"
+        },
+        {
+          "name": "claim_acknowledgement.pdf",
+          "doc_type": "claim_ack",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "cd0208b94fd053181c60e5d7c3913a0b5df1444a1fc6a7e115d7900a5168807f"
+        },
+        {
+          "name": "approval_letter.pdf",
+          "doc_type": "claim_approval",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "549e49a386ba93938431ccd45283238fcd39bbbbd878f7d671586030d6385bea"
+        }
+      ]
+    },
+    {
+      "id": "different_patient",
+      "title": "A bill that belongs to someone else",
+      "story": "The hospital bill is in another person's name. The documents contradict each other, so the set is refused until a person looks at it.",
+      "workflow": "approved_claim",
+      "expect": {
+        "verdict": "inconsistent",
+        "failed": [
+          "PATIENT_NAME_DIFFERS"
+        ]
+      },
+      "files": [
+        {
+          "name": "policy.pdf",
+          "doc_type": "policy",
+          "kind": "text",
+          "pages": 2,
+          "text_sha256": "021507dd61d2bb1fa0a7399d9f1e34d52abfde59dabff007057bd8a38a6791a9"
+        },
+        {
+          "name": "bill.pdf",
+          "doc_type": "hospital_bill",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "064236357fe858bdfe838d42e6a945e31d3c49df325d7d97edc1583976694c5f"
+        },
+        {
+          "name": "discharge_summary.pdf",
+          "doc_type": "discharge_summary",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "20b94a34279a6ea1e3aeffde321a4265f4ede6beaf2ec38102d2501c1e0b5679"
+        },
+        {
+          "name": "claim_acknowledgement.pdf",
+          "doc_type": "claim_ack",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "cd0208b94fd053181c60e5d7c3913a0b5df1444a1fc6a7e115d7900a5168807f"
+        },
+        {
+          "name": "approval_letter.pdf",
+          "doc_type": "claim_approval",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "75238e4e319150562218bea8a875f14d1176e9bd5864b16d90d966cdcd33bd0c"
+        }
+      ]
+    },
+    {
+      "id": "unknown_claim",
+      "title": "A claim the insurer does not know",
+      "story": "Everything agrees, but the claim reference is not in the insurer's record, so the letter cannot be confirmed. It is not called false: a person must check it before any financing.",
+      "workflow": "approved_claim",
+      "expect": {
+        "verdict": "needs_review",
+        "warned": [
+          "INSURER_RECORD_NOT_FOUND"
+        ]
+      },
+      "files": [
+        {
+          "name": "policy.pdf",
+          "doc_type": "policy",
+          "kind": "text",
+          "pages": 2,
+          "text_sha256": "021507dd61d2bb1fa0a7399d9f1e34d52abfde59dabff007057bd8a38a6791a9"
+        },
+        {
+          "name": "bill.pdf",
+          "doc_type": "hospital_bill",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "345accc7e37facfa29b1a13dc7e52a082ff01b41409b2d9a430be98bcfcf0965"
+        },
+        {
+          "name": "discharge_summary.pdf",
+          "doc_type": "discharge_summary",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "20b94a34279a6ea1e3aeffde321a4265f4ede6beaf2ec38102d2501c1e0b5679"
+        },
+        {
+          "name": "claim_acknowledgement.pdf",
+          "doc_type": "claim_ack",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "e77eb533cd49506358b5fadf46c80d2e89b16ae1546a0366d49240ea0564f29f"
+        },
+        {
+          "name": "approval_letter.pdf",
+          "doc_type": "claim_approval",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "5a6e650d20cc666e12c26c068a6db5bbe28439883b47bb29ed5c6338b4eecffa"
+        }
+      ]
+    },
+    {
+      "id": "settled_claim",
+      "title": "A claim that is already paid",
+      "story": "Neha Singh's insurer has already paid this claim (the letter and the insurer's record both say so). There is nothing left to advance against.",
+      "workflow": "approved_claim",
+      "expect": {
+        "verdict": "inconsistent",
+        "failed": [
+          "LETTER_SAYS_SETTLED"
+        ]
+      },
+      "files": [
+        {
+          "name": "policy.pdf",
+          "doc_type": "policy",
+          "kind": "text",
+          "pages": 2,
+          "text_sha256": "dfa7994de65f1ed6811cb428573f3fa36aeb722fba99f6fa69462c5af24b86be"
+        },
+        {
+          "name": "bill.pdf",
+          "doc_type": "hospital_bill",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "bfcce9dca7111f7083f3f964a224cea6ea648e3743540d40d5f9f5e9e8f5d670"
+        },
+        {
+          "name": "discharge_summary.pdf",
+          "doc_type": "discharge_summary",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "703649a43a2f01b0fca88c6e2cf6c385315f5ab60d678e378c30a5bbbbe46367"
+        },
+        {
+          "name": "claim_acknowledgement.pdf",
+          "doc_type": "claim_ack",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "a10ee2c56f302ceae7e45ff3b421099901bc0fa02d30f81e1133b413b1d4f2f0"
+        },
+        {
+          "name": "approval_letter.pdf",
+          "doc_type": "claim_approval",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "09dd4cff95b3d79c4bcbf6bf1e9612645575d2ea009e94df644815545283fba1"
+        }
+      ]
+    },
+    {
+      "id": "forged_after_rejection",
+      "title": "An approval letter for a rejected claim",
+      "story": "The insurer rejected Imran Khan's claim. A letter that says Rs. 90,000 was approved does not match the insurer's record.",
+      "workflow": "approved_claim",
+      "expect": {
+        "verdict": "inconsistent",
+        "failed": [
+          "INSURER_RECORD_DIFFERS"
+        ]
+      },
+      "files": [
+        {
+          "name": "policy.pdf",
+          "doc_type": "policy",
+          "kind": "text",
+          "pages": 2,
+          "text_sha256": "1ad4b03c4a8cedd0f7450eccd904dedab6f61d2989d31c86948862e2bbd2b704"
+        },
+        {
+          "name": "bill.pdf",
+          "doc_type": "hospital_bill",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "cb4d3b05bb0f04b60e53e04a3aaf97812d50d5eeadfe440f72309e0cd2e5687c"
+        },
+        {
+          "name": "discharge_summary.pdf",
+          "doc_type": "discharge_summary",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "8aaa86dfb4c7ee89e050a89a4ae8417409d37afec0eaf6cad3939bef1bc58405"
+        },
+        {
+          "name": "claim_acknowledgement.pdf",
+          "doc_type": "claim_ack",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "6e7646f85e84de0bce05fee9b1f416d5fa4483d1b9e83bd4adbe45741b696b7a"
+        },
+        {
+          "name": "approval_letter.pdf",
+          "doc_type": "claim_approval",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "5af32fcb34cfd2861521d42b324ff8bbfd7d7044f19e70dfa954973e5362ad2b"
+        }
+      ]
+    },
+    {
+      "id": "approval_not_issued",
+      "title": "An approval that the insurer has not issued yet",
+      "story": "Suresh Patel's claim is still under review at the insurer, but a letter says it was approved. The letter does not match the insurer's record.",
+      "workflow": "approved_claim",
+      "expect": {
+        "verdict": "inconsistent",
+        "failed": [
+          "INSURER_RECORD_DIFFERS"
+        ]
+      },
+      "files": [
+        {
+          "name": "policy.pdf",
+          "doc_type": "policy",
+          "kind": "text",
+          "pages": 2,
+          "text_sha256": "f2f49e98d7cc39e7fc53f0dd1061f107e19357b5d8e9b60213c0e2798d06c48b"
+        },
+        {
+          "name": "bill.pdf",
+          "doc_type": "hospital_bill",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "1c4e84975dce80d89420efbb5d0fdb16939dd4fc473d4ee3bebe60a0109ce458"
+        },
+        {
+          "name": "discharge_summary.pdf",
+          "doc_type": "discharge_summary",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "2da511e90831dfb7f1f1c403f2820f1ec8214f4e38057183e9c6de194d188d02"
+        },
+        {
+          "name": "claim_acknowledgement.pdf",
+          "doc_type": "claim_ack",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "aed7cbbc49a9179db4ac4648349bfad72f1959a389b37fcd6c7a0617fedf1b6a"
+        },
+        {
+          "name": "approval_letter.pdf",
+          "doc_type": "claim_approval",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "c2b4150d29a6f453c071b16533f7755d2090b34b1e56a7f38b7e2e60d672f63a"
+        }
+      ]
+    },
+    {
+      "id": "preapproval_estimate",
+      "title": "Before the bill: a policy and a hospital's cost estimate",
+      "story": "Rahul Sharma is about to be admitted. The hospital has sent an estimate for the pre-authorisation. With the policy this is enough to work out what the policy would probably pay.",
+      "workflow": "preapproval",
+      "expect": {
+        "verdict": "consistent",
+        "estimate_inr": 129037
+      },
+      "files": [
+        {
+          "name": "policy.pdf",
+          "doc_type": "policy",
+          "kind": "text",
+          "pages": 2,
+          "text_sha256": "021507dd61d2bb1fa0a7399d9f1e34d52abfde59dabff007057bd8a38a6791a9"
+        },
+        {
+          "name": "cost_estimate.pdf",
+          "doc_type": "hospital_bill",
+          "kind": "text",
+          "pages": 1,
+          "text_sha256": "5fd48ffbd852d83fdf5c2311b15a48a0a9aaedd729142e5cdbb32ddbfa430867"
+        }
+      ]
+    }
+  ]
+}

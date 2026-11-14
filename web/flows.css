@@ -114,3 +114,17 @@ section[tabindex="-1"]:focus,main[tabindex="-1"]:focus{outline:none}
 .voicesheet #vs-said{min-height:1.4rem;color:var(--p-ink);font-weight:700}
 .spk{align-self:flex-start;margin-top:.4rem;border:0;background:none;font-size:1.05rem;cursor:pointer;padding:.15rem .4rem;border-radius:.6rem}
 .spk:hover{background:rgba(0,46,110,.08)}
+
+/* document reader */
+.docdl dd{word-break:break-word}
+.docdl .cite,.doclist .cite{display:block;margin-top:.15rem;font-size:.74rem;font-weight:400;color:var(--muted);line-height:1.35}
+.docdl .dochk{display:inline-block;margin-top:.25rem;padding:.1rem .5rem;border-radius:1rem;font-size:.72rem;font-weight:700;background:var(--need-bg,#fff4e0);color:var(--need,#b45309)}
+.docwarn{margin-top:.7rem;padding:.65rem .8rem;border-radius:.9rem;font-size:.84rem;line-height:1.4;background:var(--need-bg,#fff4e0);color:var(--need,#b45309)}
+.doclist{margin:.2rem 0 0;padding-left:1.1rem;font-size:.9rem;line-height:1.45}
+.doclist li{margin:.35rem 0}
+.runstep{border-left:.28rem solid var(--ok,#1f9d55)}
+.runstep.flagged{border-left-color:var(--need,#b45309)}
+.runstep.stopped{border-left-color:var(--block,#c0392b)}
+.runstep.skipped{border-left-color:var(--muted,#8a94a6)}
+.runstep .h .m{font-size:.76rem;font-weight:400;color:var(--muted)}
+.ckdl{grid-template-columns:1fr auto}.ckdl dd{white-space:nowrap}

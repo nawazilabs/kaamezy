@@ -142,6 +142,9 @@
       ${row("hi-r-new", "plus", false, "Get a new quote", "Compare plans for your family")}
       ${row("hi-r-pol", "file-text", false, "My policies", "Add a policy to see it here")}
       ${row("hi-r-claims", "heart-pulse", false, "My claims", "File a claim, get cash before the payout")}
+      ${row("hi-r-ckd", "files", false, "Claim documents", "Check your papers, see what the policy would pay, ask for an advance")}
+      ${row("hi-r-log", "list-checks", false, "What the agent did", "Every step on your claim documents, written down")}
+      ${row("hi-r-docs", "file-search", false, "Read a document", "A policy, hospital bill or claim letter, read on your phone")}
       ${row("hi-r-claim", "briefcase-medical", true, "How do I claim?", "Ask the assistant, in your language")}
       ${row("hi-r-act", "lock", false, "Privacy &amp; AI activity", "Consents and everything the AI did")}
     </div>
@@ -164,6 +167,21 @@
 <section class="flow" id="clm" hidden>
   ${bar("hi", "My claims", "simulated insurer and lender")}
   <div class="czbody" id="clm-body"></div>
+</section>
+
+<section class="flow" id="hdr" hidden>
+  ${bar("hi", "Read a document", "read on your phone, not uploaded")}
+  <div class="czbody" id="hdr-body"></div>
+</section>
+
+<section class="flow" id="hdc" hidden>
+  ${bar("hi", "Claim documents", "checked on the server, read on your phone")}
+  <div class="czbody" id="hdc-body"></div>
+</section>
+
+<section class="flow" id="hrl" hidden>
+  ${bar("hi", "What the agent did", "append-only, codes and figures only")}
+  <div class="czbody" id="hrl-body"></div>
 </section>
 
 <section class="flow" id="hia" hidden>
@@ -684,7 +702,7 @@
   const CLAIM_AMOUNTS = [50000, 100000, 200000];
   const BRIDGE_PLAIN = { CLAIM_NOT_APPROVED_YET: "The insurer has not approved this claim yet.", CLAIM_ALREADY_PAID: "The insurer has already paid this claim.",
     AMOUNT_TOO_LOW: "The approved amount is too small for an advance.", ADVANCE_ALREADY_TAKEN: "An advance has already been taken against this claim." };
-  let BQ = null, BKFS = null, BKFSP = null, BC1 = false, BC2 = false, BID = { pan: "", name: "", mobile: "", pincode: "" };
+  let BKIND = "bridge", BQ = null, BKFS = null, BKFSP = null, BC1 = false, BC2 = false, BID = { pan: "", name: "", mobile: "", pincode: "" };
   const bfield = (label, key, attrs) => el("label", { class: "auth-field", style: "margin-top:.7rem" }, label,
     el("input", Object.assign({ value: BID[key] || "", oninput: e => { BID[key] = key === "name" ? e.target.value : key === "pan" ? e.target.value.toUpperCase().trim() : e.target.value.replace(/\D/g, ""); } }, attrs)));
 
@@ -728,9 +746,10 @@
   }
 
   async function startBridge(c) {
-    const r = await capi("POST", "/bridge/decide", { claim_id: c.id }); if (!r.ok) { toast(errMsg(r)); return; }
+    BKIND = c.kind === "preauth" ? "preauth" : "bridge";
+    const r = await (BKIND === "preauth" ? capi("POST", "/preauth/decide", { preauth_id: c.id }) : capi("POST", "/bridge/decide", { claim_id: c.id })); if (!r.ok) { toast(errMsg(r)); return; }
     const d = r.data.decision;
-    if (!d.eligible) { toast(BRIDGE_PLAIN[d.reasons[0]] || "No advance is possible on this claim."); openClaims(); return; }
+    if (!d.eligible) { toast(BRIDGE_PLAIN[d.reasons[0]] || CK_REASON[d.reasons[0]] || "No advance is possible on this claim."); openClaims(); return; }
     BQ = r.data.quote_id; BKFS = r.data.kfs; BKFSP = null; BC1 = false; BC2 = false;
     BID = { pan: PAN || "", name: BID.name || W.proposer.name || "", mobile: BID.mobile || W.proposer.mobile || "", pincode: BID.pincode || W.pincode || "" };
     bridgeKfs();
@@ -740,7 +759,8 @@
     const b = $("clm-body"); b.replaceChildren(); const k = BKFS, dd = (a, v) => [el("dt", { text: a }), el("dd", { text: v })];
     BKFSP = capi("POST", "/loan/quotes/" + BQ + "/kfs-shown");   /* the server records WHEN the Key Facts were on screen */
     b.append(el("h2", { class: "t", text: "Key Facts Statement" }), el("p", { class: "s", text: "Every cost, before you agree. No insurance or other product is required to get this advance." }));
-    b.append(el("dl", { class: "sum kfs" }, ...dd("Lender", k.lender_name), ...dd("Advance amount", inr(k.amount_inr)), ...dd("Repaid from", k.repaid_from), ...dd("Repay by", day(k.repay_by) + " (" + k.days + " days)"),
+    if (k.basis) b.append(el("div", { class: "docwarn", text: k.basis + " A one-time code is always needed because money is paid to the hospital before any claim." }));
+    b.append(el("dl", { class: "sum kfs" }, ...dd("Lender", k.lender_name), ...(k.payee_name ? dd("Paid to", k.payee_name + " (the hospital, directly)") : []), ...dd("Advance amount", inr(k.amount_inr)), ...dd("Repaid from", k.repaid_from), ...dd("Repay by", day(k.repay_by) + " (" + k.days + " days)"),
       ...dd("Interest rate (APR)", k.apr_pct + "% a year, only for those days"), ...dd("Interest", inr(k.interest_inr)), ...dd("Processing fee", inr(k.processing_fee_inr) + " + " + inr(k.processing_fee_gst_inr) + " GST"),
       ...dd("You receive", inr(k.net_disbursal_inr)), ...dd("You repay in total", inr(k.total_repayable_inr)), ...dd("Cooling-off", k.cooling_off_days + " days: exit by repaying the principal and interest for the days used, no penalty (demo terms)"),
       ...dd("Grievance contact", k.grievance_contact)));
@@ -759,7 +779,7 @@
     extra = extra || {}; const btn = $("clm-accept"); if (btn) btn.disabled = true;
     try {
       if (BKFSP) await BKFSP;
-      const r = await capi("POST", "/bridge/accept", { quote_id: BQ, consent_offer: BC1, consent_claim_share: BC2, pan: BID.pan || null, mobile: BID.mobile,
+      const r = await capi("POST", BKIND === "preauth" ? "/preauth/accept" : "/bridge/accept", { quote_id: BQ, consent_offer: BC1, consent_claim_share: BC2, pan: BID.pan || null, mobile: BID.mobile,
         holder_name: BID.name, pincode: BID.pincode, otp: extra.otp || null });
       if (!r.ok) { toast((r.data && r.data.detail && r.data.detail.message) || errMsg(r)); return; }
       const d = r.data.decision;
@@ -771,14 +791,285 @@
 
   function showBridgeDone(ln) {
     refreshLoanLanding(); const b = $("clm-body"); b.replaceChildren();
-    b.append(el("div", { class: "done-mark", text: "✓" }), el("h2", { class: "t", style: "text-align:center", text: "Advance approved" }), el("p", { class: "s", style: "text-align:center", text: ln.lender_name + " · " + ln.id }),
-      el("dl", { class: "sum" }, el("dt", { text: "Credited to ••••4321" }), el("dd", { text: inr(ln.net_inr) }), el("dt", { text: "Repaid from your claim payout" }), el("dd", { text: inr(ln.total_inr) + " by " + day(ln.first_emi_date) }),
+    b.append(el("div", { class: "done-mark", text: "✓" }), el("h2", { class: "t", style: "text-align:center", text: BKIND === "preauth" ? "Hospital advance approved" : "Advance approved" }), el("p", { class: "s", style: "text-align:center", text: ln.lender_name + " · " + ln.id }),
+      el("dl", { class: "sum" }, el("dt", { text: BKIND === "preauth" ? "Paid to the hospital" : "Credited to ••••4321" }), el("dd", { text: inr(ln.net_inr) }), el("dt", { text: "Repaid from your claim payout" }), el("dd", { text: inr(ln.total_inr) + " by " + day(ln.first_emi_date) }),
         el("dt", { text: "Cooling-off until" }), el("dd", { text: day(ln.cooling_off_end) })),
       el("p", { class: "s", text: "Demo only: no money moved and no real advance exists. The decision is saved in Privacy & AI activity." }),
       el("div", { class: "navrow" }, el("button", { class: "czbtn soft", text: "My loans", onclick: () => openLoans() }), el("button", { class: "czbtn", text: "My claims", onclick: () => openClaims() })));
     refresh();
   }
   const bridgeLoan = () => openClaims();
+
+  /* ---------------- document reader ----------------
+     The file is read ON THIS DEVICE (docread.js: PDF text layer, or OCR for a scan or photo). Only the extracted text is
+     sent, the server reads it again in code and stores nothing. What comes back is a READING with the page and line each value
+     came from. It is not an approval, and nothing is bought, claimed or paid because of it. */
+  const DOC_NAME = { policy: "Insurance policy", hospital_bill: "Hospital bill", discharge_summary: "Discharge summary", claim_ack: "Claim acknowledgement", claim_approval: "Claim approval letter", unknown: "Not recognised" };
+  const DOC_FIELD = { insurer_name: "Insurer", policy_number: "Policy number", holder_name: "Policy holder", plan_name: "Plan", policy_start: "Policy starts", policy_end: "Policy ends", sum_insured_inr: "Sum insured",
+    copay_pct: "Co-payment", deductible_inr: "Deductible", room_rent: "Room rent limit", initial_waiting_days: "Initial waiting period", ped_waiting_months: "Pre-existing disease waiting", specific_waiting_months: "Specific disease waiting",
+    cashless_available: "Cashless facility", hospital_name: "Hospital", patient_name: "Patient", bill_number: "Bill number", uhid: "Hospital ID (UHID)", admission_date: "Admitted on", discharge_date: "Discharged on", diagnosis: "Diagnosis",
+    procedure: "Procedure", treating_doctor: "Treating doctor", total_inr: "Bill total", advance_paid_inr: "Advance paid", claim_reference: "Claim reference", claimed_inr: "Amount claimed", claim_date: "Claim date",
+    approved_inr: "Amount approved", deduction_inr: "Deductions", settlement_status: "Status", expected_payment_date: "Payment expected", payment_mode: "Payment mode" };
+  const DOC_STATUS = { approved: "Approved", settled: "Settled", pending: "Pending", rejected: "Rejected" };
+  const DOC_CAT = { room: "Room and nursing", doctor: "Doctors and surgeon", surgery: "Operation theatre", medicine: "Medicines", diagnostic: "Tests and scans", other: "Other" };
+  function docValue(k, v) {
+    if (k === "room_rent") return v.kind === "per_day_inr" ? inr(v.inr) + " per day" : v.kind === "pct_of_sum_insured_per_day" ? v.pct + "% of the sum insured per day" : v.kind === "no_limit" ? "No limit" : v.kind === "single_private_room" ? "Single private room" : "Shared room";
+    if (k === "settlement_status") return DOC_STATUS[v] || v;
+    if (typeof v === "boolean") return v ? "Yes" : "No";
+    if (/_inr$/.test(k)) return inr(v);
+    if (k.endsWith("_pct")) return v + "%";
+    if (/_date$|^policy_(start|end)$/.test(k)) return day(v);
+    if (k.endsWith("_months")) return v + " months";
+    if (k.endsWith("_days")) return v + " days";
+    return String(v);
+  }
+  let DCFG = null;
+  async function openDocReader() {
+    showScreen("hdr"); const b = $("hdr-body"); b.replaceChildren();
+    b.append(el("p", { class: "s", text: "Choose a policy, a hospital bill, a discharge summary or a claim letter (PDF or photo). Kaamezy reads it on this phone: the file is not uploaded and nothing is stored. You will see where every value came from." }));
+    const inp = el("input", { type: "file", accept: "application/pdf,image/*", multiple: "", id: "hdr-file", style: "display:none", "aria-label": "Choose a document" });
+    const status = el("p", { class: "s", id: "hdr-status", role: "status" }), out = el("div", { id: "hdr-out" });
+    const pick = el("button", { class: "czbtn", type: "button", text: "Choose a document", onclick: () => inp.click() });
+    b.append(inp, pick, status, out);
+    inp.onchange = async () => {
+      if (!inp.files.length) return;
+      pick.disabled = true; out.replaceChildren();
+      try {
+        if (!DCFG) { const c = await capi("GET", "/docs/config"); if (!c.ok) { status.textContent = errMsg(c); return; } DCFG = c.data; }
+        const got = await window.ChaukasDocRead.readFiles(inp.files, DCFG, (m, f) => { status.textContent = m + (f ? " " + Math.round(f * 100) + "%" : "…"); });
+        status.textContent = "Checking what was read…";
+        const r = await capi("POST", "/docs/read", { pages: got.pages, page_sources: got.page_sources });
+        if (!r.ok) { status.textContent = (r.data && r.data.detail && r.data.detail.message) || errMsg(r); return; }
+        status.textContent = ""; renderDocReading(out, r.data);
+      } catch (e) { status.textContent = e.message || "That document could not be read."; }
+      finally { pick.disabled = false; inp.value = ""; }
+    };
+    refresh();
+  }
+  function renderDocReading(box, d) {
+    const floor = 0.7, dd = (a, v) => [el("dt", { text: a }), el("dd", { text: v })];
+    box.replaceChildren(el("div", { class: "polcard" }, el("div", { class: "h" }, el("span", { text: DOC_NAME[d.doc_type] || d.doc_type }),
+      el("span", { class: "v " + (d.doc_type === "unknown" ? "BLOCK" : "ALLOW"), text: d.doc_type === "unknown" ? "not read" : Math.round(d.type_confidence * 100) + "% sure of the type" })),
+      el("div", { class: "m", text: d.pages + (d.pages === 1 ? " page" : " pages") + " read" + (d.ai && d.ai.used ? ", with help from the AI to find clauses" : "") })));
+    d.warnings.forEach(w => box.append(el("div", { class: "docwarn", text: w.message })));
+    if (d.doc_type === "unknown") return;
+    if (d.missing_required.length) box.append(el("div", { class: "docwarn", text: "Not found in this document: " + d.missing_required.map(k => DOC_FIELD[k] || k).join(", ") + "." }));
+    const names = Object.keys(d.fields); const dl = el("dl", { class: "sum docdl" });
+    names.forEach(k => {
+      const f = d.fields[k], flag = f.how === "model" ? "AI-suggested, please confirm" : f.confidence < floor ? "Please check" : null;
+      dl.append(el("dt", { text: DOC_FIELD[k] || k }), el("dd", {}, docValue(k, f.value), el("small", { class: "cite", text: "Page " + f.page + ": “" + f.quote + "”" }), flag ? el("small", { class: "dochk", text: flag }) : null));
+    });
+    if (names.length) box.append(el("span", { class: "lbl", text: "What was read" }), dl);
+    const L = d.lists || {};
+    if (L.line_items) {
+      box.append(el("span", { class: "lbl", text: "Bill items" }));
+      const t = el("dl", { class: "sum docdl" });
+      L.line_items.forEach(i => t.append(el("dt", {}, i.description, el("small", { class: "cite", text: DOC_CAT[i.category] + (i.days ? " · " + i.days + " days" + (i.rate_inr_per_day ? " at " + inr(i.rate_inr_per_day) : "") : "") })), el("dd", { text: inr(i.amount_inr) })));
+      t.append(el("dt", { text: "Items add up to" }), el("dd", { text: inr(d.items_sum_inr) }));
+      box.append(t);
+    }
+    const bullets = (title, items, fmt) => { if (!items || !items.length) return; box.append(el("span", { class: "lbl", text: title }), el("ul", { class: "doclist" }, items.map(i => el("li", {}, fmt(i), el("small", { class: "cite", text: "Page " + i.page }))))); };
+    bullets("Not covered (exclusions)", L.exclusions, i => i.text);
+    bullets("Limits on specific treatments", L.sub_limits, i => i.text);
+    bullets("Why the amount was reduced", L.deduction_reasons, i => i.text);
+    bullets("Clauses the AI found (please confirm)", L.ai_clauses, i => i.text);
+    box.append(el("p", { class: "s", style: "margin-top:1rem;font-size:.82rem", text: "This is only a reading of the document. Nothing is saved, and nothing is bought, claimed or paid because of it. Check every value: if a document is blurred, a value may be wrong." }));
+    refresh();
+  }
+
+
+  /* ---------------- claim documents: check a set, see what the policy would pay, ask for an advance ----------------
+     Each file is read ON THIS DEVICE (docread.js); only the text is sent. The server reads every document again, cross-checks
+     them and the insurer's own (simulated) record (POST /docs/verify), and shows an ESTIMATE from the policy terms. An estimate is
+     not an approval. Risk signals only ask a person to look. An advance is offered only for a set that is fully consistent, and
+     its amount and payout date come from the insurer's record on the server, never from this screen. */
+  const CK_MARK = { pass: "✓", warn: "!", fail: "✕", not_checked: "–" };
+  const CK_VERDICT = { consistent: ["ALLOW", "Everything agrees"], needs_review: ["NEEDS_CONFIRMATION", "A person must look at this"], incomplete: ["NEEDS_CONFIRMATION", "Some documents are still needed"], inconsistent: ["BLOCK", "The documents do not agree"] };
+  const CK_REASON = { DOCUMENTS_INCONSISTENT: "The documents contradict each other or the insurer, so no advance can be offered.", DOCUMENTS_NEEDS_REVIEW: "Something could not be confirmed, so a person must look at it first.",
+    DOCUMENTS_INCOMPLETE: "Some documents are still needed.", INSURER_RECORD_NOT_CONFIRMED: "The insurer's own record does not confirm this approval.", PAYOUT_DATE_UNKNOWN_OR_PAST: "The insurer has no future payout date for this claim.",
+    HOLDER_NAME_MISSING: "The policy holder's name was not found on the policy.", NOTHING_APPROVED: "Nothing was approved on this claim.", CLAIM_ALREADY_USED: "This claim has already been used for an advance.",
+    CLAIM_LIKELY_NOT_PAYABLE: "The policy would probably not pay this claim, so nothing is advanced.", ESTIMATE_NOT_CONFIDENT_ENOUGH: "The estimate is not certain enough to lend against. Add the missing details.",
+    HOSPITAL_NOT_A_PARTNER: "This hospital is not a partner hospital, so an advance cannot be paid to it directly.", ESTIMATE_ALREADY_USED: "This estimate has already been used for an advance.",
+    ESTIMATE_NOT_POSSIBLE: "An estimate could not be worked out from these documents.", ESTIMATE_NOT_IDENTIFIABLE: "The hospital, patient or policy number could not be read.",
+    NOTHING_TO_FINANCE: "There is nothing the policy would pay, so nothing to advance.", ESTIMATE_TOO_OLD: "This estimate is too old. Check the documents again.", ADVANCE_ALREADY_TAKEN: "An advance has already been taken on this." };
+  let DC = { workflow: "approved_claim", ped: false, docs: [], manifest: null, report: null };
+  const dcStatus = () => $("hdc-status");
+  async function openClaimDocs() { showScreen("hdc"); DC.report = null; drawClaimDocs(); }
+  async function dcReadFiles(files, name) {
+    if (!DCFG) { const c = await capi("GET", "/docs/config"); if (!c.ok) throw new Error(errMsg(c)); DCFG = c.data; }
+    const got = await window.ChaukasDocRead.readFiles(files, DCFG, (m, f) => { dcStatus().textContent = (name || "") + " " + m + (f ? " " + Math.round(f * 100) + "%" : "…"); });
+    return { name: name || files[0].name, pages: got.pages, page_sources: got.page_sources };
+  }
+  function drawClaimDocs() {
+    const b = $("hdc-body"); b.replaceChildren();
+    b.append(el("p", { class: "s", text: "Add the papers of a claim: the policy, the hospital bill, the discharge summary and, for an approved claim, the claim acknowledgement and approval letter (one file each, PDF or photo). They are read on this phone and only the text is sent. Kaamezy checks that they agree with each other and with the insurer's record. Demo: the insurer is simulated." }));
+    b.append(el("span", { class: "lbl", text: "What do you want to do?" }));
+    const wf = el("div", { class: "chips" });
+    wf.append(chip("My claim is approved", DC.workflow === "approved_claim", () => { DC.workflow = "approved_claim"; DC.report = null; drawClaimDocs(); }),
+      chip("Before admission (estimate)", DC.workflow === "preapproval", () => { DC.workflow = "preapproval"; DC.report = null; drawClaimDocs(); }));
+    b.append(wf);
+    b.append(el("span", { class: "lbl", text: "Was the condition there before the policy started?" }));
+    const pd = el("div", { class: "chips" });
+    [["No", false], ["Yes", true]].forEach(([t, v]) => pd.append(chip(t, DC.ped === v, () => { DC.ped = v; DC.report = null; drawClaimDocs(); })));
+    b.append(pd);
+    const inp = el("input", { type: "file", accept: "application/pdf,image/*", multiple: "", style: "display:none", "aria-label": "Add documents" });
+    b.append(inp, el("button", { class: "czbtn", type: "button", text: "Add documents", onclick: () => inp.click() }),
+      el("button", { class: "czbtn soft", type: "button", text: "Try a sample claim", onclick: drawSamples }), el("p", { class: "s", id: "hdc-status", role: "status" }));
+    inp.onchange = async () => {
+      const files = Array.from(inp.files); inp.value = "";
+      try { for (const f of files) DC.docs.push(await dcReadFiles([f])); DC.report = null; drawClaimDocs(); }
+      catch (e) { dcStatus().textContent = e.message || "That document could not be read."; }
+    };
+    if (DC.docs.length) {
+      b.append(el("span", { class: "lbl", text: "Your documents" }));
+      DC.docs.forEach((d, i) => b.append(el("div", { class: "prow2" }, el("span", { text: d.name + " · " + d.pages.length + (d.pages.length === 1 ? " page" : " pages") + (d.page_sources.includes("ocr") ? " (scanned)" : "") }),
+        el("button", { class: "plink", type: "button", text: "Remove", onclick: () => { DC.docs.splice(i, 1); DC.report = null; drawClaimDocs(); } }))));
+      b.append(el("button", { class: "czbtn", type: "button", style: "margin-top:.8rem", id: "hdc-check", text: "Check these documents", onclick: runClaimCheck }));
+    }
+    b.append(el("div", { id: "hdc-out" }));
+    if (DC.report) renderClaimReport($("hdc-out"), DC.report);
+    refresh();
+  }
+  async function drawSamples() {
+    const b = $("hdc-body"); b.replaceChildren(el("p", { class: "s", text: "Sample claims. Every name, number and amount is invented, and each page says so. Each one is a short story with an outcome." }), el("p", { class: "s", id: "hdc-status", role: "status" }));
+    if (!DC.manifest) { try { DC.manifest = (await (await fetch("samples/manifest.json")).json()).cases; } catch (e) { b.append(el("div", { class: "empty2", text: "The samples could not be loaded." })); return; } }
+    DC.manifest.forEach(c => b.append(el("button", { class: "czrow", type: "button", onclick: () => loadSample(c) }, el("span", { class: "rtxt" }, el("b", { text: c.title }), el("span", { text: c.story })), el("i", { "data-lucide": "chevron-right" }))));
+    b.append(el("button", { class: "czbtn soft", type: "button", style: "margin-top:.8rem", text: "Back", onclick: drawClaimDocs }));
+    refresh();
+  }
+  async function loadSample(c) {
+    const st = dcStatus(); DC.docs = []; DC.report = null; DC.workflow = c.workflow;
+    try {
+      for (const f of c.files) {
+        st.textContent = "Loading " + f.name + "…";
+        const blob = await (await fetch("samples/" + c.id + "/" + f.name)).blob();
+        DC.docs.push(await dcReadFiles([new File([blob], f.name, { type: blob.type })], f.name));
+      }
+      drawClaimDocs(); runClaimCheck();
+    } catch (e) { st.textContent = e.message || "That sample could not be read."; }
+  }
+  const dcBody = () => ({ documents: DC.docs.map(d => ({ pages: d.pages, page_sources: d.page_sources })), declared_pre_existing: DC.ped });
+  async function runClaimCheck() {
+    const btn = $("hdc-check"); if (btn) btn.disabled = true; const out = $("hdc-out"); out.replaceChildren(); dcStatus().textContent = "Checking the documents…";
+    try {
+      const r = await capi("POST", "/docs/verify", Object.assign({ workflow: DC.workflow }, dcBody()));
+      dcStatus().textContent = "";
+      if (!r.ok) { out.append(el("div", { class: "docwarn", text: (r.data && r.data.detail && r.data.detail.message) || errMsg(r) })); return; }
+      DC.report = r.data; renderClaimReport(out, r.data);
+    } finally { if (btn) btn.disabled = false; }
+  }
+  function renderClaimReport(box, rep) {
+    box.replaceChildren();
+    const [cls, title] = CK_VERDICT[rep.verdict] || ["NEEDS_CONFIRMATION", rep.verdict];
+    box.append(el("div", { class: "polcard" }, el("div", { class: "h" }, el("span", { text: "Result" }), el("span", { class: "v " + cls, text: title }))));
+    const order = ["fail", "warn", "not_checked", "pass"], names = { fail: "Does not agree", warn: "Please check", not_checked: "Could not be checked", pass: "Agrees" };
+    order.forEach(s => {
+      const list = rep.checks.filter(c => c.status === s); if (!list.length) return;
+      box.append(el("span", { class: "lbl", text: names[s] }), el("ul", { class: "doclist" }, list.map(c => el("li", {}, CK_MARK[s] + " " + c.message))));
+    });
+    const e = rep.estimate;
+    if (e) {
+      box.append(el("span", { class: "lbl", text: "What the policy would probably pay" }));
+      if (e.demo_notice) box.append(el("div", { class: "docwarn", text: e.demo_notice }));
+      const dl = el("dl", { class: "sum docdl ckdl" });
+      dl.append(el("dt", { text: "Hospital bill" }), el("dd", { text: inr(e.bill_total_inr) }));
+      e.steps.filter(s => s.deduction_inr > 0).forEach(s => dl.append(el("dt", {}, s.label, el("small", { class: "cite", text: s.basis + (s.clause && s.clause.page ? " (policy page " + s.clause.page + ")" : "") })), el("dd", { text: "− " + inr(s.deduction_inr) })));
+      dl.append(el("dt", { text: "Estimate" }), el("dd", { text: inr(e.estimated_claim_inr) }), el("dt", { text: "How sure" }), el("dd", { text: e.confidence.level + " (" + Math.round(e.confidence.score * 100) + "%)" }));
+      box.append(dl);
+      e.missing_information.concat(e.uncertainties).forEach(m => box.append(el("div", { class: "docwarn", text: m.message })));
+      box.append(el("p", { class: "s", style: "font-size:.82rem", text: e.disclaimer }));
+    }
+    const k = rep.risk;
+    if (k) {
+      if (k.flags.length) {
+        box.append(el("span", { class: "lbl", text: "Things a person should look at" }), el("ul", { class: "doclist" }, k.flags.map(f => el("li", {}, f.message, el("small", { class: "cite", text: "Check: " + f.what_a_person_should_check })))));
+      }
+      const o = k.settlement_outlook;
+      box.append(el("p", { class: "s", style: "font-size:.85rem", text: "Payout timing: such claims usually take about " + o.likely_days + " days and can take up to " + o.could_take_up_to_days + (o.could_take_up_to ? " (by " + day(o.could_take_up_to) + ")" : "") + "." }),
+        el("p", { class: "s", style: "font-size:.8rem", text: k.advisory + (k.ml && k.ml.ran ? " A small model trained on made-up claims also looked: " + (k.ml.flagged ? "it found the figures unusual." : "it found nothing unusual.") : "") }));
+    }
+    box.append(el("button", { class: "plink", type: "button", style: "margin-top:.6rem", text: "See what the agent did on earlier checks", onclick: () => openAgentLog() }));
+    if (DC.workflow === "preapproval") {
+      if (rep.verdict === "consistent") box.append(el("p", { class: "s", text: "An advance for the hospital deposit is paid to the hospital, never to you, and is sized from a cautious part of this estimate. It is repaid from your claim payout." }),
+        el("button", { class: "czbtn", type: "button", style: "margin-top:.8rem", id: "hdc-adv", text: "See hospital advance offer", onclick: askPreauth }));
+      else box.append(el("p", { class: "s", text: "No hospital advance is offered until the papers agree and a person has looked at anything unusual." }));
+      refresh(); return;
+    }
+    if (rep.verdict === "consistent") box.append(el("button", { class: "czbtn", type: "button", style: "margin-top:.8rem", id: "hdc-adv", text: "See my advance offer", onclick: askAdvance }));
+    else box.append(el("p", { class: "s", text: rep.verdict === "inconsistent" ? "No advance can be offered. Nothing here was accepted, and nobody is accused of anything: the papers simply do not agree." : rep.verdict === "incomplete" ? "Add the missing documents to continue." : "No advance is offered until a person has looked at this." }));
+    refresh();
+  }
+  async function askPreauth() {
+    const btn = $("hdc-adv"); btn.disabled = true;
+    try {
+      const r = await capi("POST", "/preauth/from-documents", dcBody());
+      if (!r.ok) { toast((r.data && r.data.detail && r.data.detail.message) || errMsg(r)); return; }
+      if (!r.data.eligible) { toast(CK_REASON[r.data.reasons[0]] || "No hospital advance is possible on these documents."); return; }
+      BID.name = r.data.preauth.holder_name || BID.name; showScreen("clm"); await startBridge(Object.assign({ kind: "preauth" }, r.data.preauth));
+    } finally { btn.disabled = false; }
+  }
+  async function askAdvance() {
+    const btn = $("hdc-adv"); btn.disabled = true;
+    try {
+      const r = await capi("POST", "/bridge/from-documents", dcBody());
+      if (!r.ok) { toast((r.data && r.data.detail && r.data.detail.message) || errMsg(r)); return; }
+      if (!r.data.eligible) { toast(CK_REASON[r.data.reasons[0]] || "No advance is possible on these documents."); return; }
+      BID.name = r.data.claim.holder_name || BID.name; showScreen("clm"); await startBridge(r.data.claim);
+    } finally { btn.disabled = false; }
+  }
+
+
+
+  /* ---------------- agent log: what the claim-financing agent did, stage by stage ----------------
+     Read-only. Each run of the pipeline (POST /bridge/from-documents, /preauth/from-documents, /pipeline/run) is kept in an
+     append-only log on the server with the stage, its status, a headline and codes and rupee figures only: never document text,
+     names or reference numbers. This screen only shows it. It cannot change a run, and it cannot start money moving. */
+  const RUN_STAGE = { READ: "Read the documents", VERIFY: "Checked they agree", ESTIMATE: "Estimated the payout", RISK: "Looked for unusual signals", GATE: "Applied the rules", OFFER: "Prepared an offer" };
+  const RUN_MARK = { done: "✓", flagged: "!", stopped: "✕", skipped: "–" };
+  const RUN_OUTCOME = { offer_prepared: ["ALLOW", "An offer was prepared"], needs_a_person: ["NEEDS_CONFIRMATION", "A person must look"], no_offer: ["BLOCK", "No offer was made"] };
+  const RUN_WORKFLOW = { approved_claim: "Advance against an approved claim", preapproval: "Hospital advance before admission" };
+  const RUN_FACT = { document_types: "Documents", not_recognised: "Not recognised", scanned_pages: "Scanned pages", verdict: "Verdict", failed: "Did not agree", warnings: "Please check", missing_documents: "Still needed",
+    payable: "Policy would pay", estimated_inr: "Estimate", conservative_inr: "Cautious figure", confidence: "Confidence", deductions: "Deductions", uncertainties: "Doubts", demo_waivers: "Demo waivers",
+    flags: "Signals", ml_ran: "Small model ran", ml_flagged: "Small model flagged", payout_likely_days: "Payout usually takes (days)", payout_up_to_days: "Can take up to (days)", reasons: "Reasons", ref: "Prepared" };
+  function runFact(k, v) {
+    if (Array.isArray(v)) return v.length ? v.join(", ") : "none";
+    if (typeof v === "boolean") return v ? "Yes" : "No";
+    if (v === null || v === undefined) return "none";
+    return /_inr$/.test(k) ? inr(v) : String(v);
+  }
+  async function openAgentLog(runId) {
+    showScreen("hrl"); const b = $("hrl-body"); b.replaceChildren(el("div", { class: "empty2", text: "Loading…" }));
+    if (runId) {
+      const r = await capi("GET", "/pipeline/runs/" + encodeURIComponent(runId)); b.replaceChildren();
+      if (!r.ok) { b.append(el("div", { class: "empty2", text: errMsg(r) })); return; }
+      drawRun(b, r.data); return;
+    }
+    const r = await capi("GET", "/pipeline/runs?limit=20"); b.replaceChildren();
+    b.append(el("p", { class: "s", text: "Every time the agent looked at the documents of a claim, it wrote down what it did. Entries can be added but never changed or removed. They hold codes and rupee figures only: never your documents' text, your name or any reference number." }));
+    if (!r.ok) { b.append(el("div", { class: "empty2", text: errMsg(r) })); return; }
+    if (!r.data.length) b.append(el("div", { class: "empty2", text: "Nothing yet. Check a claim's documents and the agent's steps will show up here." }), el("button", { class: "czbtn", type: "button", text: "Claim documents", onclick: openClaimDocs }));
+    r.data.forEach(x => {
+      const [cls, title] = RUN_OUTCOME[x.outcome] || ["NEEDS_CONFIRMATION", x.outcome];
+      b.append(el("button", { type: "button", class: "czrow", onclick: () => openAgentLog(x.id) }, el("span", { class: "rtxt" }, el("b", { text: RUN_WORKFLOW[x.workflow] || x.workflow }),
+        el("span", { text: when(x.created_at) + " · " + x.id })), el("span", { class: "v " + cls, text: title })));
+    });
+    refresh();
+  }
+  function drawRun(b, run) {
+    const [cls, title] = RUN_OUTCOME[run.outcome] || ["NEEDS_CONFIRMATION", run.outcome];
+    b.append(el("button", { type: "button", class: "plink", text: "← All runs", onclick: () => openAgentLog() }),
+      el("div", { class: "polcard" }, el("div", { class: "h" }, el("span", { text: RUN_WORKFLOW[run.workflow] || run.workflow }), el("span", { class: "v " + cls, text: title })),
+        el("div", { class: "m", text: when(run.created_at) + " · " + run.id + (run.ref_id ? " · " + run.ref_id : "") })));
+    run.steps.forEach(s => {
+      const dl = el("dl", { class: "sum docdl" });
+      Object.keys(s.facts).forEach(k => { const v = s.facts[k]; if (v === null || v === "" || (Array.isArray(v) && !v.length) || v === 0 || v === false && k !== "ml_ran") return; dl.append(el("dt", { text: RUN_FACT[k] || k }), el("dd", { text: runFact(k, v) })); });
+      b.append(el("div", { class: "polcard runstep " + s.status }, el("div", { class: "h" }, el("span", { text: RUN_MARK[s.status] + " " + (RUN_STAGE[s.name] || s.name) }), el("span", { class: "m", text: s.actor })),
+        el("p", { class: "s", style: "margin:.3rem 0 0;font-size:.88rem", text: s.headline }), dl.children.length ? dl : null));
+    });
+    b.append(el("p", { class: "s", style: "font-size:.82rem", text: "The agent only prepares an offer. Money moves only after you see the Key Facts, give your consent, verify your identity and enter a one-time code, and the guardrail agrees." }));
+    refresh();
+  }
+
 
   /* ---------------- lists ---------------- */
   async function openPolicies() {
@@ -1207,7 +1498,7 @@
     $("hi-sample").onclick = () => startWizard(SAMPLE());
     $("hi-r-new").onclick = () => startWizard(blank()); $("ln-r-new").onclick = () => startLoan(blankLoan());
     document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheets(); });
-    $("hi-r-pol").onclick = openPolicies; $("hi-r-claims").onclick = openClaims; $("hi-r-act").onclick = () => openActivity("hi");
+    $("hi-r-pol").onclick = openPolicies; $("hi-r-claims").onclick = openClaims; $("hi-r-docs").onclick = openDocReader; $("hi-r-ckd").onclick = openClaimDocs; $("hi-r-log").onclick = () => openAgentLog(); $("hi-r-act").onclick = () => openActivity("hi");
     $("hi-r-claim").onclick = () => openChat("How do I claim?", "hi"); $("hi-ask").onclick = () => openChat(undefined, "hi");
     $("ic-close").onclick = () => showScreen(chatFrom);
     $("ic-new").onclick = () => { $("ic-chat").replaceChildren(); ASESS = null; openChat(); };

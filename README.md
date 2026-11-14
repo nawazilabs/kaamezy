@@ -12,6 +12,7 @@ Built for the Paytm Build for India hackathon.
 |------|--------------------|-------|
 | **Consumer: health insurance** | Describe the family, autofill from a PAN/Aadhaar photo (read **on the device**), compare 3 insurers priced by a rule engine, buy through the guardrail (KYC, consent, premium check, OTP over ₹30,000, human underwriter for risky cases) | `chaukas/consumer/`, `web/` |
 | **Consumer: personal loan** | Check an offer from a simulated lender (age, income, EMIs only), read the Key Facts Statement, give two consents, get a guardrail-checked mock disbursal. A policy holder can file a (simulated) claim and, once it is approved and its payout is pending, take a short advance against it (My claims); the personal loan never looks at the policy | `chaukas/consumer/`, `web/` |
+| **Consumer: claim documents and medical financing** | Add the papers of a claim (policy, hospital bill, discharge summary, claim acknowledgement, approval letter; PDF or photo, read **on the device**). The server reads them again, cross-checks them against each other and against the insurer's own (simulated) record, estimates what the policy would probably pay (every deduction with its policy clause), and shows risk signals and a payout outlook. A fully consistent approved claim can get a short **advance** (sized from the insurer's record); before admission, a policy plus the hospital's cost estimate can get a **hospital deposit advance** (sized from a cautious part of the estimate, paid to a partner hospital, always behind a one-time code). Every run is written to an append-only **agent log** (*What the agent did*) | `chaukas/consumer/{docs,estimate,verify,risk,pipeline}.py`, `web/` |
 | **AI assistant** | Ask about claims, waiting periods, EMI, charges, privacy in Hindi, Hinglish or English. The model picks a topic and words a reply from a knowledge base; code checks the reply and chooses any on-screen action | `chaukas/consumer/assistant.py` |
 | **Merchant: support + sales** | Settlement problems, loan offers, shop insurance, device upgrades, proactive outreach on a failed settlement, agent-desk handoff | `chaukas/agents/`, `chaukas/core/`, `chaukas/policy/` |
 
@@ -49,8 +50,11 @@ Open `http://localhost:8080`. On localhost the frontend talks to `http://localho
 For local work without Supabase login, start the API with `CHAUKAS_CONSUMER_AUTH=off` (everyone is one demo user). The sign-in page itself uses the Supabase project in `web/index.html`.
 
 ```bash
-python -m pytest                           # ~840 tests, about 2 minutes
+python -m pytest                           # ~1,200 tests, about 2-4 minutes
 node web/docparse.test.js                  # ID-card text parser
+node web/docread.test.js                   # PDF line grouping
+python -m pip install -r requirements-dev.txt && python -m data.sample_docs   # the 47 invented demo documents -> web/samples/
+python -m data.train_risk_model            # retrain the advisory risk model (synthetic data) -> config/risk_model.yaml
 python -m eval.run_eval && python -m eval.redteam      # scorecard + red-team
 ```
 
@@ -63,11 +67,13 @@ python -m eval.run_eval && python -m eval.redteam      # scorecard + red-team
 | `CHAUKAS_CONSUMER_AUTH` | `supabase` (default when `SUPABASE_URL` is set) or `off` (local only) |
 | `CHAUKAS_STAFF_KEY` | agent-desk key that approves a human review; the demo falls back to `demo-staff`, set your own when deployed |
 | `CHAUKAS_DB_PATH`, `CHAUKAS_REPLAY_MODE` | database file; record/replay of LLM answers |
+| `KAAMEZY_DEMO_WAIVE_WAITING` | `1` = DEMO ONLY: the estimate for a policy bought in this app shows its waiting period but does not apply it (and says so). Off by default; never applies to a policy read from a document |
 
 ## Repo map
 
 ```
-chaukas/consumer/    health insurance + personal loan: models, engine, guardrail, store, auth, assistant, api
+chaukas/consumer/    health insurance, personal loan, claim documents and financing: models, engine, guardrail, store, auth, assistant, api,
+                     docs (reader), estimate, verify + insurer_registry, risk, hospital_registry, pipeline (agent log)
 chaukas/agents/      merchant agents: intent, context, guardrail, action, handoff, reply, notify
 chaukas/core/        shared models, orchestrator, plans, proactive event watcher
 chaukas/policy/      merchant guardrail engine (10 checks)         chaukas/privacy/  mask, tokenise, scrub
@@ -77,13 +83,17 @@ prompts/             every LLM prompt, versioned (*.v1.txt)
 data/                schema.sql (merchant), consumer_schema.sql, fixtures, golden + red-team sets, seed.py
 web/                 the static frontend (sign-in, Paytm-style home, insurance, loan, assistant) - see web/README.md
 ui/                  older Lovable merchant UI build output (no source here; web/ is the live frontend)
-eval/  tests/        scorecard, red-team, ~840 tests
+eval/  tests/        scorecard, red-team, ~1,200 tests
 docs/archive/        finals-day plans and change logs (history only)
 ```
 
 ## Documents
 
 `CLAUDE.md` working rules and non-negotiables · `CONTRACTS.md` shared models, guardrail, APIs, layout · `COMPLIANCE.md` regulation → control map · `DEMO_SCRIPT.md` what to show · `CHAUKAS_EXPLAINED.md` the design and why (Hinglish) · `CHAUKAS_SYSTEM_DESIGN.md` HLD/LLD · `CHAUKAS_PROBLEM_STATEMENT.md` problem and scope.
+
+## Claim documents and medical financing (what is real, what is mock)
+
+**Real code:** the document reader (pdf.js text layer / Tesseract OCR in the browser, then a rules parser on the server), the cross-document checks, the claim estimator, the risk rules, the settlement outlook, the pipeline and its append-only agent log, and the guardrail that decides every advance. **Mock:** the insurer's claim record (`config/insurer_registry_sim.yaml`), the partner hospitals (`config/hospital_registry_sim.yaml`), the lender, KYC and the disbursal. **Advisory only:** the risk model is a small logistic model trained on **synthetic** claims (`config/risk_model.yaml` says so); an estimate is never an approval or a promise; neither can allow, block or set an amount. Money comes only from `engine.bridge_decide` / `engine.preauth_decide` after the guardrail, KYC, consent and a one-time code. Try it with the 10 invented stories in `web/samples/` (*Claim documents*, *Try a sample claim*). Details: `CONTRACTS.md` (C5b), `COMPLIANCE.md` (CA14-CA25), `web/README.md`.
 
 ## Deploy notes
 

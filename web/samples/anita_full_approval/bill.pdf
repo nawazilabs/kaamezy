@@ -1,0 +1,211 @@
+%PDF-1.3
+%“Œ‹ž ReportLab Generated PDF document http://www.reportlab.com
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/Contents 8 0 R /MediaBox [ 0 0 595 842 ] /Parent 7 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+5 0 obj
+<<
+/PageMode /UseNone /Pages 7 0 R /Type /Catalog
+>>
+endobj
+6 0 obj
+<<
+/Author (Kaamezy demo \(invented data\)) /CreationDate (D:20000101000000+00'00') /Creator (data/sample_docs.py) /Keywords () /ModDate (D:20000101000000+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
+  /Subject (unspecified) /Title (hospital_bill \(demo\)) /Trapped /False
+>>
+endobj
+7 0 obj
+<<
+/Count 1 /Kids [ 4 0 R ] /Type /Pages
+>>
+endobj
+8 0 obj
+<<
+/Length 4116
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+.05 .25 .47 rg
+n 0 742 595 64 re f*
+1 1 1 rg
+BT /F2 15 Tf 18 TL ET
+BT 1 0 0 1 40 778 Tm (LIFELINE MULTISPECIALITY HOSPITAL) Tj T* ET
+BT /F1 8.5 Tf 10.2 TL ET
+BT 1 0 0 1 40 760 Tm (45 Station Road, Indore 452001 \(invented address\)) Tj T* ET
+.1 .1 .12 rg
+BT /F2 13 Tf 15.6 TL ET
+BT 1 0 0 1 40 711 Tm (FINAL BILL / TAX INVOICE) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 688.4 Tm (Bill No: LMH/IP/26/004417) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 380 688.4 Tm (UHID: 771204) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 672.725 Tm (Patient Name: Anita Verma) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 380 672.725 Tm (Age/Sex: 41/F) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 657.05 Tm (Date of Admission: 18/03/2026) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 320 657.05 Tm (Date of Discharge: 21/03/2026) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 641.375 Tm (Diagnosis: Cholelithiasis \(gall stones\)) Tj T* ET
+.1 .1 .12 rg
+BT /F2 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 617.7 Tm (Sr) Tj T* ET
+.1 .1 .12 rg
+BT /F2 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 70 617.7 Tm (Description) Tj T* ET
+.1 .1 .12 rg
+BT /F2 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 330 617.7 Tm (Qty/Days) Tj T* ET
+.1 .1 .12 rg
+BT /F2 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 425.6635 617.7 Tm (Rate \(Rs.\)) Tj T* ET
+.1 .1 .12 rg
+BT /F2 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 495.3685 617.7 Tm (Amount \(Rs.\)) Tj T* ET
+.75 .78 .82 RG
+n 40 608.525 m 555 608.525 l S
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 594.025 Tm (1) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 70 594.025 Tm (Room Rent \(Single Room\)) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 330 594.025 Tm (3 days) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 446.231 594.025 Tm (6,000) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 525.949 594.025 Tm (18,000) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 578.35 Tm (2) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 70 578.35 Tm (Consultant Visit Charges) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 525.949 578.35 Tm (12,000) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 562.675 Tm (3) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 70 562.675 Tm (Surgeon Fees) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 525.949 562.675 Tm (30,000) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 547 Tm (4) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 70 547 Tm (Operation Theatre Charges) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 525.949 547 Tm (20,000) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 531.325 Tm (5) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 70 531.325 Tm (Pharmacy and Medicines) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 525.949 531.325 Tm (24,000) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 515.65 Tm (6) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 70 515.65 Tm (Investigations \(Lab, Ultrasound\)) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 525.949 515.65 Tm (16,000) Tj T* ET
+.75 .78 .82 RG
+n 40 506.475 m 555 506.475 l S
+.1 .1 .12 rg
+BT /F2 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 380 491.975 Tm (Grand Total) Tj T* ET
+.1 .1 .12 rg
+BT /F2 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 518.026 491.975 Tm (1,20,000) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 380 476.3 Tm (Advance Paid) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 525.949 476.3 Tm (15,000) Tj T* ET
+.1 .1 .12 rg
+BT /F2 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 380 460.625 Tm (Net Payable) Tj T* ET
+.1 .1 .12 rg
+BT /F2 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 518.026 460.625 Tm (1,05,000) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 380 420.95 Tm (Authorised Signatory) Tj T* ET
+BT /F1 7.5 Tf 9 TL ET
+.38 .4 .45 rg
+BT 1 0 0 1 40 28 Tm (DEMO DOCUMENT. Invented data for a product demo. Not valid for any real purpose.) Tj T* ET
+BT 1 0 0 1 516.6375 28 Tm (Page 1 of 1) Tj T* ET
+ 
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000073 00000 n 
+0000000114 00000 n 
+0000000221 00000 n 
+0000000333 00000 n 
+0000000526 00000 n 
+0000000594 00000 n 
+0000000903 00000 n 
+0000000962 00000 n 
+trailer
+<<
+/ID 
+[<dbd9073345063d5ae0228bd715e29568><dbd9073345063d5ae0228bd715e29568>]
+% ReportLab generated PDF document -- digest (http://www.reportlab.com)
+
+/Info 6 0 R
+/Root 5 0 R
+/Size 9
+>>
+startxref
+5129
+%%EOF

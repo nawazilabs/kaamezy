@@ -833,7 +833,7 @@ try{ sb = window.supabase.createClient(SB_URL, SB_KEY); }catch(e){ sb = null; }
    Set NO_AUTH to false to bring the Supabase sign-in back (and run the server with CHAUKAS_CONSUMER_AUTH=supabase). */
 const NO_AUTH = false;
 let cur = null, user = null, recovering = false;
-const SCREENS = ["auth-page","home","cz","chs","ins","hi","hiw","hip","clm","hia","ich","ln","lnw","lnl","acct","pm","bp","sp","st"];
+const SCREENS = ["auth-page","home","cz","chs","ins","hi","hiw","hip","clm","hdr","hdc","hrl","hia","ich","ln","lnw","lnl","acct","pm","bp","sp","st"];
 function icons(){ try{ window.lucide && lucide.createIcons(); }catch(e){} }
 function showScreen(id){
   cur = id; SCREENS.forEach(s => { const n = $(s); if(n) n.hidden = s !== id; }); closeSheets();
@@ -1010,6 +1010,7 @@ startApp();
 
 </script>
 <script src="docparse.js"></script>
+<script src="docread.js"></script>
 <script src="flows.js"></script>
 <script src="i18n.js"></script>
 </body>

@@ -1,0 +1,141 @@
+%PDF-1.3
+%“Œ‹ž ReportLab Generated PDF document http://www.reportlab.com
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/Contents 8 0 R /MediaBox [ 0 0 595 842 ] /Parent 7 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+5 0 obj
+<<
+/PageMode /UseNone /Pages 7 0 R /Type /Catalog
+>>
+endobj
+6 0 obj
+<<
+/Author (Kaamezy demo \(invented data\)) /CreationDate (D:20000101000000+00'00') /Creator (data/sample_docs.py) /Keywords () /ModDate (D:20000101000000+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
+  /Subject (unspecified) /Title (claim_approval \(demo\)) /Trapped /False
+>>
+endobj
+7 0 obj
+<<
+/Count 1 /Kids [ 4 0 R ] /Type /Pages
+>>
+endobj
+8 0 obj
+<<
+/Length 2462
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+.05 .25 .47 rg
+n 0 742 595 64 re f*
+1 1 1 rg
+BT /F2 15 Tf 18 TL ET
+BT 1 0 0 1 40 778 Tm (DEMO NAVJEEVAN CARE INSURANCE CO. LTD.) Tj T* ET
+BT /F1 8.5 Tf 10.2 TL ET
+BT 1 0 0 1 40 760 Tm (Demo Plaza, Hitech City, Hyderabad 500081 \(invented address\)) Tj T* ET
+.1 .1 .12 rg
+BT /F2 13 Tf 15.6 TL ET
+BT 1 0 0 1 40 711 Tm (Claim Approval Letter) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 482.116 688.4 Tm (Date: 03/03/2026) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 668.725 Tm (Dear Neha Singh,) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 653.05 Tm (We are writing about your claim. The claim has been settled and the amount has been paid.) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 631.375 Tm (Claim Reference Number: CLM/2026/00055555) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 615.7 Tm (Policy Number: NAVJ/H/2026/00088550) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 600.025 Tm (Patient Name: Neha Singh) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 584.35 Tm (Hospital: Green Valley Hospital) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 568.675 Tm (Claimed Amount: Rs. 80,000) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 553 Tm (Total Deductions: Nil) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 537.325 Tm (Approved Amount: Rs. 80,000) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 521.65 Tm (Claim Status: Settled, payment made) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 505.975 Tm (Payment Date: 10/03/2026) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 490.3 Tm (Mode of Payment: NEFT, already credited to your registered bank account) Tj T* ET
+.1 .1 .12 rg
+BT /F2 10.5 Tf 12.6 TL ET
+BT 1 0 0 1 40 465.625 Tm (Payment Details) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 448.775 Tm (Payment is made to the bank account registered with the policy, after the discharge voucher is received.) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 419.1 Tm (Yours sincerely,) Tj T* ET
+.1 .1 .12 rg
+BT /F1 9.5 Tf 11.4 TL ET
+BT 1 0 0 1 40 403.425 Tm (Claims Department) Tj T* ET
+BT /F1 7.5 Tf 9 TL ET
+.38 .4 .45 rg
+BT 1 0 0 1 40 28 Tm (DEMO DOCUMENT. Invented data for a product demo. Not valid for any real purpose.) Tj T* ET
+BT 1 0 0 1 516.6375 28 Tm (Page 1 of 1) Tj T* ET
+ 
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000073 00000 n 
+0000000114 00000 n 
+0000000221 00000 n 
+0000000333 00000 n 
+0000000526 00000 n 
+0000000594 00000 n 
+0000000904 00000 n 
+0000000963 00000 n 
+trailer
+<<
+/ID 
+[<7651da1a086e235913f5cafed03e5cf5><7651da1a086e235913f5cafed03e5cf5>]
+% ReportLab generated PDF document -- digest (http://www.reportlab.com)
+
+/Info 6 0 R
+/Root 5 0 R
+/Size 9
+>>
+startxref
+3476
+%%EOF
