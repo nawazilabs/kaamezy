@@ -1,0 +1,15 @@
+CITY CARE HOSPITAL
+DISCHARGE SUMMARY
+
+Patient Name: Rahul Sharma
+UHID: 458213
+Date of Admission: 12 March 2026
+Date of Discharge: 15 March 2026
+Treating Doctor: Dr. Anil Mehta
+
+Final Diagnosis: Acute Appendicitis
+Procedure Performed: Laparoscopic Appendectomy
+Condition at Discharge: Stable, afebrile
+
+Advice on Discharge
+Review after 7 days. Avoid heavy lifting for 4 weeks.

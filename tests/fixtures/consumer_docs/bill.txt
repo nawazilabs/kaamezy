@@ -1,0 +1,23 @@
+CITY CARE HOSPITAL
+12 MG Road, Pune 411001
+FINAL BILL / TAX INVOICE
+
+Bill No: CCH/IP/26/009812        UHID: 458213
+Patient Name: Rahul Sharma 34/M
+Date of Admission: 12/03/2026    Date of Discharge: 15/03/2026
+Diagnosis: Acute Appendicitis
+
+Sr  Description                          Qty/Days     Rate      Amount
+1   Room Rent (Deluxe Room)              3 days x 8,000         24,000
+2   ICU Nursing Charges                                          9,000
+3   Consultant Visit Charges                                     12,000
+4   Surgeon Fees                                                 40,000
+5   Operation Theatre Charges                                    25,000
+6   Pharmacy and Medicines                                       31,500
+7   Investigations (Lab, Ultrasound, CT scan)                    38,500
+8   Anaesthesia Charges                                          10,000
+9   Miscellaneous Charges                                        10,000
+
+Grand Total                                                    2,00,000
+Advance Paid                                                      20,000
+Net Payable                                                    1,80,000

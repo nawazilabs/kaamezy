@@ -159,15 +159,63 @@ def create_claim(conn, user_id: str, policy_id: str, claimed_inr: int, approved_
 
 
 def get_claim(conn, user_id: str, claim_id: str) -> dict | None:
-    return _row(conn.execute("SELECT * FROM consumer_claims WHERE id=? AND user_id=?", (claim_id, user_id)).fetchone())
+    """An in-app claim (CLM-) or a claim verified from documents (VCL-, with payout_due and holder_name)."""
+    table = "consumer_verified_claims" if claim_id.startswith("VCL-") else "consumer_claims"
+    return _row(conn.execute(f"SELECT * FROM {table} WHERE id=? AND user_id=?", (claim_id, user_id)).fetchone())
+
+
+def create_verified_claim(conn, user_id: str, application_id: str, claim_hash: str, holder_name: str, claimed_inr: int,
+                          approved_inr: int, payout_due: str) -> dict:
+    cid = _id("VCL")
+    conn.execute("INSERT INTO consumer_verified_claims(id,user_id,application_id,claim_hash,holder_name,claimed_inr,approved_inr,payout_due,created_at) "
+                 "VALUES(?,?,?,?,?,?,?,?,?)", (cid, user_id, application_id, claim_hash, holder_name, claimed_inr, approved_inr, payout_due, db.now_iso()))
+    return get_claim(conn, user_id, cid)
+
+
+def verified_claim_by_hash(conn, claim_hash: str) -> dict | None:
+    """Any user's claim with this hash (a claim backs one advance, whoever uploads it)."""
+    return _row(conn.execute("SELECT * FROM consumer_verified_claims WHERE claim_hash=?", (claim_hash,)).fetchone())
 
 
 def list_claims(conn, user_id: str) -> list[dict]:
     return [dict(r) for r in conn.execute("SELECT * FROM consumer_claims WHERE user_id=? ORDER BY created_at, id", (user_id,))]
 
 
+def new_application_id() -> str:
+    return _id("APP")
+
+
+def fingerprint_used_elsewhere(conn, user_id: str, application_id: str | None, kind: str, fingerprint: str, *, own_preauth_ok: bool = False) -> bool:
+    """True if this hash was recorded by ANOTHER application. The same user's own application (same id) does not count. With
+    `own_preauth_ok`, neither do the same user's own pre-authorisation offers: the claim that follows an advance legitimately
+    reuses the same policy and bill (it is still caught if ANOTHER user, or another claim, used them)."""
+    extra = " AND NOT (user_id=? AND application_id IN (SELECT application_id FROM consumer_preauth WHERE user_id=?))" if own_preauth_ok else ""
+    args = (kind, fingerprint, user_id, application_id or "") + ((user_id, user_id) if own_preauth_ok else ())
+    row = conn.execute("SELECT 1 FROM consumer_doc_fingerprints WHERE kind=? AND fingerprint=? AND NOT (user_id=? AND application_id=?)" + extra + " LIMIT 1", args).fetchone()
+    return row is not None
+
+
+def record_fingerprints(conn, user_id: str, application_id: str, fps: list[dict]) -> None:
+    """Remember the hashes of an application's documents (once each: recording the same application again adds nothing)."""
+    for f in fps:
+        if not conn.execute("SELECT 1 FROM consumer_doc_fingerprints WHERE user_id=? AND application_id=? AND kind=? AND fingerprint=?",
+                            (user_id, application_id, f["kind"], f["fingerprint"])).fetchone():
+            conn.execute("INSERT INTO consumer_doc_fingerprints(user_id,application_id,kind,fingerprint,created_at) VALUES(?,?,?,?,?)",
+                         (user_id, application_id, f["kind"], f["fingerprint"], db.now_iso()))
+
+
+def application_owned(conn, user_id: str, application_id: str) -> bool:
+    return conn.execute("SELECT 1 FROM consumer_doc_fingerprints WHERE user_id=? AND application_id=? LIMIT 1", (user_id, application_id)).fetchone() is not None
+
+
+def claims_used(conn, user_id: str, policy_id: str) -> int:
+    """Rupees of the cover that earlier claims on this policy have used (what the insurer approved for them)."""
+    return conn.execute("SELECT COALESCE(SUM(approved_inr),0) FROM consumer_claims WHERE user_id=? AND policy_id=?", (user_id, policy_id)).fetchone()[0]
+
+
 def set_claim_bridge(conn, claim_id: str, loan_id: str) -> None:
-    conn.execute("UPDATE consumer_claims SET bridge_loan_id=? WHERE id=? AND bridge_loan_id IS NULL", (loan_id, claim_id))
+    table = "consumer_verified_claims" if claim_id.startswith("VCL-") else "consumer_claims"
+    conn.execute(f"UPDATE {table} SET bridge_loan_id=? WHERE id=? AND bridge_loan_id IS NULL", (loan_id, claim_id))
 
 
 def new_policy_id() -> str:
@@ -203,3 +251,53 @@ def recent_turns(conn, user_id: str, session_id: str, limit: int) -> list[dict]:
 
 def turn_count(conn, session_id: str) -> int:
     return conn.execute("SELECT COUNT(*) FROM consumer_turns WHERE session_id=? AND role='user'", (session_id,)).fetchone()[0]
+
+
+# ---------------------------------------------------------------- Workflow A: an advance before the claim
+def create_preauth(conn, user_id: str, application_id: str, estimate_key: str, holder_name: str, hospital_id: str, payee_name: str,
+                   bill_total_inr: int, estimated_inr: int, conservative_inr: int, confidence: str, repay_days: int) -> dict:
+    pid = _id("PRE")
+    conn.execute("INSERT INTO consumer_preauth(id,user_id,application_id,estimate_key,holder_name,hospital_id,payee_name,bill_total_inr,estimated_inr,"
+                 "conservative_inr,confidence,repay_days,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                 (pid, user_id, application_id, estimate_key, holder_name, hospital_id, payee_name, bill_total_inr, estimated_inr,
+                  conservative_inr, confidence, repay_days, db.now_iso()))
+    return get_preauth(conn, user_id, pid)
+
+
+def get_preauth(conn, user_id: str, preauth_id: str) -> dict | None:
+    return _row(conn.execute("SELECT * FROM consumer_preauth WHERE id=? AND user_id=?", (preauth_id, user_id)).fetchone())
+
+
+def preauth_by_key(conn, estimate_key: str) -> dict | None:
+    """Any user's offer on this estimate (one estimate backs one advance, whoever uploads it)."""
+    return _row(conn.execute("SELECT * FROM consumer_preauth WHERE estimate_key=?", (estimate_key,)).fetchone())
+
+
+def set_preauth_loan(conn, preauth_id: str, loan_id: str) -> None:
+    conn.execute("UPDATE consumer_preauth SET loan_id=? WHERE id=? AND loan_id IS NULL", (loan_id, preauth_id))
+
+
+def close_preauth(conn, preauth_id: str, claim_id: str) -> None:
+    conn.execute("UPDATE consumer_preauth SET claim_id=?, closed_at=? WHERE id=? AND claim_id IS NULL", (claim_id, db.now_iso(), preauth_id))
+
+
+# ---------------------------------------------------------------- the pipeline's agent log (append-only)
+def save_pipeline_run(conn, user_id: str, workflow: str, outcome: str, steps: list[dict], ref_id: str | None) -> str:
+    rid = _id("RUN")
+    conn.execute("INSERT INTO consumer_pipeline_runs(id,user_id,workflow,outcome,steps_json,ref_id,created_at) VALUES(?,?,?,?,?,?,?)",
+                 (rid, user_id, workflow, outcome, json.dumps(steps), ref_id, db.now_iso()))
+    return rid
+
+
+def _run_view(r) -> dict:
+    d = dict(r)
+    return {"id": d["id"], "workflow": d["workflow"], "outcome": d["outcome"], "ref_id": d["ref_id"], "created_at": d["created_at"], "steps": json.loads(d["steps_json"])}
+
+
+def get_pipeline_run(conn, user_id: str, run_id: str) -> dict | None:
+    r = conn.execute("SELECT * FROM consumer_pipeline_runs WHERE id=? AND user_id=?", (run_id, user_id)).fetchone()
+    return _run_view(r) if r else None
+
+
+def list_pipeline_runs(conn, user_id: str, limit: int = 20) -> list[dict]:
+    return [_run_view(r) for r in conn.execute("SELECT * FROM consumer_pipeline_runs WHERE user_id=? ORDER BY rowid DESC LIMIT ?", (user_id, limit))]

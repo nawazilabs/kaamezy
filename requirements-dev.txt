@@ -1,0 +1,3 @@
+# Only for regenerating the demo documents (python -m data.sample_docs). The app itself does not need these.
+reportlab
+pillow

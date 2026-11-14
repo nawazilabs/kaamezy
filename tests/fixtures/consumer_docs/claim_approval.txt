@@ -1,0 +1,23 @@
+DEMO SURAKSHA HEALTH INSURANCE CO. LTD.
+Claim Approval Letter
+
+Dear Rahul Sharma,
+We are pleased to inform you that your claim has been approved.
+
+Claim Reference Number: CLM/2026/00012345
+Policy Number: SURK/H/2026/00045678
+Hospital: City Care Hospital
+Claimed Amount: Rs. 2,00,000
+Total Deductions: Rs. 67,500
+Approved Amount: Rs. 1,32,500
+Claim Status: Approved, payment pending
+Expected Payment Date: 28/03/2026
+Mode of Payment: NEFT to your registered bank account
+
+Reasons for Deduction
+- Room rent above the policy limit of Rs. 5,000 per day: proportionate deduction.
+- Deductible of Rs. 5,000 as per policy.
+- Co-payment of 10 percent.
+- Non-payable consumables.
+Payment Details
+Payment will be made after discharge voucher.

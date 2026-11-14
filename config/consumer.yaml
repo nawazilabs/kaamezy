@@ -10,16 +10,20 @@ health_insurance:
       price_multiplier: 0.92
       tag: "Lowest premium"
       points: ["30-day initial wait, 2 yr for existing illness", "10% co-pay for members above 60", "Cashless at 6,500+ hospitals"]
+      # The terms the claim estimator reads for a policy bought here (ILLUSTRATIVE; same shape as a policy read from a document).
+      terms: {room_rent: {kind: per_day_inr, inr: 5000}, copay_pct: 0, deductible_inr: 0, initial_waiting_days: 30, ped_waiting_months: 24, specific_waiting_months: 24}
     - id: arogya
       name: "Arogya Plus"
       price_multiplier: 1.0
       tag: "Best balance"
       points: ["30-day initial wait, 3 yr for existing illness", "No co-pay", "Cashless at 9,200+ hospitals"]
+      terms: {room_rent: {kind: pct_of_sum_insured_per_day, pct: 1}, copay_pct: 0, deductible_inr: 0, initial_waiting_days: 30, ped_waiting_months: 36, specific_waiting_months: 24}
     - id: navjeevan
       name: "Navjeevan Care"
       price_multiplier: 1.15
       tag: "Fastest cover for existing illness"
       points: ["15-day initial wait, 1 yr for existing illness", "No co-pay, single private room", "Cashless at 12,000+ hospitals"]
+      terms: {room_rent: {kind: single_private_room}, copay_pct: 0, deductible_inr: 0, initial_waiting_days: 15, ped_waiting_months: 12, specific_waiting_months: 12}
   balanced_insurer_id: arogya          # recommended when a member is older or a condition is declared
   covers_inr: [500000, 1000000, 2500000, 5000000]
   cover_factor: {500000: 1.0, 1000000: 1.35, 2500000: 1.9, 5000000: 2.5}
@@ -82,6 +86,46 @@ claims:
   approve_pct: 90                               # share of the claimed amount the (simulated) insurer approves, never above the cover
   review_minutes: 0                             # demo: the claim is approved at once; set a real wait here to show 'under review'
   payout_days: 10                               # the insurer pays this many days after the claim is filed
+# The claim ESTIMATOR (consumer/estimate.py): what a policy would probably pay on a hospital bill. It is an ESTIMATE from the
+# terms the person gave, never an approval and never a promise: the insurer alone decides a claim. Pure integer maths,
+# every step is returned with the clause it came from. Every rule and number below is ILLUSTRATIVE and different policies
+# differ: this section holds the rules, the policy terms come from the policy.
+claim_estimate:
+  disclaimer: "This is an estimate worked out from the policy terms you gave. Only the insurer decides your claim, and the amount it pays can be different."
+  # the order matters and is the usual one, but some policies differ: switch it here, not in code
+  copay_after_deductible: true            # true: deductible first, then co-pay on what is left
+  proportionate_deduction: true           # a room above the limit also scales the charges that depend on the room
+  # charges that are never paid (matched in the description of a bill line, case-insensitive)
+  not_payable_keywords: ["miscellaneous", "consumable", "registration", "admission kit", "attendant", "toiletr", "telephone", "service charge", "documentation", "file charge", "administrative", "laundry"]
+  # the line that is the room itself (a daily rate times days); ICU and nursing are not capped by the room limit
+  room_line_keywords: ["room rent", "room charge", "bed charge", "ward"]
+  # charges that scale down with the room when the room is above the limit
+  proportionate_categories: [doctor, surgery]
+  proportionate_keywords: ["nursing"]
+  proportionate_exempt_keywords: ["icu", "iccu", "intensive", "nicu"]
+  # diseases a policy usually puts under the specific-disease waiting period (matched in the diagnosis or procedure)
+  specific_disease_keywords: ["cataract", "hernia", "hysterectomy", "joint replacement", "knee replacement", "hip replacement", "calculi", "kidney stone", "gall stone", "gallstone", "piles", "haemorrhoid", "hemorrhoid", "fistula", "sinusitis", "tonsillectomy", "varicose", "fibroid", "prolapse", "benign prostatic", "septoplasty"]
+  # words too general to show that an exclusion or sub-limit is the one that applies
+  generic_words: ["surgery", "treatment", "hospitalisation", "hospitalization", "disease", "diseases", "injury", "illness", "caused", "needed", "taken", "unless", "except", "where", "which", "after", "outside", "claims", "claim", "expenses", "cover", "covered", "policy", "insured", "arising", "related", "resulting", "any", "other", "than", "that", "this", "from", "with", "were", "have", "been", "more", "less", "hours", "needs", "being", "such"]
+  min_keyword_len: 4
+  # DEMO ONLY. A policy bought in this app minutes ago is inside its initial waiting period, so a claim on it would be refused. With this on
+  # (or KAAMEZY_DEMO_WAIVE_WAITING=1) the estimate SHOWS those waiting periods but does not apply them, says so in demo_notice, and
+  # never does it for a policy read from a document. Keep it off for anything that is not a demo.
+  demo:
+    waive_waiting_for_in_app_policies: false
+  # the exclusions of a policy bought in this app (a policy read from a document brings its own)
+  default_exclusions: ["Cosmetic or plastic surgery unless needed after an accident.", "Dental treatment, unless it needs hospitalisation.", "Injury or disease caused by war, nuclear risk or hazardous sports.", "Treatment taken outside India."]
+  qualifier_words: ["unless", "except", "only if", "other than", "provided"]   # an exclusion with one of these may not apply: it is flagged, not applied
+  # confidence in the estimate: start at 1.0, take off per gap; the haircut gives the conservative figure that financing may use
+  confidence:
+    per_missing_information: 0.10
+    per_uncertainty: 0.08
+    no_item_breakdown: 0.25
+    floor: 0.10
+    high_at: 0.80
+    medium_at: 0.50
+  conservative_haircut_pct: {high: 5, medium: 15, low: 30}
+
 bridge:
   lender_name: "Demo NBFC Partner (simulated)"
   share_pct: 80                                 # advance is at most this share of the approved claim
@@ -94,5 +138,27 @@ bridge:
   cooling_off_days: 3
   grievance_contact: "grievance@demo-lender.example (mock)"
   auto_limit_inr: 100000                        # an advance above this needs a one-time code
+  max_active_loans: 2
+  quote_ttl_minutes: 60
+
+# Workflow A: an advance BEFORE the claim, for the hospital deposit at a (simulated) partner hospital. SIMULATED lender and hospital;
+# every number is ILLUSTRATIVE. It is sized ONLY from the conservative figure of a verified claim estimate (never the hospital's
+# quote, never the person's words), is paid to the hospital and never to the person, always needs a one-time code, and is closed
+# when the claim that follows is approved (consumer/api.py /preauth/close). An estimate is not an approval: the insurer decides.
+preauth:
+  lender_name: "Demo NBFC Partner (simulated)"
+  share_pct: 50                                 # at most this share of the CONSERVATIVE estimate
+  cap_inr: 150000
+  min_inr: 10000
+  round_to_inr: 5000
+  apr_pct: 18
+  fee_pct: 1
+  gst: 0.18
+  claim_buffer_days: 20                         # days for the stay, the discharge and filing the claim, added to the payout outlook
+  offer_valid_days: 14                          # an estimate older than this is not used for an advance
+  min_confidence: [high, medium]                # a 'low' confidence estimate is never financed
+  otp_always: true                              # hospital-direct money before any claim: a one-time code every time
+  cooling_off_days: 3
+  grievance_contact: "grievance@demo-lender.example (mock)"
   max_active_loans: 2
   quote_ttl_minutes: 60

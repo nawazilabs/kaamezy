@@ -1,0 +1,217 @@
+# Reading uploaded documents (policy, hospital bill, discharge summary, claim acknowledgement, claim approval letter).
+# Owner: Member 1 · code: chaukas/consumer/docs.py · browser side: web/docread.js
+#
+# Every label, keyword and limit the reader uses lives here (CLAUDE.md rule 7). The reader is deterministic code: it
+# finds a labelled value in the text, cites the page and the line it came from, and says how sure it is. Nothing here
+# decides a rupee amount of a loan or an advance; the values are only INPUTS that the person confirms later.
+
+limits:
+  max_pages: 30
+  max_chars_per_page: 20000
+  max_total_chars: 150000
+  # the browser reads a PDF page's own text first; a page with fewer characters than this is treated as a scan and OCR'd
+  min_text_chars_per_page: 40
+  max_money_inr: 100000000          # 10 crore: anything above is not read as a rupee amount
+  min_field_confidence: 0.70        # a field below this is listed under needs_review, never silently accepted
+
+# How sure we are of a value, by how it was found. OCR text is less reliable than a PDF's own text layer.
+confidence:
+  same_line_label: 0.95
+  next_line_label: 0.85
+  heuristic: 0.60
+  letterhead: 0.78                  # the insurer or hospital named in the heading lines at the top of the document
+  ocr_factor: 0.90
+  clause_from_model: 0.55           # an AI-suggested clause is shown, but always needs the person's confirmation
+
+classify:
+  min_score: 4                      # below this the document is "unknown": it is never guessed
+  min_margin: 2                     # the best type must beat the second by at least this much
+  # keyword -> weight. Matched case-insensitively as whole words / phrases.
+  policy:
+    "policy schedule": 5
+    "policy number": 3
+    "policy period": 3
+    "sum insured": 4
+    "waiting period": 4
+    "exclusions": 4
+    "co-payment": 3
+    "copayment": 3
+    "room rent": 3
+    "terms and conditions": 2
+    "renewal": 1
+    "premium": 2
+    "cashless": 1
+  hospital_bill:
+    "cost estimate": 5
+    "estimated bill": 5
+    "estimate no": 3
+    "estimated total": 3
+    "estimated cost": 3
+    "pre-authorisation": 2
+    "final bill": 5
+    "tax invoice": 3
+    "invoice": 2
+    "bill no": 4
+    "bill number": 4
+    "itemised": 3
+    "itemized": 3
+    "room charges": 3
+    "room rent": 1
+    "pharmacy": 2
+    "medicines": 2
+    "investigations": 2
+    "grand total": 3
+    "net payable": 3
+    "total bill": 3
+    "amount payable": 2
+  discharge_summary:
+    "discharge summary": 6
+    "date of discharge": 3
+    "discharge date": 3
+    "final diagnosis": 4
+    "diagnosis": 2
+    "condition at discharge": 4
+    "treatment given": 3
+    "procedure performed": 3
+    "advice on discharge": 3
+    "follow up": 1
+    "treating doctor": 2
+  claim_ack:
+    "acknowledgement": 5
+    "acknowledgment": 5
+    "claim intimation": 4
+    "we have received your claim": 5
+    "claim registered": 4
+    "claim has been registered": 4
+    "claim reference": 2
+    "claim number": 2
+    "claim submitted": 3
+    "documents received": 2
+    "under process": 2
+  claim_approval:
+    "claim approval": 6
+    "approval letter": 5
+    "claim settlement": 4
+    "settlement letter": 4
+    "has been approved": 5
+    "approved amount": 5
+    "amount approved": 5
+    "admissible": 3
+    "deductions": 3
+    "will be paid": 2
+    "neft": 1
+    "settled": 2
+
+# What each type must contain before the rest of the flow can use it. A missing required field is reported, not guessed.
+required:
+  policy: [insurer_name, policy_number, holder_name, sum_insured_inr]
+  hospital_bill: [hospital_name, patient_name, total_inr]
+  discharge_summary: [hospital_name, patient_name, admission_date, discharge_date, diagnosis]
+  claim_ack: [claim_reference, insurer_name, claimed_inr]
+  claim_approval: [claim_reference, insurer_name, approved_inr]
+
+# Label phrases for each field. A label is matched case-insensitively at the start of a line (or after a tab or "|"),
+# then a separator (":" "-" or spaces), then the value on the same line or, if the label stands alone, on the next line.
+labels:
+  insurer_name: ["insurer", "insurance company", "issued by", "company name", "underwritten by"]
+  policy_number: ["policy number", "policy no", "policy no.", "policy #", "policy id"]
+  holder_name: ["policy holder", "policyholder", "proposer", "insured name", "name of insured", "name of the insured", "insured person", "primary insured"]
+  plan_name: ["plan name", "product name", "plan", "product"]
+  policy_start: ["policy start date", "start date", "commencement date", "period of insurance from", "policy period from", "inception date", "risk start date"]
+  policy_end: ["policy end date", "end date", "expiry date", "valid till", "valid until", "period of insurance to", "policy period to"]
+  continuous_since: ["continuous cover since", "insured with us since", "first policy inception date", "original inception date", "continuity of cover from", "cover continuous since", "continuous coverage since"]
+  sum_insured_inr: ["sum insured", "basic sum insured", "cover amount", "total sum insured", "coverage amount"]
+  copay_pct: ["co-payment", "copayment", "co-pay", "copay", "co payment"]
+  deductible_inr: ["deductible", "voluntary deductible", "compulsory deductible"]
+  room_rent: ["room rent limit", "room rent", "room rent eligibility", "room category", "room rent cap", "room eligibility"]
+  initial_waiting_days: ["initial waiting period", "first 30 days waiting period", "initial waiting"]
+  ped_waiting_months: ["pre-existing diseases waiting period", "pre-existing disease waiting period", "pre existing diseases waiting period", "ped waiting period", "waiting period for pre-existing", "pre-existing diseases"]
+  specific_waiting_months: ["specific disease waiting period", "specific waiting period", "waiting period for specific diseases", "waiting period for listed", "specified disease waiting period"]
+  cashless_available: ["cashless facility", "cashless hospitalisation", "cashless hospitalization", "cashless", "network hospitals"]
+
+  hospital_name: ["hospital name", "name of hospital", "name of the hospital", "hospital", "facility name", "admitted at"]
+  patient_name: ["patient name", "name of patient", "name of the patient", "patient", "name of insured patient", "name"]
+  bill_number: ["estimate no", "estimate number", "bill no", "bill number", "invoice no", "invoice number", "bill no.", "final bill no"]
+  uhid: ["uhid", "mr no", "mrn", "ip no", "ip number", "registration no", "reg no", "patient id"]
+  admission_date: ["expected date of admission", "proposed date of admission", "expected admission date", "date of admission", "admission date", "admitted on", "doa", "date admitted", "admitted"]
+  discharge_date: ["expected date of discharge", "expected discharge date", "date of discharge", "discharge date", "discharged on", "dod", "date discharged"]
+  diagnosis: ["final diagnosis", "diagnosis", "provisional diagnosis", "disease", "ailment", "condition treated"]
+  procedure: ["procedure performed", "procedure", "surgery performed", "treatment given", "operation", "treatment"]
+  treating_doctor: ["treating doctor", "consultant", "attending physician", "doctor", "treating consultant"]
+  total_inr: ["estimated total", "total estimated cost", "total estimate", "estimated amount", "grand total", "total bill amount", "net payable", "total amount payable", "net bill amount", "total bill", "bill total", "amount payable", "total amount", "net amount", "total"]
+  advance_paid_inr: ["advance paid", "advance received", "deposit paid", "advance"]
+
+  claim_reference: ["claim reference number", "claim reference no", "claim reference", "claim number", "claim no", "claim no.", "claim id", "claim ref"]
+  claimed_inr: ["claimed amount", "amount claimed", "claim amount", "total claimed", "amount of claim"]
+  claim_date: ["date of claim", "claim date", "claim submitted on", "date received", "received on", "date of intimation"]
+  approved_inr: ["approved amount", "amount approved", "total approved", "claim approved for", "admissible amount", "settled amount", "net approved amount", "payable amount", "amount payable to you"]
+  deduction_inr: ["total deductions", "deduction amount", "total deduction", "amount deducted", "non-payable amount", "disallowed amount", "deductions"]
+  settlement_status: ["claim status", "settlement status", "status of claim", "status"]
+  expected_payment_date: ["expected payment date", "payment date", "date of payment", "payment expected on", "will be credited on", "payment will be made on", "settlement date", "expected settlement date"]
+  payment_mode: ["mode of payment", "payment mode", "paid through"]
+
+# One-word labels that may start a new column in the middle of a line (OCR collapses the gap between columns to one space).
+column_single_labels: ["uhid", "mrn", "doa", "dod"]
+
+# Bill line items: a line that ends in an amount is an item; its words decide the category.
+bill_categories:
+  room: ["room", "ward", "bed charge", "icu", "iccu", "nursing", "accommodation"]
+  doctor: ["doctor", "consultation", "consultant", "visit charge", "surgeon", "anaesthetist", "anesthetist", "anaesthesia", "anesthesia", "professional fee"]
+  medicine: ["medicine", "pharmacy", "drug", "consumable", "injection", "implant", "stent"]
+  surgery: ["surgery", "surgical", "operation theatre", "operation theater", "ot charge", "ot charges", "procedure"]
+  diagnostic: ["diagnostic", "investigation", "laboratory", "lab ", "pathology", "radiology", "x-ray", "xray", "mri", "ct scan", "ecg", "ultrasound", "blood test"]
+# Lines that carry an amount but are NOT items.
+bill_skip_words: ["estimated total", "total estimated", "total estimate", "estimated amount", "grand total", "total bill", "net payable", "amount payable", "sub total", "subtotal", "total", "advance", "deposit", "balance", "discount", "gst", "tax", "paid", "due"]
+
+# The value of a labelled "status" line is matched against these words (first group that matches wins, so a
+# rejection is never read as an approval). With no status line, only the phrases below are used, never single words.
+settlement_status_words:
+  rejected: ["rejected", "repudiated", "declined", "denied"]
+  settled: ["settled", "paid", "credited", "disbursed"]
+  approved: ["approved", "admissible", "sanctioned", "accepted"]
+  pending: ["pending", "under process", "under review", "in process", "processing"]
+status_phrases:
+  rejected: ["has been rejected", "has been repudiated", "regret to inform", "is not admissible", "claim is rejected", "claim has been declined"]
+  settled: ["has been settled", "has been paid", "amount has been credited", "amount credited to", "payment has been made"]
+  approved: ["has been approved", "is approved", "we are pleased to approve", "claim is approved", "claim approved"]
+  pending: ["is under process", "is under review", "is being processed", "is pending"]
+
+room_rent_words:
+  no_limit: ["no limit", "no capping", "no cap", "without any limit", "actuals", "no sub-limit"]
+  single_private: ["single private room", "single private ac room", "private single room", "single room"]
+  shared: ["shared room", "twin sharing", "semi-private", "semi private", "general ward"]
+
+# Headings that open a list of bullet points (a heading is a short line that is only the heading, optionally numbered).
+list_sections:
+  exclusions: ["exclusions", "permanent exclusions", "what is not covered", "what we do not cover", "general exclusions", "list of exclusions", "specific exclusions"]
+  sub_limits: ["sub-limits", "sub limits", "sublimits", "disease wise sub-limits", "disease-wise sub limits", "disease wise sub limits", "capping"]
+  deduction_reasons: ["reasons for deduction", "deduction details", "details of deductions", "deductions made", "reason for deduction", "reasons for deductions", "deductions"]
+# A list ends at a blank gap of this many lines, at the next heading below, or at max_section_items.
+list_stop_headings: ["terms and conditions", "claim procedure", "how to claim", "grievance", "definitions", "customer information", "important notes", "contact us", "declaration", "waiting periods", "coverage", "what is covered", "payment details", "payment", "note", "notes", "sub-limits", "sub limits", "exclusions", "signature", "authorised signatory", "authorized signatory", "regards", "yours sincerely", "yours faithfully"]
+max_section_items: 40
+max_list_item_chars: 300
+
+# The optional AI helper for free-form clauses (policy only). It only LOCATES a sentence; code checks the sentence is in
+# the document and reads the number out of it. It never sees names, contact details or identity numbers.
+ai:
+  enabled: true
+  max_chars: 24000
+  max_clauses: 40
+  max_quote_chars: 400
+  # lines whose label shows they carry personal data are not sent to the model at all
+  # (matched anywhere in the label before the first ":", as whole words; a line that starts with "Dear" is dropped too)
+  drop_line_labels: ["name", "holder", "policyholder", "insured person", "primary insured", "member", "address", "nominee", "phone", "mobile", "email", "e-mail", "dob", "date of birth", "pan", "aadhaar", "aadhar", "account", "a/c", "ifsc", "upi", "contact", "uhid", "mrn", "customer id", "proposer", "dear"]
+
+# Cross-checking a SET of documents (consumer/verify.py). The documents of one application must agree with each other and, for
+# an approval letter, with the insurer's own record. A disagreement is reported, never settled by a guess.
+verify:
+  required_documents:
+    approved_claim: [policy, hospital_bill, discharge_summary, claim_ack, claim_approval]
+    preapproval: [policy, hospital_bill]
+  max_documents: 8
+  estimate_tolerance_pct: 10        # an approval this far above the estimate from the policy terms is flagged for a person to check
+  honorifics: ["mr", "mrs", "ms", "miss", "shri", "smt", "sri", "dr", "master", "baby", "mx"]
+  # words that do not tell two companies or hospitals apart
+  org_generic_words: ["ltd", "limited", "co", "company", "pvt", "private", "hospital", "hospitals", "insurance", "general", "health", "the", "and"]
+  min_org_tokens_for_partial_match: 2   # one name inside another counts as the same only if it has at least this many telling words
+

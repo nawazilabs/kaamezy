@@ -1,0 +1,59 @@
+# SIMULATED insurer registry: what "the insurer's own record" says about a claim. Owner: Member 1
+# In production this is the insurer's claim-status API (or the IRDAI-aligned claim-status exchange); here a mock adapter
+# reads this file. EVERY NAME, NUMBER AND AMOUNT BELOW IS INVENTED DEMO DATA, not a real person, policy or claim.
+#
+# What it is for (CLAUDE.md rules 2, 3, 12): an approval letter is only a document, and a document can be altered. Before any
+# advance is sized from a letter, its claim reference and amounts are checked against this record (consumer/verify.py):
+#   * found and equal      -> the letter is confirmed
+#   * found but different  -> the letter does not match the insurer: no advance (a person must look)
+#   * not found            -> cannot be confirmed: a person must check before any financing
+# A claim that is not here is NOT called fraudulent: it is simply not confirmed.
+# status: approved (payment pending) | settled (already paid) | pending (still under review) | rejected
+claims:
+  - claim_reference: "CLM/2026/00012345"       # the happy path: the sample Rahul Sharma documents in tests/fixtures/consumer_docs
+    insurer: "Demo Suraksha Health Insurance Co. Ltd."
+    policy_number: "SURK/H/2026/00045678"
+    patient_name: "Rahul Sharma"
+    hospital_name: "City Care Hospital"
+    claimed_inr: 200000
+    approved_inr: 132500
+    status: approved
+    payment_expected: "2026-03-28"
+    payment_in_days: 10                        # simulation clock: the demo insurer pays this many days from today, so the advance can be shown at any date
+  - claim_reference: "CLM/2026/00022222"       # approved in full
+    insurer: "Demo Suraksha Health Insurance Co. Ltd."
+    policy_number: "SURK/H/2026/00051122"
+    patient_name: "Anita Verma"
+    hospital_name: "Lifeline Multispeciality Hospital"
+    claimed_inr: 120000
+    approved_inr: 120000
+    status: approved
+    payment_expected: "2026-04-05"
+    payment_in_days: 12
+  - claim_reference: "CLM/2026/00033333"       # rejected by the insurer
+    insurer: "Demo Suraksha Health Insurance Co. Ltd."
+    policy_number: "SURK/H/2026/00061234"
+    patient_name: "Imran Khan"
+    hospital_name: "Sunrise Hospital"
+    claimed_inr: 90000
+    approved_inr: 0
+    status: rejected
+    payment_expected: null
+  - claim_reference: "CLM/2026/00044444"       # still under review
+    insurer: "Demo Arogya Plus Insurance Co. Ltd."
+    policy_number: "AROG/H/2026/00077001"
+    patient_name: "Suresh Patel"
+    hospital_name: "Patel Memorial Hospital"
+    claimed_inr: 150000
+    approved_inr: 0
+    status: pending
+    payment_expected: null
+  - claim_reference: "CLM/2026/00055555"       # approved AND already paid
+    insurer: "Demo Navjeevan Care Insurance Co. Ltd."
+    policy_number: "NAVJ/H/2026/00088550"
+    patient_name: "Neha Singh"
+    hospital_name: "Green Valley Hospital"
+    claimed_inr: 80000
+    approved_inr: 80000
+    status: settled
+    payment_expected: "2026-03-10"

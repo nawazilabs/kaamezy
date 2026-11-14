@@ -18,15 +18,15 @@ import json
 import os
 import secrets
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from starlette.concurrency import run_in_threadpool
 
 from chaukas import db
-from chaukas.consumer import assistant, engine, fintech, guardrail, store, voice
+from chaukas.consumer import pipeline, assistant, docs, engine, estimate, fintech, guardrail, hospital_registry, insurer_registry, store, verify, voice
 from chaukas.consumer.auth import current_user
-from chaukas.consumer.models import AssistantMessage, BridgeAccept, BridgeDecide, ClaimFile, DisputeCreate, HandoffResolve, InsuranceProposal, LoanAccept, LoanApplication, PayConfirm, PayIntentCreate, PolicyPurchase, VoiceSpeak
+from chaukas.consumer.models import AssistantMessage, BridgeAccept, BridgeDecide, BridgeFromDocuments, PipelineRun, PreauthClose, PreauthDecide, ClaimEstimateRequest, ClaimFile, DisputeCreate, DocRead, DocVerify, HandoffResolve, InsuranceProposal, LoanAccept, LoanApplication, PayConfirm, PayIntentCreate, PolicyPurchase, VoiceSpeak
 from chaukas.policy.engine import load_mock_otp
 from chaukas.core import m2_shim
 from chaukas.privacy.pii import mask
@@ -215,7 +215,7 @@ def loan_accept(body: LoanAccept, user: str = Depends(current_user)) -> dict:
         raise _err(404, "QUOTE_NOT_FOUND", "That offer does not exist. Check your offer again.")
     if store.quote_expired(q, g["quote_ttl_minutes"]):
         raise _err(410, "QUOTE_EXPIRED", "That offer has expired. Check your offer again.")
-    if q["params"].get("bridge"):
+    if q["params"].get("bridge") or q["params"].get("preauth"):
         raise _err(409, "WRONG_OFFER_TYPE", "That offer is a claim-backed advance. Accept it from My claims.")
     stored = q["result"]["decision"]
     if not stored.get("eligible"):
@@ -307,6 +307,32 @@ def file_claim(body: ClaimFile, user: str = Depends(current_user)) -> dict:
 @router.get("/claims")
 def list_claims(user: str = Depends(current_user)) -> list[dict]:
     return [_claim_view(c) for c in store.list_claims(store.connect(), user)]
+
+
+@router.post("/claims/estimate")
+def claim_estimate(body: ClaimEstimateRequest, user: str = Depends(current_user)) -> dict:
+    """What the policy would probably pay on this bill, step by step. An ESTIMATE from the terms and the bill the person
+    confirmed: it is not a claim, not an approval and not a promise, and nothing is stored or paid because of it. With a
+    policy_id the server also knows the cover already used by earlier claims; without one it uses what the person stated."""
+    conn = store.connect()
+    terms, used = body.terms, body.already_claimed_inr
+    if body.policy_id:
+        pol = next((p for p in store.active_policies(conn, user) if p["id"] == body.policy_id), None)
+        if not pol:
+            raise _err(404, "POLICY_NOT_FOUND", "That policy does not exist, or it is not active.")
+        used = store.claims_used(conn, user, pol["id"])
+        if terms is None:
+            try:
+                terms = estimate.terms_for_policy(pol)
+            except ValueError as e:
+                raise _err(422, "NO_POLICY_TERMS", str(e))
+        elif terms.policy_start is None:
+            terms = terms.model_copy(update={"policy_start": date.fromisoformat(pol["start_date"])})
+    out = estimate.estimate_claim(terms, body.bill, declared_pre_existing=body.declared_pre_existing, is_accident=body.is_accident, utilised_inr=used)
+    store.audit(conn, user, "agent", "claim_estimate", guardrail.ALLOW, "READ_ONLY",
+                note=f"status={out['status']}; confidence={out['confidence']['level']}; items={len(body.bill.items)}; an estimate, not an approval; nothing stored")
+    conn.commit()
+    return out
 
 
 @router.post("/bridge/decide")
@@ -613,3 +639,257 @@ async def voice_speak(body: VoiceSpeak, user: str = Depends(current_user)) -> Re
     except voice.VoiceUnavailable as e:
         raise _err(503, "VOICE_UNAVAILABLE", str(e))
     return Response(content=wav, media_type="audio/wav", headers={"Cache-Control": "no-store"})
+
+
+# ------------------------------------------------------------------ documents (the browser reads the file; only its text arrives)
+@router.get("/docs/config")
+def docs_config(user: str = Depends(current_user)) -> dict:
+    lim = docs.cfg()["limits"]
+    return {"max_pages": lim["max_pages"], "min_text_chars_per_page": lim["min_text_chars_per_page"],
+            "types": list(docs.DOC_TYPES)}
+
+
+@router.post("/docs/read")
+def docs_read(body: DocRead, user: str = Depends(current_user)) -> dict:
+    """Reads the text of one document into cited fields. Nothing is stored: not the text, not the fields. The audit row
+    records the type, the page count and the length only. What is read here is an INPUT the person confirms later; it is
+    never an approval or an amount that anything is paid out on."""
+    problem = docs.check_size(body.pages)
+    if problem:
+        raise _err(422, "DOC_UNREADABLE" if "No text" in problem else "DOC_TOO_LARGE", problem)
+    out = docs.read_document(body.pages, body.page_sources, body.use_ai)
+    conn = store.connect()
+    store.audit(conn, user, "agent", "doc_read", "ALLOW", "READ_ONLY",
+                note=f"type={out['doc_type']}; pages={out['pages']}; chars={out['chars']}; ai={'yes' if out['ai'].get('used') else 'no'}; text never logged")
+    conn.commit()
+    return out
+
+
+def _read_all(documents: list, use_ai: bool) -> list[dict]:
+    """Every document is read again here from its text (the browser is not trusted); corrections are marked as typed."""
+    readings = []
+    for i, d in enumerate(documents):
+        problem = docs.check_size(d.pages)
+        if problem:
+            raise _err(422, "DOC_UNREADABLE" if "No text" in problem else "DOC_TOO_LARGE", f"Document {i + 1}: {problem}")
+        r = docs.read_document(d.pages, d.page_sources, use_ai)
+        try:
+            docs.apply_corrections(r, d.corrections)
+        except ValueError as e:
+            raise _err(422, "BAD_CORRECTION", f"Document {i + 1}: {e}")
+        readings.append(r)
+    return readings
+
+
+@router.post("/docs/verify")
+def docs_verify(body: DocVerify, user: str = Depends(current_user)) -> dict:
+    """Cross-checks the documents of ONE application: they must agree with each other, an approval letter with the insurer's
+    own (simulated) record, and nothing may have been used for another application. Every document is read again from its
+    text here (the browser is not trusted); the person's corrections are marked as typed, not read. The verdict is
+    consistent | needs_review | incomplete | inconsistent. It never calls anyone a fraudster: a disagreement goes to a
+    person. Nothing is stored except, when `record` is true and nothing contradicts, the SHA-256 hashes of the documents."""
+    readings = _read_all(body.documents, body.use_ai)
+    conn = store.connect()
+    app_id = body.application_id
+    report = verify.verify(readings, body.workflow, declared_pre_existing=body.declared_pre_existing, already_claimed_inr=body.already_claimed_inr,
+                           used_elsewhere=lambda kind, fp: store.fingerprint_used_elsewhere(conn, user, app_id, kind, fp))
+    fps = report.pop("fingerprints")
+    recorded = False
+    if body.record and report["verdict"] in ("consistent", "needs_review"):
+        if not (app_id and store.application_owned(conn, user, app_id)):    # a supplied id is reused only if it is this user's own
+            app_id = store.new_application_id()
+        store.record_fingerprints(conn, user, app_id, fps)
+        recorded = True
+    report["application_id"] = app_id if recorded else body.application_id
+    report["recorded"] = recorded
+    store.audit(conn, user, "agent", "doc_verify", guardrail.ALLOW, "READ_ONLY",
+                note=f"workflow={body.workflow}; docs={len(body.documents)}; verdict={report['verdict']}; failed={','.join(report['failed']) or 'none'}; "
+                     f"recorded={'yes' if recorded else 'no'}; text never logged")
+    conn.commit()
+    return report
+
+
+def _scanned(documents: list) -> int:
+    return sum((d.page_sources or []).count("ocr") for d in documents)
+
+
+def _vclaim_view(c: dict) -> dict:
+    st = engine.claim_state(c)
+    offer = engine.bridge_decide(c)
+    return {"id": c["id"], "holder_name": c.get("holder_name"), "claimed_inr": c["claimed_inr"], "approved_inr": c["approved_inr"], "state": st["state"], "payout_due": st["payout_due"],
+            "bridge_loan_id": c["bridge_loan_id"], "bridge_up_to_inr": offer["amount_inr"] if offer["eligible"] else None,
+            "bridge_blocked": None if offer["eligible"] else offer["reasons"][0]}
+
+
+@router.post("/bridge/from-documents")
+def bridge_from_documents(body: BridgeFromDocuments, user: str = Depends(current_user)) -> dict:
+    """Workflow B: size an advance from VERIFIED facts, through the shared pipeline (pipeline.py has the full rules). A claim is
+    created only for a `consistent` set the insurer's own record confirms with a future payout; the amount and date come from that
+    record, never the letter or the client; one real claim backs one advance for everybody; the usual /bridge/decide and
+    /bridge/accept ladder follows, with the advance made only to the policy holder named on the documents."""
+    conn = store.connect()
+    res = pipeline.run(conn, user, "approved_claim", _read_all(body.documents, body.use_ai), declared_pre_existing=body.declared_pre_existing,
+                       already_claimed_inr=body.already_claimed_inr, scanned_pages=_scanned(body.documents))
+    conn.commit()
+    claim, report = res["row"], res["report"]
+    return {"eligible": claim is not None, "reasons": res["reasons"], "verdict": report["verdict"], "checks": report["checks"],
+            "risk": report.get("risk"), "claim": _vclaim_view(claim) if claim else None, "run_id": res["run"]["id"],
+            "next": "Call /bridge/decide with this claim id to see the offer." if claim else "A person must look at this, or the documents must be fixed. Nothing was advanced."}
+
+
+PREAUTH_FIELDS = ("id", "payee_name", "bill_total_inr", "estimated_inr", "conservative_inr", "confidence", "loan_id", "claim_id", "closed_at", "created_at")
+
+
+def _preauth_view(p: dict) -> dict:
+    offer = engine.preauth_decide(p)
+    state = "closed" if p["claim_id"] else "advance_issued" if p["loan_id"] else "open"
+    return {**{k: p[k] for k in PREAUTH_FIELDS}, "holder_name": p["holder_name"], "state": state,
+            "advance_up_to_inr": offer["amount_inr"] if offer["eligible"] else None, "blocked": None if offer["eligible"] else offer["reasons"][0]}
+
+
+@router.post("/preauth/from-documents")
+def preauth_from_documents(body: BridgeFromDocuments, user: str = Depends(current_user)) -> dict:
+    """Workflow A: an offer for a hospital deposit, from VERIFIED documents (the policy and the hospital cost estimate), through the
+    shared pipeline. Made only when the set is `consistent`, the claim looks payable with at least medium confidence, and the
+    hospital is a partner hospital from the registry. Sized from the CONSERVATIVE figure of the estimate (which is not an approval),
+    paid to the hospital and never to the person. One estimate backs one advance, whoever uploads it."""
+    conn = store.connect()
+    res = pipeline.run(conn, user, "preapproval", _read_all(body.documents, body.use_ai), declared_pre_existing=body.declared_pre_existing,
+                       already_claimed_inr=body.already_claimed_inr, scanned_pages=_scanned(body.documents))
+    conn.commit()
+    pre, report = res["row"], res["report"]
+    return {"eligible": pre is not None, "reasons": res["reasons"], "verdict": report["verdict"], "checks": report["checks"], "risk": report.get("risk"),
+            "estimate": report.get("estimate"), "preauth": _preauth_view(pre) if pre else None, "run_id": res["run"]["id"],
+            "next": "Call /preauth/decide with this id to see the offer." if pre else "No advance is offered. Nothing was paid."}
+
+
+@router.post("/pipeline/run")
+def pipeline_run(body: PipelineRun, user: str = Depends(current_user)) -> dict:
+    """The whole path in one call, with the agent log: read, verify, estimate, risk, gate, offer. The same rules as
+    /bridge/from-documents (workflow approved_claim) and /preauth/from-documents (workflow preapproval). It prepares an offer at most:
+    money still needs /decide and /accept, the guardrail, KYC, consent and a one-time code."""
+    conn = store.connect()
+    res = pipeline.run(conn, user, body.workflow, _read_all(body.documents, body.use_ai), declared_pre_existing=body.declared_pre_existing,
+                       already_claimed_inr=body.already_claimed_inr, scanned_pages=_scanned(body.documents))
+    conn.commit()
+    row = res["row"]
+    offer = None if not row else (_vclaim_view(row) if body.workflow == "approved_claim" else _preauth_view(row))
+    return {"run": res["run"], "eligible": row is not None, "reasons": res["reasons"], "verdict": res["report"]["verdict"], "offer": offer}
+
+
+@router.get("/pipeline/runs")
+def pipeline_runs(limit: int = 20, user: str = Depends(current_user)) -> list[dict]:
+    """The agent log of this person's runs, newest first. Append-only; holds codes and figures, never document text."""
+    return store.list_pipeline_runs(store.connect(), user, max(1, min(limit, 50)))
+
+
+@router.get("/pipeline/runs/{run_id}")
+def pipeline_run_get(run_id: str, user: str = Depends(current_user)) -> dict:
+    r = store.get_pipeline_run(store.connect(), user, run_id)
+    if not r:
+        raise _err(404, "RUN_NOT_FOUND", "That run does not exist.")
+    return r
+
+
+@router.post("/preauth/decide")
+def preauth_decide(body: PreauthDecide, user: str = Depends(current_user)) -> dict:
+    conn = store.connect()
+    p = store.get_preauth(conn, user, body.preauth_id)
+    if not p:
+        raise _err(404, "PREAUTH_NOT_FOUND", "That offer does not exist.")
+    d = engine.preauth_decide(p)
+    kfs = engine.build_preauth_kfs(d) if d["eligible"] else None
+    params = {"preauth_id": p["id"], "preauth": True}
+    qid = store.save_quote(conn, user, "loan", params, {"decision": d, "kfs": kfs, "preauth": True}, engine.params_hash(params))
+    store.audit(conn, user, "lender", "preauth_decision", guardrail.ALLOW if d["eligible"] else guardrail.BLOCK, "ELIGIBLE" if d["eligible"] else d["reasons"][0],
+                amount=d.get("amount_inr"), note="sized from the conservative estimate only; paid to the hospital", quote_id=qid)
+    conn.commit()
+    return {"quote_id": qid, "decision": d, "kfs": kfs}
+
+
+@router.post("/preauth/accept")
+def preauth_accept(body: BridgeAccept, user: str = Depends(current_user)) -> dict:
+    g = engine.cfg()["preauth"]
+    conn = store.connect()
+    q = store.get_quote(conn, user, body.quote_id, "loan")
+    if not q or not q["params"].get("preauth"):
+        raise _err(404, "QUOTE_NOT_FOUND", "That offer does not exist. Check the offer again.")
+    if store.quote_expired(q, g["quote_ttl_minutes"]):
+        raise _err(410, "QUOTE_EXPIRED", "That offer has expired. Check the offer again.")
+    stored = q["result"]["decision"]
+    if not stored.get("eligible"):
+        raise _err(409, "NOT_ELIGIBLE", "The lender did not make an offer.")
+    pre = store.get_preauth(conn, user, q["params"]["preauth_id"])
+    key = f"preauth:{user}:{q['id']}"
+    done = store.execution_by_key(conn, key)
+    if done:
+        ln = next(x for x in store.active_loans(conn, user) if x["id"] == done["ref_id"])
+        return {"decision": {"verdict": "ALLOW", "kind": None, "reason_code": "WITHIN_POLICY", "reason": "This advance was already created.", "checks": []},
+                "audit_id": done["audit_id"], "loan": _loan_view(ln), "replayed": True}
+    hospital = hospital_registry.by_id(pre["hospital_id"]) if pre else None
+    d = guardrail.check_preauth_accept(
+        preauth=pre, stored_quote=q["result"], hospital=hospital, pan=body.pan, mobile=body.mobile, holder_name=body.holder_name, pincode=body.pincode,
+        consent_offer=body.consent_offer, consent_share=body.consent_claim_share, kyc_verified=store.get_kyc(conn, user) is not None,
+        kfs_shown=q["kfs_shown_at"] is not None, active_loans=store.active_loans(conn, user), otp_ok=_otp_ok(body.otp))
+    note = "otp rejected" if (body.otp and d["reason_code"] == "OTP_REQUIRED") else None
+    audit_id = store.audit(conn, user, "guardrail", "disburse_preauth", d["verdict"], d["reason_code"], amount=stored["amount_inr"], note=note, quote_id=q["id"])
+    loan = None
+    if d["verdict"] == guardrail.ALLOW:
+        lid = store.new_loan_id()
+        today = datetime.now(timezone.utc).date()
+        now = db.now_iso()
+        kfs = q["result"]["kfs"]
+        conn.execute("INSERT INTO consumer_loans(id,user_id,quote_id,lender_name,amount_inr,tenure_months,apr_pct,emi_inr,total_inr,fee_inr,"
+                     "fee_gst_inr,net_inr,purpose,employment,pan_masked,kfs_shown_at,consent_at,first_emi_date,cooling_off_end,created_at) "
+                     "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                     (lid, user, q["id"], kfs["lender_name"], stored["amount_inr"], max(1, -(-stored["days"] // 30)), stored["apr_pct"],
+                      stored["total_inr"], stored["total_inr"], stored["fee_inr"], stored["fee_gst_inr"], stored["net_inr"],
+                      f"Hospital deposit ({pre['id']}), paid to {pre['payee_name']}", "claim_backed", mask(body.pan or "", "pan"), q["kfs_shown_at"], now,
+                      stored["repay_by"], (today + timedelta(days=g["cooling_off_days"])).isoformat(), now))
+        store.record_execution(conn, user, "disburse_loan", lid, audit_id, key)
+        store.set_preauth_loan(conn, pre["id"], lid)
+        store.consent(conn, user, "preauth_offer", q["id"])
+        store.consent(conn, user, "estimate_share", q["id"])
+        store.audit(conn, user, "agent", "disburse_preauth", guardrail.ALLOW, d["reason_code"], amount=stored["amount_inr"],
+                    note=lid + " (mock disbursal to the partner hospital, repaid from the claim payout)", quote_id=q["id"])
+        loan = _loan_view(dict(conn.execute("SELECT * FROM consumer_loans WHERE id=?", (lid,)).fetchone()))
+    conn.commit()
+    return {"decision": _public_decision(d), "audit_id": audit_id, "loan": loan, "paid_to": pre["payee_name"] if loan else None}
+
+
+@router.post("/preauth/close")
+def preauth_close(body: PreauthClose, user: str = Depends(current_user)) -> dict:
+    """Close the advance by attaching the approved claim that follows it. No money moves: the claim's payout is assigned to repay the
+    advance. The claim must be a verified one, in the same policy holder's name, still waiting for its payout, not already backing
+    an advance, and its approved amount must cover what is owed; otherwise the advance stays open and a person must look."""
+    conn = store.connect()
+    p = store.get_preauth(conn, user, body.preauth_id)
+    if not p:
+        raise _err(404, "PREAUTH_NOT_FOUND", "That offer does not exist.")
+    c = store.get_claim(conn, user, body.claim_id)
+    if not c:
+        raise _err(404, "CLAIM_NOT_FOUND", "That claim does not exist.")
+    loan = next((x for x in store.active_loans(conn, user) if x["id"] == p["loan_id"]), None) if p["loan_id"] else None
+    reason = None
+    if p["claim_id"]:
+        reason = "ALREADY_CLOSED"
+    elif not loan:
+        reason = "NO_ADVANCE_TO_CLOSE"
+    elif c.get("bridge_loan_id"):
+        reason = "CLAIM_ALREADY_BACKS_AN_ADVANCE"
+    elif not verify.names_match(p["holder_name"], c["holder_name"]):
+        reason = "CLAIM_HOLDER_MISMATCH"
+    elif engine.claim_state(c)["state"] != "approved_payout_pending":
+        reason = "CLAIM_NOT_PAYABLE"
+    elif c["approved_inr"] < loan["total_inr"]:
+        reason = "CLAIM_TOO_SMALL"
+    store.audit(conn, user, "guardrail", "close_preauth", guardrail.BLOCK if reason else guardrail.ALLOW, reason or "CLOSED",
+                amount=loan["total_inr"] if loan else None, note=f"{p['id']} with {c['id']}; no money moves")
+    if reason:
+        conn.commit()
+        raise _err(409, reason, {"CLAIM_TOO_SMALL": "The approved claim is less than what the advance needs, so it cannot close the advance. A person must look at it."}.get(
+            reason, "This claim cannot close that advance."))
+    store.close_preauth(conn, p["id"], c["id"])
+    store.set_claim_bridge(conn, c["id"], loan["id"])        # the claim now repays this advance, so it cannot back another
+    conn.commit()
+    return _preauth_view(store.get_preauth(conn, user, p["id"]))

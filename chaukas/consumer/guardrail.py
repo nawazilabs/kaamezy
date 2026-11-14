@@ -182,7 +182,7 @@ def check_bridge_accept(*, claim: dict | None, stored_quote: dict, pan: str | No
     stored = stored_quote["decision"]
     run = _Run(["Identity verified (DigiLocker)", "Key Facts shown before consent",
                 "Consent recorded (advance and claim details)", "Identity details valid",
-                "Claim is approved and the payout is pending", "No earlier advance on this claim, within loan limit",
+                "Claim is approved and the payout is pending", "Name matches the claim's policy holder", "No earlier advance on this claim, within loan limit",
                 "Advance matches the lender's rule", f"Amount within auto limit {inr(g['auto_limit_inr'])}"])
     f = run.step(kyc_verified, _block("KYC_PENDING", "Identity is not verified yet. Verify with DigiLocker first; "
                                                     "Kaamezy never asks for your Aadhaar number."))
@@ -204,6 +204,12 @@ def check_bridge_accept(*, claim: dict | None, stored_quote: dict, pan: str | No
                  _block("CLAIM_NOT_PAYABLE", "This claim is not in the 'approved, payout pending' state, so nothing can be "
                                              "advanced against it."))
     if f: return run.out(f)
+    if claim.get("holder_name"):          # a claim verified from documents is advanced only to the policy holder on them
+        from chaukas.consumer import verify
+        f = run.step(bool(verify.names_match(claim["holder_name"], holder_name)),
+                     _block("CLAIM_HOLDER_MISMATCH", "This claim belongs to the policy holder named on its documents. "
+                                                      "The name you gave does not match, so no advance can be made."))
+        if f: return run.out(f)
     too_many = len(active_loans) >= g["max_active_loans"]
     if claim.get("bridge_loan_id"):
         fail = _block("DUPLICATE_ADVANCE", f"This claim already backs an advance ({claim['bridge_loan_id']}). "
@@ -271,5 +277,50 @@ def check_bill_payment(*, intent: dict | None, user_id: str, kyc_verified: bool,
     f = run.step(intent["amount_inr"] <= g["auto_limit_inr"] or otp_ok,
                  _confirm("otp", "OVER_AUTO_LIMIT", f"The payment is above the {inr(g['auto_limit_inr'])} automatic limit, "
                                                     "so a one-time code is required. Typing 'yes' is not enough."))
+    if f: return run.out(f)
+    return run.allow()
+
+
+# ------------------------------------------------------------------ Workflow A: an advance before the claim, paid to the hospital
+def check_preauth_accept(*, preauth: dict | None, stored_quote: dict, hospital: dict | None, pan: str | None, mobile: str, holder_name: str,
+                         pincode: str, consent_offer: bool, consent_share: bool, kyc_verified: bool, kfs_shown: bool,
+                         active_loans: list[dict], otp_ok: bool, now: datetime | None = None) -> dict:
+    """Same ladder as the claim-backed advance, plus: the payee is a partner hospital from the registry (never typed by the person),
+    the advance is made only to the policy holder named on the verified documents, and a one-time code is ALWAYS needed (money goes
+    out before any claim exists). BLOCK is final."""
+    from chaukas.consumer import verify
+    P = engine.cfg()["preauth"]
+    now = now or datetime.now(timezone.utc)
+    stored = stored_quote["decision"]
+    run = _Run(["Identity verified (DigiLocker)", "Key Facts shown before consent", "Consent recorded (advance and sharing the estimate)",
+                "Identity details valid", "Offer is open and unused", "Hospital is a partner hospital", "Name matches the policy holder",
+                "Within loan limit", "Advance matches the lender's rule", "One-time code confirmed"])
+    f = run.step(kyc_verified, _block("KYC_PENDING", "Identity is not verified yet. Verify with DigiLocker first; Kaamezy never asks for your Aadhaar number."))
+    if f: return run.out(f)
+    f = run.step(kfs_shown, _block("KFS_NOT_SHOWN", "The Key Facts Statement must be shown before you can accept."))
+    if f: return run.out(f)
+    f = run.step(consent_offer and consent_share,
+                 _block("CONSENT_MISSING", "Both consents are needed: accepting this advance (repaid from your claim payout), and sharing the estimate with the lender and the hospital for this advance only."))
+    if f: return run.out(f)
+    id_ok = bool(pan and PAN_RE.match(pan) and MOBILE_RE.match(mobile or "") and PIN_RE.match(pincode or "") and len((holder_name or "").strip()) >= 2)
+    f = run.step(id_ok, _block("IDENTITY_DETAILS_INVALID", "PAN, mobile, pincode or name is missing or in the wrong format."))
+    if f: return run.out(f)
+    fresh = engine.preauth_decide({**preauth, "loan_id": None}, now) if preauth else {"eligible": False}
+    f = run.step(bool(preauth) and not preauth.get("loan_id") and not preauth.get("claim_id"),
+                 _block("OFFER_NOT_OPEN", "This offer has already been used or closed, so it cannot be accepted again."))
+    if f: return run.out(f)
+    f = run.step(bool(hospital) and hospital["id"] == preauth["hospital_id"],
+                 _block("HOSPITAL_NOT_A_PARTNER", "The hospital on these documents is not a partner hospital, so an advance cannot be paid to it directly."))
+    if f: return run.out(f)
+    f = run.step(bool(verify.names_match(preauth["holder_name"], holder_name)),
+                 _block("PREAUTH_HOLDER_MISMATCH", "This estimate belongs to the policy holder named on its documents. The name you gave does not match, so no advance can be made."))
+    if f: return run.out(f)
+    f = run.step(len(active_loans) < P["max_active_loans"], _block("TOO_MANY_LOANS", f"You already have {P['max_active_loans']} active loans through Kaamezy, which is the limit."))
+    if f: return run.out(f)
+    same = fresh.get("eligible") and stored.get("eligible") and all(fresh[k] == stored[k] for k in ("amount_inr", "apr_pct", "payee_name"))
+    f = run.step(same, _block("AMOUNT_MISMATCH", "The advance does not match the lender's own figures, so it was refused."))
+    if f: return run.out(f)
+    f = run.step(otp_ok or not P["otp_always"],
+                 _confirm("otp", "OTP_REQUIRED", "Money is paid to the hospital before any claim exists, so a one-time code is always required. Typing 'yes' is not enough."))
     if f: return run.out(f)
     return run.allow()

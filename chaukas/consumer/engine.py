@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 from chaukas.consumer.models import InsuranceProposal, LoanApplication
 from chaukas.integrations._common import load_config
@@ -161,6 +161,9 @@ def claim_state(claim: dict, now: datetime | None = None) -> dict:
     """{state, payout_due}. Computed from the filing time on every call: a state is never stored or cached."""
     c = cfg()["claims"]
     now = now or datetime.now(timezone.utc)
+    if claim.get("payout_due"):       # approved by the insurer, as verified from documents: the date is the insurer's own
+        due = datetime.combine(date.fromisoformat(claim["payout_due"]), time(0), tzinfo=timezone.utc)
+        return {"state": "approved_payout_pending" if now < due else "paid", "payout_due": claim["payout_due"], "_due": due}
     made = _when(claim["created_at"])
     due = made + timedelta(days=c["payout_days"])
     if now < made + timedelta(minutes=c["review_minutes"]):
@@ -216,3 +219,39 @@ def build_kfs(d: dict) -> dict:
             "net_disbursal_inr": d["net_inr"], "total_repayable_inr": d["total_inr"],
             "cooling_off_days": L["cooling_off_days"], "grievance_contact": L["grievance_contact"],
             "insurance_required": False}
+
+
+# ------------------------------------------------------------------ Workflow A: an advance before the claim (hospital deposit)
+def preauth_decide(pre: dict, now: datetime | None = None) -> dict:
+    """How much can be advanced for a hospital deposit. Sized ONLY from the conservative figure of the verified estimate stored
+    with the offer (never the hospital's quote, never the client), and paid to the hospital. An estimate is not an approval."""
+    P = cfg()["preauth"]
+    now = now or datetime.now(timezone.utc)
+    if pre.get("loan_id"):
+        return {"eligible": False, "reasons": ["ADVANCE_ALREADY_TAKEN"]}
+    if pre.get("claim_id"):
+        return {"eligible": False, "reasons": ["ALREADY_CLOSED"]}
+    if now > _when(pre["created_at"]) + timedelta(days=P["offer_valid_days"]):
+        return {"eligible": False, "reasons": ["ESTIMATE_TOO_OLD"]}
+    amount = min(P["cap_inr"], math.floor(pre["conservative_inr"] * P["share_pct"] / 100)) // P["round_to_inr"] * P["round_to_inr"]
+    if amount < P["min_inr"]:
+        return {"eligible": False, "reasons": ["AMOUNT_TOO_LOW"]}
+    days = pre["repay_days"]
+    repay_by = (now + timedelta(days=days)).date().isoformat()
+    interest = rnd(amount * P["apr_pct"] / 100 * days / 365)
+    fee = rnd(amount * P["fee_pct"] / 100)
+    fee_gst = rnd(fee * P["gst"])
+    return {"eligible": True, "reasons": [], "preauth_id": pre["id"], "payee_name": pre["payee_name"], "conservative_inr": pre["conservative_inr"],
+            "share_pct": P["share_pct"], "amount_inr": amount, "apr_pct": P["apr_pct"], "days": days, "repay_by": repay_by,
+            "interest_inr": interest, "fee_inr": fee, "fee_gst_inr": fee_gst, "net_inr": amount - fee - fee_gst, "total_inr": amount + interest}
+
+
+def build_preauth_kfs(d: dict) -> dict:
+    """Key Facts Statement for the hospital advance: who is paid, from what it is repaid, and that it is sized from an estimate."""
+    P = cfg()["preauth"]
+    return {"lender_name": P["lender_name"], "amount_inr": d["amount_inr"], "apr_pct": d["apr_pct"], "days": d["days"], "repay_by": d["repay_by"],
+            "interest_inr": d["interest_inr"], "processing_fee_inr": d["fee_inr"], "processing_fee_gst_inr": d["fee_gst_inr"],
+            "net_disbursal_inr": d["net_inr"], "total_repayable_inr": d["total_inr"], "payee_name": d["payee_name"],
+            "paid_to": "the hospital, directly (never to you)", "repaid_from": "your insurance claim payout",
+            "basis": "A cautious estimate of what your policy may pay. It is not an approval: only the insurer decides your claim.",
+            "cooling_off_days": P["cooling_off_days"], "grievance_contact": P["grievance_contact"], "insurance_required": False}

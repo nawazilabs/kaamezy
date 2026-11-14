@@ -141,6 +141,84 @@ CREATE TABLE IF NOT EXISTS consumer_claims (
 );
 CREATE INDEX IF NOT EXISTS idx_cclaims_user ON consumer_claims(user_id, created_at);
 
+-- A claim whose approval was VERIFIED from documents (consumer/verify.py): the approved amount and the payout date come from the
+-- insurer's own (simulated) record, never from the client. claim_hash is the hash of insurer + claim reference and is UNIQUE across
+-- all users: one real claim can back one advance, whoever uploads it. holder_name is the policy holder on the documents; the
+-- advance is only accepted for that person. bridge_loan_id is set once (a claim can back at most one advance).
+CREATE TABLE IF NOT EXISTS consumer_verified_claims (
+  id              TEXT PRIMARY KEY,     -- VCL-12345678
+  user_id         TEXT NOT NULL,
+  application_id  TEXT NOT NULL,
+  claim_hash      TEXT NOT NULL UNIQUE,
+  holder_name     TEXT NOT NULL,
+  claimed_inr     INTEGER NOT NULL CHECK (claimed_inr > 0),
+  approved_inr    INTEGER NOT NULL CHECK (approved_inr >= 0),
+  payout_due      TEXT NOT NULL,        -- ISO date from the insurer's record
+  bridge_loan_id  TEXT,
+  created_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_cvclaims_user ON consumer_verified_claims(user_id, created_at);
+CREATE TRIGGER IF NOT EXISTS consumer_vclaims_no_delete BEFORE DELETE ON consumer_verified_claims
+BEGIN SELECT RAISE(ABORT, 'consumer_verified_claims rows are never deleted'); END;
+
+-- Workflow A (an advance before the claim). The offer is sized from the conservative figure of a VERIFIED estimate; estimate_key is
+-- a hash of hospital + patient + policy + bill total, UNIQUE across all users (one estimate backs one advance). The advance is
+-- paid to the hospital (payee_*), never to the person. It is closed by attaching the approved claim (claim_id) that follows.
+CREATE TABLE IF NOT EXISTS consumer_preauth (
+  id                 TEXT PRIMARY KEY,   -- PRE-12345678
+  user_id            TEXT NOT NULL,
+  application_id     TEXT NOT NULL,
+  estimate_key       TEXT NOT NULL UNIQUE,
+  holder_name        TEXT NOT NULL,
+  hospital_id        TEXT NOT NULL,      -- from the partner registry, not from the client
+  payee_name         TEXT NOT NULL,
+  bill_total_inr     INTEGER NOT NULL,
+  estimated_inr      INTEGER NOT NULL,
+  conservative_inr   INTEGER NOT NULL,   -- the ONLY figure an advance is sized from
+  confidence         TEXT NOT NULL,
+  repay_days         INTEGER NOT NULL,   -- the payout outlook plus the claim buffer
+  loan_id            TEXT,               -- set once, when the advance is made
+  claim_id           TEXT,               -- set once, when the approved claim closes it
+  closed_at          TEXT,
+  created_at         TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_cpreauth_user ON consumer_preauth(user_id, created_at);
+CREATE TRIGGER IF NOT EXISTS consumer_preauth_no_delete BEFORE DELETE ON consumer_preauth
+BEGIN SELECT RAISE(ABORT, 'consumer_preauth rows are never deleted'); END;
+
+-- The agent log of the claim-financing pipeline (consumer/pipeline.py): per run, the stages with their status, headline, codes and
+-- whole-rupee figures. Never document text, names or reference numbers. Append-only, like the audit log.
+CREATE TABLE IF NOT EXISTS consumer_pipeline_runs (
+  id          TEXT PRIMARY KEY,         -- RUN-12345678
+  user_id     TEXT NOT NULL,
+  workflow    TEXT NOT NULL CHECK (workflow IN ('approved_claim','preapproval')),
+  outcome     TEXT NOT NULL CHECK (outcome IN ('offer_prepared','needs_a_person','no_offer')),
+  steps_json  TEXT NOT NULL,
+  ref_id      TEXT,                     -- the VCL- claim or PRE- offer that was prepared
+  created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_cpipe_user ON consumer_pipeline_runs(user_id, created_at);
+CREATE TRIGGER IF NOT EXISTS consumer_pipe_no_update BEFORE UPDATE ON consumer_pipeline_runs
+BEGIN SELECT RAISE(ABORT, 'consumer_pipeline_runs is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS consumer_pipe_no_delete BEFORE DELETE ON consumer_pipeline_runs
+BEGIN SELECT RAISE(ABORT, 'consumer_pipeline_runs is append-only'); END;
+
+-- Hashes of the documents of an application, so the SAME file, hospital bill or claim used for another application can be
+-- found. Only SHA-256 hashes are kept: no document text, no name, no number a person could be recognised by. Append-only.
+CREATE TABLE IF NOT EXISTS consumer_doc_fingerprints (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id        TEXT NOT NULL,
+  application_id TEXT NOT NULL,         -- APP-12345678
+  kind           TEXT NOT NULL CHECK (kind IN ('file','bill','claim')),
+  fingerprint    TEXT NOT NULL,
+  created_at     TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_cdocfp ON consumer_doc_fingerprints(kind, fingerprint);
+CREATE TRIGGER IF NOT EXISTS consumer_docfp_no_update BEFORE UPDATE ON consumer_doc_fingerprints
+BEGIN SELECT RAISE(ABORT, 'consumer_doc_fingerprints is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS consumer_docfp_no_delete BEFORE DELETE ON consumer_doc_fingerprints
+BEGIN SELECT RAISE(ABORT, 'consumer_doc_fingerprints is append-only'); END;
+
 -- Assistant chat. Only MASKED text is stored (no raw PII in turns). The model never sees anything else either.
 CREATE TABLE IF NOT EXISTS consumer_chat_sessions (
   id          TEXT PRIMARY KEY,

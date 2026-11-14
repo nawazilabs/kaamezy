@@ -1,0 +1,25 @@
+# Risk flags and the settlement outlook (consumer/risk.py). ADVISORY ONLY: nothing here approves, blocks or sizes anything.
+# A flag only moves an application to "a person must look" (verdict needs_review). It never names anyone a fraudster, never
+# turns a failed check into a pass, and never sets an amount. Every number is ILLUSTRATIVE.
+rules:
+  early_claim_days: 45              # admitted this soon after the policy began (a renewal counts from first inception)
+  near_cover_pct: 90                # a bill this share of the sum insured, or more
+  short_stay_days: 1                # a stay this short or shorter ...
+  short_stay_bill_inr: 150000       # ... with a bill this high or higher
+  cost_per_day_inr: 80000           # bill divided by days of stay above this
+  round_total_multiple_inr: 10000   # a bill with NO item breakdown whose total is an exact multiple of this ...
+  round_total_min_inr: 50000        # ... and at least this much
+  approved_over_estimate_pct: 10    # same tolerance as verify.estimate_tolerance_pct, shown here as a risk signal
+  payout_sooner_than_outlook_days: 5          # the letter promises a payout this many days sooner than the outlook's likely time
+# The ML flag (a small logistic model, weights in config/risk_model.yaml, trained by data/train_risk_model.py on SYNTHETIC claims).
+ml:
+  flag_at: 0.90                     # score at or above this raises an advisory flag
+  max_reasons: 3
+# The settlement outlook: a transparent rule table, not a fitted model. Days from approval to payout.
+settlement:
+  base_days: {cashless: 7, reimbursement: 14, unknown: 12}
+  amount_tiers:                     # extra days for larger payouts (more checks at the insurer)
+    - {above_inr: 100000, add_days: 2}
+    - {above_inr: 300000, add_days: 4}
+  per_uncertainty_days: 1           # each doubt in the estimate adds a day to the likely time
+  late_extra_days: 5                # the 'could take up to' date is the likely time plus this

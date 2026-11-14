@@ -1,0 +1,13 @@
+DEMO SURAKSHA HEALTH INSURANCE CO. LTD.
+Claim Acknowledgement
+
+We have received your claim. Your claim has been registered.
+
+Claim Reference Number: CLM/2026/00012345
+Policy Number: SURK/H/2026/00045678
+Patient Name: Rahul Sharma
+Hospital: City Care Hospital
+Claimed Amount: Rs. 2,00,000
+Date of Claim: 18/03/2026
+
+Your claim is under process. Documents received: bill, discharge summary.

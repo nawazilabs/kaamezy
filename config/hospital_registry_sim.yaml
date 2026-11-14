@@ -1,0 +1,10 @@
+# SIMULATED partner-hospital registry: the hospitals an advance may be paid to directly. In production this is the lender's
+# empanelled-hospital list (with the hospital's own bank details, which never come from the customer). EVERY NAME BELOW IS
+# INVENTED DEMO DATA and matches the sample documents in web/samples. A hospital not on this list is NOT called fake: it just
+# cannot be paid to directly, so no advance is offered for it.
+hospitals:
+  - {id: HSP-1001, name: "City Care Hospital", city: "Pune", network: true}
+  - {id: HSP-1002, name: "Lifeline Multispeciality Hospital", city: "Indore", network: true}
+  - {id: HSP-1003, name: "Green Valley Hospital", city: "Bhopal", network: true}
+  - {id: HSP-1004, name: "Sunrise Hospital", city: "Nagpur", network: true}
+  - {id: HSP-1005, name: "Patel Memorial Hospital", city: "Surat", network: false}   # not a partner: cannot be paid directly
