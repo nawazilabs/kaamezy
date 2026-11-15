@@ -596,7 +596,7 @@ def assistant_message(body: AssistantMessage, user: str = Depends(current_user))
         raise _err(404, "SESSION_NOT_FOUND", "That chat does not exist. Start a new chat.")
     if store.turn_count(conn, body.session_id) >= MAX_ASSISTANT_TURNS:
         raise _err(429, "CHAT_TOO_LONG", "This chat is very long. Please start a new chat.")
-    return assistant.answer(conn, user, body.session_id, body.text.strip(), body.screen, body.ui_lang)
+    return assistant.answer(conn, user, body.session_id, body.text.strip(), body.screen, body.ui_lang, body.loan_draft)
 
 
 # ------------------------------------------------------------------ voice (speech in, replies read aloud)

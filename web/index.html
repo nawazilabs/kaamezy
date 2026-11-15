@@ -836,6 +836,7 @@ let cur = null, user = null, recovering = false;
 const SCREENS = ["auth-page","home","cz","chs","ins","hi","hiw","hip","clm","hdr","hdc","hrl","hia","ich","ln","lnw","lnl","acct","pm","bp","sp","st"];
 function icons(){ try{ window.lucide && lucide.createIcons(); }catch(e){} }
 function showScreen(id){
+  if (cur === "ich" && id !== "ich") { try { window.stopSpeech && window.stopSpeech(); } catch(e){} }   /* leaving the chat stops a reply that is being read out */
   cur = id; SCREENS.forEach(s => { const n = $(s); if(n) n.hidden = s !== id; }); closeSheets();
   $("mic-fab").hidden = id !== "home"; icons();
   try { const n = $(id); if(n){ n.setAttribute("tabindex","-1"); n.focus({preventScroll:true}); } } catch(e){}

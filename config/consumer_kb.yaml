@@ -178,3 +178,51 @@ topics:
     en: "I can only help with insurance, loan, payment and bill questions, and I can't change how I work. What would you like to know about those?"
     hi: "मैं सिर्फ़ इंश्योरेंस, लोन, पेमेंट और बिल के सवालों में मदद कर सकता हूँ, और अपने काम के नियम नहीं बदल सकता। इनके बारे में आप क्या जानना चाहेंगे?"
     hl: "Main sirf insurance, loan, payment aur bill ke sawaalon mein madad kar sakta hoon, aur apne kaam ke niyam nahi badal sakta. Inke baare mein aap kya jaanna chahenge?"
+
+# Loan intake: when the person asks for a loan, the assistant asks the form questions it still needs, one at a time
+# (consumer/loan_intake.py). These sentences are FIXED text: the model never words a question. {min} {max} {options} are
+# filled in from config/consumer.yaml by code. Only the fields the lender actually uses are asked (never name, PAN or mobile:
+# those belong to the KYC step). en = English, hi = Hindi, hl = Hinglish.
+loan_intake:
+  cancel: ['\bcancel\b', '\bstop\b', 'never\s?mind', 'rehne\s?(do|de)', '\bchhod', 'nahi\s+chahiye', 'रहने\s?दो', 'छोड़', 'नहीं\s+चाहिए']
+  start:
+    en: "Sure. I will ask a few short questions to fill the loan form for you."
+    hi: "ज़रूर। लोन फ़ॉर्म भरने के लिए मैं कुछ छोटे सवाल पूछूँगा।"
+    hl: "Zaroor. Loan form bharne ke liye main kuch chhote sawaal poochunga."
+  retry:
+    en: "Sorry, I could not use that."
+    hi: "क्षमा करें, यह मैं समझ नहीं पाया।"
+    hl: "Maaf kijiye, yeh main samajh nahi paya."
+  cancelled:
+    en: "No problem, I have stopped. Nothing was saved."
+    hi: "कोई बात नहीं, मैंने रोक दिया। कुछ सेव नहीं हुआ।"
+    hl: "Koi baat nahi, maine rok diya. Kuch save nahi hua."
+  questions:
+    amount_inr:
+      en: "How much do you need? Anything from {min} to {max}."
+      hi: "आपको कितनी रकम चाहिए? {min} से {max} तक।"
+      hl: "Aapko kitni rakam chahiye? {min} se {max} tak."
+    tenure_months:
+      en: "Over how many months would you like to repay? Choose from {options}."
+      hi: "कितने महीनों में चुकाना चाहेंगे? इनमें से चुनिए: {options}।"
+      hl: "Kitne mahine mein chukana chahenge? In mein se chuniye: {options}."
+    monthly_income_inr:
+      en: "What is your monthly income?"
+      hi: "आपकी महीने की आमदनी कितनी है?"
+      hl: "Aapki mahine ki aamdani kitni hai?"
+    existing_emi_inr:
+      en: "Do you already pay any EMIs? Tell me the monthly total, or say none."
+      hi: "क्या आप अभी कोई EMI भर रहे हैं? महीने का कुल बताइए, या कह दीजिए कोई नहीं।"
+      hl: "Kya aap abhi koi EMI bhar rahe hain? Mahine ka total bataiye, ya bol dijiye koi nahi."
+    age:
+      en: "How old are you? Please tell me your age in years."
+      hi: "आपकी उम्र कितनी है? साल में बताइए।"
+      hl: "Aapki umar kitni hai? Saal mein bataiye."
+    employment:
+      en: "Are you salaried or self-employed?"
+      hi: "आप नौकरीपेशा हैं या स्वरोज़गार?"
+      hl: "Aap salaried hain ya self-employed?"
+    purpose:
+      en: "What is the loan for? Choose from {options}."
+      hi: "लोन किस काम के लिए है? इनमें से चुनिए: {options}।"
+      hl: "Loan kis kaam ke liye hai? In mein se chuniye: {options}."

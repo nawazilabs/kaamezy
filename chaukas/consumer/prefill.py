@@ -31,7 +31,7 @@ from chaukas.llm.prompt import LLMOutputError, esc, run_validated
 REQUIRED = ("amount_inr", "tenure_months", "monthly_income_inr", "existing_emi_inr", "age", "employment", "purpose")
 
 _UNIT = {"crore": 10_000_000, "cr": 10_000_000, "करोड़": 10_000_000, "करोड": 10_000_000,
-         "lakh": 100_000, "lakhs": 100_000, "lac": 100_000, "lacs": 100_000, "लाख": 100_000,
+         "lakh": 100_000, "lakhs": 100_000, "l": 100_000, "lac": 100_000, "lacs": 100_000, "लाख": 100_000,
          "thousand": 1_000, "hazaar": 1_000, "hazar": 1_000, "k": 1_000, "हज़ार": 1_000, "हजार": 1_000}
 _UNITS = "|".join(sorted(_UNIT, key=len, reverse=True))
 _NUM = re.compile(rf"(?<![\w.])(\d{{1,3}}(?:,\d{{2,3}})+|\d+)(?:\.(\d+))?(?:\s*({_UNITS})(?![A-Za-zऀ-ॿ]))?", re.I)

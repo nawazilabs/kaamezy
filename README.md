@@ -13,7 +13,8 @@ Built for the Paytm Build for India hackathon.
 | **Consumer: health insurance** | Describe the family, autofill from a PAN/Aadhaar photo (read **on the device**), compare 3 insurers priced by a rule engine, buy through the guardrail (KYC, consent, premium check, OTP over ₹30,000, human underwriter for risky cases) | `chaukas/consumer/`, `web/` |
 | **Consumer: personal loan** | Check an offer from a simulated lender (age, income, EMIs only), read the Key Facts Statement, give two consents, get a guardrail-checked mock disbursal. A policy holder can file a (simulated) claim and, once it is approved and its payout is pending, take a short advance against it (My claims); the personal loan never looks at the policy | `chaukas/consumer/`, `web/` |
 | **Consumer: claim documents and medical financing** | Add the papers of a claim (policy, hospital bill, discharge summary, claim acknowledgement, approval letter; PDF or photo, read **on the device**). The server reads them again, cross-checks them against each other and against the insurer's own (simulated) record, estimates what the policy would probably pay (every deduction with its policy clause), and shows risk signals and a payout outlook. A fully consistent approved claim can get a short **advance** (sized from the insurer's record); before admission, a policy plus the hospital's cost estimate can get a **hospital deposit advance** (sized from a cautious part of the estimate, paid to a partner hospital, always behind a one-time code). Every run is written to an append-only **agent log** (*What the agent did*) | `chaukas/consumer/{docs,estimate,verify,risk,pipeline}.py`, `web/` |
-| **AI assistant** | Ask about claims, waiting periods, EMI, charges, privacy in Hindi, Hinglish or English. The model picks a topic and words a reply from a knowledge base; code checks the reply and chooses any on-screen action | `chaukas/consumer/assistant.py` |
+| **Consumer: payments, bills and recharge** | Payment help for a failed payment (refund status, raise a dispute), pay an electricity bill or recharge a mobile through the guardrail (KYC, limit, one-time code), spends by category, settlement status. The assistant can only open the screen or pre-select a biller or plan; the person types the account number and taps Pay | `chaukas/consumer/{fintech,billpay}.py`, `web/` |
+| **AI assistant and voice** | Ask about claims, waiting periods, EMI, charges, privacy, bills in Hindi, Hinglish or English (other app languages answer from a translated knowledge base). The model picks a topic and words a reply from a knowledge base; code checks the reply and chooses any on-screen action. **Loan questions:** "I need a loan" makes the assistant ask the form questions one at a time (amount, months, income, EMI, age, employment, purpose) with fixed sentences, never the name, PAN or mobile; the draft stays in the browser and the person still taps *Check my offer*. **Voice:** the mic turns speech into text (Sarvam) and takes the same path as typing; replies can be read aloud, and the speaker button stops them. Speaking can fill a form or open a screen, never consent, pay, enter an OTP or approve | `chaukas/consumer/{assistant,loan_intake,prefill,voice}.py` |
 | **Merchant: support + sales** | Settlement problems, loan offers, shop insurance, device upgrades, proactive outreach on a failed settlement, agent-desk handoff | `chaukas/agents/`, `chaukas/core/`, `chaukas/policy/` |
 
 ## The idea in one picture
@@ -72,7 +73,8 @@ python -m eval.run_eval && python -m eval.redteam      # scorecard + red-team
 ## Repo map
 
 ```
-chaukas/consumer/    health insurance, personal loan, claim documents and financing: models, engine, guardrail, store, auth, assistant, api,
+chaukas/consumer/    health insurance, personal loan, claim documents and financing: models, engine, guardrail, store, auth, api,
+                     assistant + prefill + loan_intake (loan questions) + voice, fintech + billpay (payments, bills, spends),
                      docs (reader), estimate, verify + insurer_registry, risk, hospital_registry, pipeline (agent log)
 chaukas/agents/      merchant agents: intent, context, guardrail, action, handoff, reply, notify
 chaukas/core/        shared models, orchestrator, plans, proactive event watcher
@@ -97,8 +99,10 @@ docs/archive/        finals-day plans and change logs (history only)
 
 ## Deploy notes
 
-- **Backend (Render):** redeploy with the consumer code and set `SARVAM_API_KEY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `CHAUKAS_STAFF_KEY`. Free tier sleeps: wake it before a demo.
-- **Frontend (Vercel):** Root Directory `web`, Framework Preset `Other`, no build command.
+- **Backend (Render, Web Service):** Build `pip install -r requirements.txt`, Start `python -m uvicorn chaukas.main:app --host 0.0.0.0 --port $PORT`, env `PYTHON_VERSION=3.11.9`, `SARVAM_API_KEY`, `CHAUKAS_STAFF_KEY`. Free tier sleeps (wake it with `/health` before a demo) and its SQLite file resets on every redeploy, which is fine for a demo.
+  - **Demo without sign-in:** `CHAUKAS_CONSUMER_AUTH=off` and `NO_AUTH = true` in `web/index.html` (everyone shares one demo user; use no real details). Add `KAAMEZY_DEMO_WAIVE_WAITING=1` to show the estimate for a policy bought in the app (the screen says DEMO MODE).
+  - **With sign-in:** also set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `CHAUKAS_CONSUMER_AUTH=supabase` and `NO_AUTH = false`.
+- **Frontend (Vercel):** Root Directory `web`, Framework Preset `Other`, no build command. Point `DEFAULT_API` in `web/index.html` at your backend. A browser remembers an earlier `?api=` choice in localStorage (`chaukas_api`): clear it if localhost or a new deploy talks to the wrong backend.
 - **Supabase:** add the deployed frontend URL under Auth → URL Configuration → Redirect URLs (confirmation and reset links).
 
 Say "aligned with RBI FREE-AI, RBI Digital Lending Directions and the DPDP Act 2023", never "compliant" or "certified".

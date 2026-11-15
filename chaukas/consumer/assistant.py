@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field, field_validator
 from chaukas.agents.intent import _keyword_lang, injection_signals
 from chaukas.agents.reply import _right_language
 from chaukas.agents.schemas import normalize_lang
-from chaukas.consumer import billpay, prefill, store
+from chaukas.consumer import billpay, loan_intake, prefill, store
 from chaukas.core import m2_shim
 from chaukas.integrations._common import load_config
 from chaukas.llm.client import LLMUnavailable
@@ -178,7 +178,46 @@ def _context(screen: str, facts: dict, history: list[dict]) -> str:
                                         "recent_turns": [{"role": h["role"], "text": h["text_masked"]} for h in history] or None})
 
 
-def answer(conn, user_id: str, session_id: str, text: str, screen: str = "home", ui_lang: str | None = None) -> dict:
+def _topic_text(topic: str, lang: str) -> str:
+    """The knowledge-base sentence of a topic in `lang` (a translated one if the app language has it, else English)."""
+    return (_translated("topic." + topic, lang) if lang != "en-IN" else None) or kb_text(topic, lang)
+
+
+def _intake_reply(conn, user_id: str, session_id: str, text: str, masked: str, res: dict, draft, ui_lang: str | None,
+                  detected: str, llm, suggestion: dict | None = None) -> dict:
+    """The reply while the loan questions are being asked (consumer/loan_intake.py): a fixed question from the knowledge base,
+    the draft handed back to the browser, and at the end the same form suggestion the prefill always made. No model words it."""
+    lang = loan_intake.resolve_lang(detected, ui_language(ui_lang), draft.lang if draft else None)
+    state = res["state"]
+    out: dict = {"session_id": session_id, "lang": lang, "source": "kb", "confidence": 1.0, "latency_ms": llm.latency_ms if llm else 0,
+                 "cost_inr": llm.cost_inr if llm else 0.0, "model": llm.model if llm else None, "action": None}
+    if state == "done":
+        topic, reply = "loan_prefill", _topic_text("loan_prefill", lang)
+        out.update(topic=topic, action=topics()[topic]["action"], reply=reply,
+                   prefill={"fields": res["fields"], "missing": [], "dropped": res.get("dropped") or {}})
+        action, note = "prefill_loan_form", f"fields={','.join(res['fields'])}; missing=-; via=intake; no quote, no credit check"
+    elif state == "cancelled":
+        topic, reply = "loan_intake", loan_intake.line("cancelled", lang)
+        out.update(topic=topic, reply=reply)
+        action, note = "loan_intake_stopped", "the person stopped the loan questions; nothing was kept"
+    else:
+        topic, reply = "loan_intake", loan_intake.compose(res, lang)
+        out.update(topic=topic, reply=reply,
+                   collect={"fields": res["fields"], "asking": res["asking"], "lang": lang, "choices": loan_intake.choices(res["asking"])})
+        action, note = "loan_intake_question", f"asked={res['asking']}; have={','.join(res['fields']) or '-'}"
+    if suggestion and suggestion.get("llm"):  # the extractor already ran for this message: keep its cost visible
+        s_llm = suggestion["llm"]
+        out["cost_inr"] += s_llm.cost_inr
+        out["latency_ms"] += s_llm.latency_ms
+        out["model"] = out["model"] or s_llm.model
+    store.add_turn(conn, session_id, user_id, "user", masked, topic, None)
+    store.add_turn(conn, session_id, user_id, "assistant", m2_shim.scrub(reply), topic, "kb")
+    store.audit(conn, user_id, "agent", action, "ALLOW", "FORM_PREFILL_ONLY", note=note)  # field NAMES only, never a figure
+    conn.commit()
+    return out
+
+
+def answer(conn, user_id: str, session_id: str, text: str, screen: str = "home", ui_lang: str | None = None, loan_draft=None) -> dict:
     masked = m2_shim.mask_text(text)
     history = store.recent_turns(conn, user_id, session_id, HISTORY_WINDOW)
     facts = {"has_policy": bool(store.active_policies(conn, user_id)), "active_loans": len(store.active_loans(conn, user_id)),
@@ -186,6 +225,10 @@ def answer(conn, user_id: str, session_id: str, text: str, screen: str = "home",
     lang, topic, source, reply, conf, llm, note = _keyword_lang(text), "unknown", "keyword", "", 0.0, None, ""
 
     signals = injection_signals(text)
+    if not signals and loan_draft is not None and loan_draft.active:  # the loan questions are being asked: read the answer, no model needed
+        res = loan_intake.step(text, dict(loan_draft.fields), lang, keyword_topic(text))
+        if res is not None:
+            return _intake_reply(conn, user_id, session_id, text, masked, res, loan_draft, ui_lang, lang, None)
     if signals:  # decided in code, before any model sees the message
         topic, source, conf = "injection_refusal", "guard", 1.0
         reply = kb_text(topic, lang)
@@ -211,14 +254,19 @@ def answer(conn, user_id: str, session_id: str, text: str, screen: str = "home",
             topic = keyword_topic(text)
             source, reply, conf = "keyword", kb_text(topic, lang), 0.75 if topic != "unknown" else 0.3
 
-    suggestion = None
+    suggestion = stated = None
     if topic == "loan_apply" and source != "guard":  # figures in the message -> a SUGGESTION for the form, never an action
-        suggestion = prefill.extract(text, masked)
+        suggestion = stated = prefill.extract(text, masked)
         if suggestion and suggestion["fields"]:
             topic, reply, note = "loan_prefill", kb_text("loan_prefill", lang), "prefill_from=" + source
             source = "kb" if source == "llm" else source
         else:
             suggestion = None
+
+    if loan_draft is not None and topic in ("loan_apply", "loan_prefill") and source != "guard":
+        res = loan_intake.begin(stated["fields"] if stated else {}, stated["dropped"] if stated else {})  # `stated` keeps a dropped figure too
+        if res["state"] == "asking":  # fields are still missing: ask for them instead of opening a half-empty form
+            return _intake_reply(conn, user_id, session_id, text, masked, res, loan_draft, ui_lang, _script_lang(text, lang), llm, stated)
 
     # the app language wins over the language of the message: the reply is the knowledge-base sentence in that language
     # (the model only chose the topic), so a figure or a promise can never be added in translation

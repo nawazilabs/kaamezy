@@ -1289,6 +1289,10 @@
     open_settlements: ["Open Settlements", () => openSettlements()],
   };
   let ASESS = null, AINTRO = null, chatFrom = "hi";
+  /* The loan questions the assistant asks one by one ("How many months?"). The draft lives only here, in the browser: it is sent
+     with every message and the server re-checks all of it. It is a suggestion for the form, never a quote or a decision. */
+  const IDLE_DRAFT = () => ({ active: false, fields: {}, lang: null });
+  let LOAN_DRAFT = IDLE_DRAFT();
   const scrollChat = () => { $("ic-chat").scrollTop = $("ic-chat").scrollHeight; };
   function bubble(kind, text, extra) {
     const m = el("div", { class: "msg " + kind }, kind === "agent" ? el("div", { class: "who" }, "Kaamezy", el("b", { text: "AI" })) : null, el("div", { text }));
@@ -1301,6 +1305,15 @@
     ASESS = r.data.session_id; AINTRO = r.data.disclosure + " " + r.data.intro;
     return ASESS;
   }
+  /* Tap-to-answer chips for the question just asked, and a way out: open the form with what is known so far. */
+  function intakeChoices(col) {
+    const row = el("div", { class: "acts" });
+    (col.choices || []).forEach(c => row.append(el("button", { class: "mini-cta soft", type: "button", text: c, onclick: () => chatSay(c) })));
+    const have = Object.keys(col.fields || {}).length;
+    row.append(el("button", { class: "mini-cta soft", type: "button", text: have ? "Open the form with what I have" : "Open the form instead",
+      onclick: () => { LOAN_DRAFT = IDLE_DRAFT(); prefillLoan({ fields: col.fields || {}, dropped: {}, missing: [] }); } }));
+    return row;
+  }
   async function chatSay(text, opts) {
     text = (text || "").trim(); if (!text) return;
     const voiceTurn = !!(opts && opts.voice);
@@ -1311,19 +1324,21 @@
     let r = { ok: false };
     for (let tries = 0; tries < 2 && !r.ok; tries++) {
       const sid = await ensureSession(); if (!sid) break;
-      r = await capi("POST", "/assistant/message", { session_id: sid, text, screen, ui_lang: appLang() });
-      if (!r.ok && r.status === 404) ASESS = null;   /* the server no longer knows this chat: start a new one and retry once */
+      r = await capi("POST", "/assistant/message", { session_id: sid, text, screen, ui_lang: appLang(), loan_draft: LOAN_DRAFT });
+      if (!r.ok && r.status === 404) { ASESS = null; LOAN_DRAFT = IDLE_DRAFT(); }   /* the server no longer knows this chat: start a new one and retry once */
       else break;
     }
     ty.remove();
     if (!r.ok) { bubble("agent", "I couldn't reach the assistant just now. Please try again in a moment."); return; }
     const d = r.data, act = ACTIONS[d.action];
-    const extra = d.action === "prefill_loan" && d.prefill ? prefillCard(d.prefill)
+    LOAN_DRAFT = d.collect ? { active: true, fields: d.collect.fields || {}, lang: d.collect.lang || null } : IDLE_DRAFT();   /* no `collect` = the questions ended */
+    const extra = d.collect ? intakeChoices(d.collect)
+      : d.action === "prefill_loan" && d.prefill ? prefillCard(d.prefill)
       : act ? el("div", { class: "acts" }, el("button", { class: "mini-cta", type: "button", text: act[0], onclick: () => act[1](d) })) : null;
     const m = bubble("agent", d.reply, extra);
-    if (canSpeak(d.lang)) m.append(el("button", { class: "spk", type: "button", "aria-label": "Listen to this reply", text: "🔊", onclick: () => playReply(d.reply, d.lang) }));
+    if (canSpeak(d.lang)) m.append(el("button", { class: "spk", type: "button", "aria-label": "Listen to this reply", text: "🔊", onclick: e => playReply(d.reply, d.lang, e.currentTarget) }));
     if (voiceTurn) {   /* spoken request: say the answer, then do exactly what a tap on the button would have done (open a screen / fill the form) */
-      playReply(d.reply, d.lang);
+      playReply(d.reply, d.lang, m.querySelector(".spk"));
       if (d.action === "prefill_loan" && d.prefill) { toast(d.reply); prefillLoan(d.prefill); return; }
       if (act) { toast(d.reply); act[1](d); return; }
       showScreen("ich");
@@ -1357,18 +1372,33 @@
     return VCFG;
   }
   const canSpeak = lang => !!VCFG && VCFG.tts_languages.includes((VCFG.language_aliases || {})[lang] || lang);
-  function stopAudio() { if (CURAUDIO) { try { CURAUDIO.pause(); } catch (e) {} CURAUDIO = null; } }
-  async function playReply(text, lang) {
+  /* One reply is spoken at a time. Tapping the speaker of the reply that is playing (or still loading) stops it; leaving the chat stops it too.
+     SPEAKGEN cancels a request that is still on its way, so a stopped reply can never start playing a moment later. */
+  let CURKEY = null, SPEAKGEN = 0;
+  function stopAudio() {
+    SPEAKGEN++; CURKEY = null;
+    if (CURAUDIO) { try { CURAUDIO.pause(); } catch (e) {} CURAUDIO = null; }
+    document.querySelectorAll(".spk.on").forEach(b => { b.classList.remove("on"); b.textContent = "🔊"; b.setAttribute("aria-label", "Listen to this reply"); });
+  }
+  window.stopSpeech = stopAudio;
+  async function playReply(text, lang, btn) {
     if (!canSpeak(lang) || !ASESS) return;
+    const key = lang + "|" + text;
+    if (CURKEY === key) { stopAudio(); return; }   /* the same reply is playing: this tap is "stop" */
     stopAudio();
+    const gen = SPEAKGEN; CURKEY = key;
+    if (btn) { btn.classList.add("on"); btn.textContent = "⏹"; btn.setAttribute("aria-label", "Stop listening"); }
     try {
       const r = await fetch(API + "/api/consumer/voice/speak", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await authHeaders()),
         body: JSON.stringify({ session_id: ASESS, text, lang }) });
-      if (!r.ok) { toast("Voice playback is not available right now."); return; }
-      const url = URL.createObjectURL(await r.blob()), a = new Audio(url); CURAUDIO = a;
-      a.onended = () => URL.revokeObjectURL(url);
+      if (gen !== SPEAKGEN) return;   /* stopped while loading */
+      if (!r.ok) { toast("Voice playback is not available right now."); stopAudio(); return; }
+      const blob = await r.blob();
+      if (gen !== SPEAKGEN) return;
+      const url = URL.createObjectURL(blob), a = new Audio(url); CURAUDIO = a;
+      a.onended = () => { URL.revokeObjectURL(url); if (CURAUDIO === a) stopAudio(); };
       await a.play();
-    } catch (e) { /* autoplay can be blocked: the speaker button on the reply still works */ }
+    } catch (e) { if (gen === SPEAKGEN) stopAudio(); /* autoplay can be blocked: the speaker button on the reply still works */ }
   }
   async function startVoice() {
     if (REC) return;
@@ -1464,7 +1494,7 @@
     $("vs-stop").onclick = stopVoice; $("vs-cancel").onclick = cancelVoice;
     $("sheetbg").addEventListener("click", () => { if (REC) cancelVoice(); });
     document.addEventListener("keydown", e => { if (e.key === "Escape" && REC) cancelVoice(); });
-    if (window.ChaukasI18n) ChaukasI18n.onChange(() => { ASESS = null; $("ic-chat").replaceChildren(); $("ic-hints").replaceChildren(); });   /* a new language starts a new chat greeting */
+    if (window.ChaukasI18n) ChaukasI18n.onChange(() => { ASESS = null; LOAN_DRAFT = IDLE_DRAFT(); $("ic-chat").replaceChildren(); $("ic-hints").replaceChildren(); });   /* a new language starts a new chat greeting */
     voiceConfig();
     const av = $("avatar");
     if (av) { av.setAttribute("role", "button"); av.setAttribute("tabindex", "0"); av.setAttribute("aria-label", "Account and language"); av.style.cursor = "pointer";
@@ -1501,7 +1531,7 @@
     $("hi-r-pol").onclick = openPolicies; $("hi-r-claims").onclick = openClaims; $("hi-r-docs").onclick = openDocReader; $("hi-r-ckd").onclick = openClaimDocs; $("hi-r-log").onclick = () => openAgentLog(); $("hi-r-act").onclick = () => openActivity("hi");
     $("hi-r-claim").onclick = () => openChat("How do I claim?", "hi"); $("hi-ask").onclick = () => openChat(undefined, "hi");
     $("ic-close").onclick = () => showScreen(chatFrom);
-    $("ic-new").onclick = () => { $("ic-chat").replaceChildren(); ASESS = null; openChat(); };
+    $("ic-new").onclick = () => { $("ic-chat").replaceChildren(); ASESS = null; LOAN_DRAFT = IDLE_DRAFT(); openChat(); };
     $("ic-form").addEventListener("submit", e => { e.preventDefault(); chatSay($("ic-text").value); });
     $("ic-human").onclick = () => chatSay("insaan se baat karao");
     $("ic-attach").onclick = () => toast("Attachments aren't part of this demo yet.");

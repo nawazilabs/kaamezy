@@ -163,11 +163,21 @@ class HandoffResolve(BaseModel):
     staff_id: str = Field(min_length=1, max_length=40)
 
 
+class LoanDraft(BaseModel):
+    """The loan questions asked so far, kept IN THE BROWSER and sent back with each message (the server stores nothing).
+    The server re-validates every field, so it is a suggestion for a form, never a source of money."""
+    model_config = {"extra": "ignore"}
+    active: bool = False  # True while the assistant is asking the loan questions
+    fields: dict[str, int | str] = Field(default_factory=dict, max_length=12)
+    lang: str | None = Field(default=None, max_length=10, pattern=r"^[A-Za-z]{2,3}(-[A-Za-z]{2,4})?$")  # language the questions started in
+
+
 class AssistantMessage(BaseModel):
     session_id: str
     text: str = Field(min_length=1, max_length=500)
     screen: Literal["home", "insurance", "loan"] = "home"
     ui_lang: str | None = Field(default=None, max_length=10, pattern=r"^[A-Za-z]{2,3}(-[A-Za-z]{2,4})?$")  # the app language, e.g. ta-IN
+    loan_draft: LoanDraft | None = None  # sent by the web app: asks the assistant to collect the missing loan fields; absent = old behaviour
 
 
 class VoiceSpeak(BaseModel):
