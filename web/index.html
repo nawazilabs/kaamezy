@@ -593,7 +593,7 @@ body.no-auth #home-out,body.no-auth #ac-out,body.no-auth #ac-pw,body.no-auth #ac
 
 <script>
 "use strict";
-const DEFAULT_API = "https://chaukhas-agentic-ai.onrender.com";
+const DEFAULT_API = "https://kaamezy-api.onrender.com";
 const qs = new URLSearchParams(location.search);
 const store = { get(k){ try{return localStorage.getItem(k)}catch(e){return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch(e){} } };
 let API = (qs.get("api") || store.get("chaukas_api") || ((["localhost","127.0.0.1"].includes(location.hostname)) ? "http://localhost:8000" : DEFAULT_API)).replace(/\/$/,"");
@@ -831,7 +831,7 @@ try{ sb = window.supabase.createClient(SB_URL, SB_KEY); }catch(e){ sb = null; }
 
 /* DEMO MODE: no sign-in. Everyone is the single demo user, and the server must run with CHAUKAS_CONSUMER_AUTH=off.
    Set NO_AUTH to false to bring the Supabase sign-in back (and run the server with CHAUKAS_CONSUMER_AUTH=supabase). */
-const NO_AUTH = false;
+const NO_AUTH = true;
 let cur = null, user = null, recovering = false;
 const SCREENS = ["auth-page","home","cz","chs","ins","hi","hiw","hip","clm","hdr","hdc","hrl","hia","ich","ln","lnw","lnl","acct","pm","bp","sp","st"];
 function icons(){ try{ window.lucide && lucide.createIcons(); }catch(e){} }
